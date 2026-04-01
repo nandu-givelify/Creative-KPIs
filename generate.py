@@ -19,7 +19,9 @@ from slack_sdk.errors import SlackApiError
 #  CONFIGURATION  (tokens come from environment variables in GitHub Actions)
 # ═══════════════════════════════════════════════════════════════════════════════
 
-SLACK_TOKEN  = os.environ.get("SLACK_TOKEN",  "xoxb-7400780832-10616698630550-6BAy7axKsJJlm5OYb5hh6UK5")
+SLACK_TOKEN  = os.environ.get("SLACK_TOKEN")
+if not SLACK_TOKEN:
+    raise ValueError("SLACK_TOKEN environment variable is not set. Add it as a GitHub Actions secret.")
 CHANNEL_ID   = "C042J20J3M5"
 MANAGER_NAMES = ["Joe", "Gabe", "Alexa"]
 
