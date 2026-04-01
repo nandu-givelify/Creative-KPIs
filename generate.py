@@ -22,8 +22,16 @@ from slack_sdk.errors import SlackApiError
 SLACK_TOKEN  = os.environ.get("SLACK_TOKEN")
 if not SLACK_TOKEN:
     raise ValueError("SLACK_TOKEN environment variable is not set. Add it as a GitHub Actions secret.")
-CHANNEL_ID   = "C042J20J3M5"
+CHANNEL_ID    = "C042J20J3M5"
 MANAGER_NAMES = ["Joe", "Gabe", "Alexa"]
+
+# Full team roster — used so Ds/Person always divides by 12
+# and every member appears in the drill-down (with 0 if they didn't post)
+TEAM_MEMBERS = [
+    "Nata", "Nandu", "Dan Howard", "Alex", "Carlos Miras",
+    "Anastasia", "Evan Brown", "Krystyna", "Saba Talat",
+    "Andrew Kallemeyn", "Olexii Lysenko", "Spencer Arney",
+]
 
 TARGETS = {
     "num_ds":         48,
@@ -171,12 +179,18 @@ def process_slack(client, channel_id, users, managers, start_dt, end_dt):
     print(f"  Deliverables found: {len(roots)}")
 
     month_data = {}
+    skipped_managers = 0
     for root in roots:
         rts   = root["ts"]
         month = ts_month(rts)
         pid   = root.get("user","")
         pu    = users.get(pid, {})
         pname = pu.get("display_name") or pu.get("name","Unknown")
+
+        # Skip deliverables posted by managers — they are reviewers only
+        if pid in managers:
+            skipped_managers += 1
+            continue
 
         thread  = fetch_thread(client, channel_id, rts)
         replies = thread[1:]
@@ -217,6 +231,7 @@ def process_slack(client, channel_id, users, managers, start_dt, end_dt):
             "cycles": cycle_data,
         })
 
+    print(f"  Skipped {skipped_managers} deliverables posted by managers")
     return month_data
 
 
@@ -252,15 +267,23 @@ def compute_metrics(month_data, managers):
         sd = lambda d: dict(sorted(d.items(), key=lambda x:-x[1]))
         sa = lambda d: dict(sorted(d.items(), key=lambda x: x[1]))
 
+        # Ds/Person always divides by the full team (12 members), not just those who posted.
+        # All 12 members appear in the drill-down; non-posters show 0.
+        full_team_ds = {name: pd.get(name, 0) for name in TEAM_MEMBERS}
+        # Also include anyone who posted but isn't in the hardcoded list (edge case)
+        for name, count in pd.items():
+            if name not in full_team_ds:
+                full_team_ds[name] = count
+
         result[month] = {
             "num_ds":        n,
-            "ds_per_person": round(n/len(pd),2),
+            "ds_per_person": round(n / len(TEAM_MEMBERS), 2),
             "cycles_per_d":  round(tc/n,2),
             "replies_per_d": round(tr/n,2),
             "response_per_d": avg_resp,
             "drill": {
-                "num_ds":        sd(pd),
-                "ds_per_person": sd(pd),
+                "num_ds":        sd(full_team_ds),
+                "ds_per_person": sd(full_team_ds),
                 "cycles_per_d":  sd({k:round(pc[k]/pd[k],2) for k in pd}),
                 "replies_per_d": sd({k:round(pr[k]/pd[k],2) for k in pd}),
                 "response_per_d": sa(mgr_avgs),
