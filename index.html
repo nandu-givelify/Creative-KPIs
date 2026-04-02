@@ -141,7 +141,7 @@
                 position: fixed;
                 top: 0;
                 right: -440px;
-                max-width: 420px;
+                width: 420px;
                 height: 100vh;
                 background: #fff;
                 box-shadow: -4px 0 28px rgba(0,0,0,.09);
@@ -150,7 +150,9 @@
                 display: flex;
                 flex-direction: column
             }
-
+@media only screen and (max-width: 600px) {
+  .pnl {width: 100%;}
+}
             .pnl.open {
                 right: 0
             }
