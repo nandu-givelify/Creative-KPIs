@@ -178,6 +178,10 @@ def process_slack(client, channel_id, users, managers, start_dt, end_dt):
              if is_root(m) and not m.get("subtype") and has(m.get("text",""), "for review:")]
     print(f"  Deliverables found: {len(roots)}")
 
+    print(f"\n  Managers being tracked for response time:")
+    for mid, m in managers.items():
+        print(f"    {m['manager_label']}: id={mid} tz={m['tz']}")
+
     month_data = {}
     skipped_managers = 0
     for root in roots:
@@ -207,6 +211,7 @@ def process_slack(client, channel_id, users, managers, start_dt, end_dt):
         for cyc in cycles:
             cts, tagged = float(cyc["ts"]), cyc["tagged"]
             resp_time, resp_mgr = None, None
+            tagged_names = [managers.get(t, {}).get("display_name", t) for t in tagged]
             if tagged:
                 best_ts, best_mgr = None, None
                 for msg in replies:
@@ -216,8 +221,15 @@ def process_slack(client, channel_id, users, managers, start_dt, end_dt):
                             best_ts, best_mgr = mts, msg["user"]
                 if best_ts and best_mgr:
                     bh = business_hours_between(cts, best_ts, managers[best_mgr]["tz"])
+                    mgr_label = managers[best_mgr].get("manager_label", best_mgr)
+                    print(f"    CYCLE → tagged={tagged_names} | responder={mgr_label} "
+                          f"| biz_hrs={bh} | excluded={'YES (>72h)' if bh > NO_RESPONSE_THRESHOLD_BH else 'no'}")
                     if bh <= NO_RESPONSE_THRESHOLD_BH:
                         resp_time, resp_mgr = bh, best_mgr
+                else:
+                    print(f"    CYCLE → tagged={tagged_names} | NO RESPONSE FOUND in thread")
+            else:
+                print(f"    CYCLE → no managers tagged (tagged={tagged_names or 'none'})")
             cycle_data.append({
                 "ts": cyc["ts"], "tagged": tagged,
                 "response_time_hours": resp_time,
