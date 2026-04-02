@@ -11,9 +11,11 @@ h1{font-size:2.6rem;font-weight:300;letter-spacing:-.5px;margin-bottom:52px}
 table{width:100%;border-collapse:collapse;margin-bottom:52px}
 th,td{padding:18px 10px;border-bottom:1px solid #f0f0f0;vertical-align:middle}
 .mh{font-size:10px;font-weight:500;letter-spacing:1.2px;text-transform:uppercase;color:#c0c0c0;text-align:center;min-width:62px}
-.ml{min-width:170px;padding-right:28px}
+.ml{min-width:200px;padding-right:28px}
 .mn{font-size:1.05rem;font-weight:600;color:#111;margin-bottom:4px}
-.mt{font-size:.72rem;color:#c0c0c0;cursor:default}
+.mn.click-title{cursor:pointer;display:inline-block}
+.mn.click-title:hover{color:#0057d9;text-decoration:underline;text-decoration-style:dotted;text-decoration-color:#0057d9}
+.mt{font-size:.72rem;color:#c0c0c0}
 .mc{text-align:center}
 .mv{font-size:.97rem;font-weight:500;color:#222}
 .mv.click{cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-decoration-color:#ddd;transition:color .15s,text-decoration-color .15s}
@@ -21,19 +23,29 @@ th,td{padding:18px 10px;border-bottom:1px solid #f0f0f0;vertical-align:middle}
 .empty{color:#e0e0e0;font-size:.8rem}
 .ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.1);z-index:100}
 .ov.on{display:block}
-.pnl{position:fixed;top:0;right:-420px;width:390px;height:100vh;background:#fff;box-shadow:-4px 0 28px rgba(0,0,0,.09);z-index:101;transition:right .27s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column}
+.pnl{position:fixed;top:0;right:-440px;width:420px;height:100vh;background:#fff;box-shadow:-4px 0 28px rgba(0,0,0,.09);z-index:101;transition:right .27s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column}
 .pnl.open{right:0}
 .ph{padding:28px 28px 20px;border-bottom:1px solid #f2f2f2;display:flex;justify-content:space-between;align-items:flex-start}
-.pt{font-size:1rem;font-weight:600;color:#111}
-.ps{font-size:.73rem;color:#aaa;margin-top:5px}
-.px{background:none;border:none;cursor:pointer;color:#bbb;font-size:1.15rem;padding:0;margin-left:10px;line-height:1}
+.pt{font-size:1.05rem;font-weight:600;color:#111}
+.ps{font-size:.73rem;color:#aaa;margin-top:4px}
+.px{background:none;border:none;cursor:pointer;color:#bbb;font-size:1.15rem;padding:0;margin-left:10px;line-height:1;flex-shrink:0}
 .px:hover{color:#333}
-.pb{flex:1;overflow-y:auto;padding:16px 28px 28px}
+.pb{flex:1;overflow-y:auto;padding:24px 28px 32px}
+/* Drill-down rows */
 .dr{display:flex;justify-content:space-between;align-items:center;padding:13px 0;border-bottom:1px solid #f8f8f8}
 .dr:last-child{border:none}
 .dn{font-size:.88rem;color:#444}
 .dv{font-size:.88rem;font-weight:600;color:#111}
 .nd{color:#bbb;font-size:.82rem;padding:20px 0;text-align:center}
+/* Info panel sections */
+.info-section{margin-bottom:24px}
+.info-label{font-size:9.5px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#bbb;margin-bottom:8px}
+.info-text{font-size:.88rem;color:#333;line-height:1.6}
+.info-formula{font-size:.88rem;color:#333;background:#f7f7f7;border-radius:6px;padding:10px 14px;font-family:monospace;line-height:1.5}
+.info-rules{list-style:none;padding:0;margin:0}
+.info-rules li{font-size:.85rem;color:#444;line-height:1.55;padding:5px 0 5px 16px;border-bottom:1px solid #f5f5f5;position:relative}
+.info-rules li:last-child{border:none}
+.info-rules li::before{content:"–";position:absolute;left:0;color:#bbb}
 .ft{margin-top:48px;font-size:.68rem;color:#ccc}
 </style>
 </head>
@@ -46,27 +58,27 @@ th,td{padding:18px 10px;border-bottom:1px solid #f0f0f0;vertical-align:middle}
   <tbody>
         <tr class="mr">
           <td class="ml">
-            <div class="mn"># Ds</div>
-            <div class="mt" title="Total deliverables posted">Target: 48</div>
-          </td><td class="mc"><span class="mv click" data-month="JAN" data-year="2026" data-metric="# Ds" data-suffix="" data-drill="{&quot;Carlos Miras&quot;: 5, &quot;Nata&quot;: 3, &quot;Dan Howard&quot;: 3, &quot;Olexii Lysenko&quot;: 3, &quot;Spencer Arney&quot;: 3, &quot;Alex&quot;: 2, &quot;Krystyna&quot;: 2, &quot;Saba Talat&quot;: 2, &quot;Anastasia&quot;: 1, &quot;Nandu&quot;: 0, &quot;Evan Brown&quot;: 0, &quot;Andrew Kallemeyn&quot;: 0}" onclick="showPanel(this)">24</span></td><td class="mc"><span class="mv click" data-month="FEB" data-year="2026" data-metric="# Ds" data-suffix="" data-drill="{&quot;Carlos Miras&quot;: 9, &quot;Nata&quot;: 4, &quot;Dan Howard&quot;: 3, &quot;Spencer Arney&quot;: 3, &quot;Alex&quot;: 2, &quot;Saba Talat&quot;: 2, &quot;Nandu&quot;: 1, &quot;Krystyna&quot;: 1, &quot;Anastasia&quot;: 0, &quot;Evan Brown&quot;: 0, &quot;Andrew Kallemeyn&quot;: 0, &quot;Olexii Lysenko&quot;: 0}" onclick="showPanel(this)">25</span></td><td class="mc"><span class="mv click" data-month="MAR" data-year="2026" data-metric="# Ds" data-suffix="" data-drill="{&quot;Nata&quot;: 14, &quot;Nandu&quot;: 6, &quot;Dan Howard&quot;: 6, &quot;Carlos Miras&quot;: 5, &quot;Alex&quot;: 3, &quot;Jacob Blaze&quot;: 3, &quot;Anastasia&quot;: 2, &quot;Olexii Lysenko&quot;: 2, &quot;Evan Brown&quot;: 1, &quot;Krystyna&quot;: 1, &quot;Saba Talat&quot;: 1, &quot;Spencer Arney&quot;: 1, &quot;Andrew Kallemeyn&quot;: 0}" onclick="showPanel(this)">45</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td>
+            <div class="mn click-title" onclick="showInfo('num_ds')"># Deliverables</div>
+            <div class="mt">Target: 48</div>
+          </td><td class="mc"><span class="mv click" data-month="JAN" data-year="2026" data-metric="# Deliverables" data-suffix="" data-drill="{&quot;Carlos Miras&quot;: 5, &quot;Nata&quot;: 3, &quot;Dan Howard&quot;: 3, &quot;Olexii Lysenko&quot;: 3, &quot;Spencer Arney&quot;: 3, &quot;Alex&quot;: 2, &quot;Krystyna&quot;: 2, &quot;Saba Talat&quot;: 2, &quot;Anastasia&quot;: 1, &quot;Nandu&quot;: 0, &quot;Evan Brown&quot;: 0, &quot;Andrew Kallemeyn&quot;: 0}" onclick="showDrill(this)">24</span></td><td class="mc"><span class="mv click" data-month="FEB" data-year="2026" data-metric="# Deliverables" data-suffix="" data-drill="{&quot;Carlos Miras&quot;: 9, &quot;Nata&quot;: 4, &quot;Dan Howard&quot;: 3, &quot;Spencer Arney&quot;: 3, &quot;Alex&quot;: 2, &quot;Saba Talat&quot;: 2, &quot;Nandu&quot;: 1, &quot;Krystyna&quot;: 1, &quot;Anastasia&quot;: 0, &quot;Evan Brown&quot;: 0, &quot;Andrew Kallemeyn&quot;: 0, &quot;Olexii Lysenko&quot;: 0}" onclick="showDrill(this)">25</span></td><td class="mc"><span class="mv click" data-month="MAR" data-year="2026" data-metric="# Deliverables" data-suffix="" data-drill="{&quot;Nata&quot;: 14, &quot;Nandu&quot;: 6, &quot;Dan Howard&quot;: 6, &quot;Carlos Miras&quot;: 5, &quot;Alex&quot;: 3, &quot;Jacob Blaze&quot;: 3, &quot;Anastasia&quot;: 2, &quot;Olexii Lysenko&quot;: 2, &quot;Evan Brown&quot;: 1, &quot;Krystyna&quot;: 1, &quot;Saba Talat&quot;: 1, &quot;Spencer Arney&quot;: 1, &quot;Andrew Kallemeyn&quot;: 0}" onclick="showDrill(this)">45</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td>
         </tr>
         <tr class="mr">
           <td class="ml">
-            <div class="mn">Ds/Person</div>
-            <div class="mt" title="Avg deliverables per person">Target: 4</div>
-          </td><td class="mc"><span class="mv click" data-month="JAN" data-year="2026" data-metric="Ds/Person" data-suffix="" data-drill="{&quot;Carlos Miras&quot;: 5, &quot;Nata&quot;: 3, &quot;Dan Howard&quot;: 3, &quot;Olexii Lysenko&quot;: 3, &quot;Spencer Arney&quot;: 3, &quot;Alex&quot;: 2, &quot;Krystyna&quot;: 2, &quot;Saba Talat&quot;: 2, &quot;Anastasia&quot;: 1, &quot;Nandu&quot;: 0, &quot;Evan Brown&quot;: 0, &quot;Andrew Kallemeyn&quot;: 0}" onclick="showPanel(this)">2.0</span></td><td class="mc"><span class="mv click" data-month="FEB" data-year="2026" data-metric="Ds/Person" data-suffix="" data-drill="{&quot;Carlos Miras&quot;: 9, &quot;Nata&quot;: 4, &quot;Dan Howard&quot;: 3, &quot;Spencer Arney&quot;: 3, &quot;Alex&quot;: 2, &quot;Saba Talat&quot;: 2, &quot;Nandu&quot;: 1, &quot;Krystyna&quot;: 1, &quot;Anastasia&quot;: 0, &quot;Evan Brown&quot;: 0, &quot;Andrew Kallemeyn&quot;: 0, &quot;Olexii Lysenko&quot;: 0}" onclick="showPanel(this)">2.08</span></td><td class="mc"><span class="mv click" data-month="MAR" data-year="2026" data-metric="Ds/Person" data-suffix="" data-drill="{&quot;Nata&quot;: 14, &quot;Nandu&quot;: 6, &quot;Dan Howard&quot;: 6, &quot;Carlos Miras&quot;: 5, &quot;Alex&quot;: 3, &quot;Jacob Blaze&quot;: 3, &quot;Anastasia&quot;: 2, &quot;Olexii Lysenko&quot;: 2, &quot;Evan Brown&quot;: 1, &quot;Krystyna&quot;: 1, &quot;Saba Talat&quot;: 1, &quot;Spencer Arney&quot;: 1, &quot;Andrew Kallemeyn&quot;: 0}" onclick="showPanel(this)">3.75</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td>
+            <div class="mn click-title" onclick="showInfo('ds_per_person')">Deliverables / Person</div>
+            <div class="mt">Target: 4</div>
+          </td><td class="mc"><span class="mv click" data-month="JAN" data-year="2026" data-metric="Deliverables / Person" data-suffix="" data-drill="{&quot;Carlos Miras&quot;: 5, &quot;Nata&quot;: 3, &quot;Dan Howard&quot;: 3, &quot;Olexii Lysenko&quot;: 3, &quot;Spencer Arney&quot;: 3, &quot;Alex&quot;: 2, &quot;Krystyna&quot;: 2, &quot;Saba Talat&quot;: 2, &quot;Anastasia&quot;: 1, &quot;Nandu&quot;: 0, &quot;Evan Brown&quot;: 0, &quot;Andrew Kallemeyn&quot;: 0}" onclick="showDrill(this)">2.0</span></td><td class="mc"><span class="mv click" data-month="FEB" data-year="2026" data-metric="Deliverables / Person" data-suffix="" data-drill="{&quot;Carlos Miras&quot;: 9, &quot;Nata&quot;: 4, &quot;Dan Howard&quot;: 3, &quot;Spencer Arney&quot;: 3, &quot;Alex&quot;: 2, &quot;Saba Talat&quot;: 2, &quot;Nandu&quot;: 1, &quot;Krystyna&quot;: 1, &quot;Anastasia&quot;: 0, &quot;Evan Brown&quot;: 0, &quot;Andrew Kallemeyn&quot;: 0, &quot;Olexii Lysenko&quot;: 0}" onclick="showDrill(this)">2.08</span></td><td class="mc"><span class="mv click" data-month="MAR" data-year="2026" data-metric="Deliverables / Person" data-suffix="" data-drill="{&quot;Nata&quot;: 14, &quot;Nandu&quot;: 6, &quot;Dan Howard&quot;: 6, &quot;Carlos Miras&quot;: 5, &quot;Alex&quot;: 3, &quot;Jacob Blaze&quot;: 3, &quot;Anastasia&quot;: 2, &quot;Olexii Lysenko&quot;: 2, &quot;Evan Brown&quot;: 1, &quot;Krystyna&quot;: 1, &quot;Saba Talat&quot;: 1, &quot;Spencer Arney&quot;: 1, &quot;Andrew Kallemeyn&quot;: 0}" onclick="showDrill(this)">3.75</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td>
         </tr>
         <tr class="mr">
           <td class="ml">
-            <div class="mn">Cycles/D</div>
-            <div class="mt" title="Avg review cycles per deliverable">Target: TBD</div>
-          </td><td class="mc"><span class="mv click" data-month="JAN" data-year="2026" data-metric="Cycles/D" data-suffix="" data-drill="{&quot;Anastasia&quot;: 16.0, &quot;Alex&quot;: 4.0, &quot;Nata&quot;: 3.0, &quot;Carlos Miras&quot;: 2.8, &quot;Olexii Lysenko&quot;: 2.67, &quot;Saba Talat&quot;: 2.0, &quot;Dan Howard&quot;: 1.67, &quot;Spencer Arney&quot;: 1.33, &quot;Krystyna&quot;: 1.0}" onclick="showPanel(this)">2.92</span></td><td class="mc"><span class="mv click" data-month="FEB" data-year="2026" data-metric="Cycles/D" data-suffix="" data-drill="{&quot;Krystyna&quot;: 8.0, &quot;Carlos Miras&quot;: 3.0, &quot;Dan Howard&quot;: 2.67, &quot;Nata&quot;: 2.0, &quot;Spencer Arney&quot;: 1.67, &quot;Alex&quot;: 1.0, &quot;Saba Talat&quot;: 1.0, &quot;Nandu&quot;: 0.0}" onclick="showPanel(this)">2.4</span></td><td class="mc"><span class="mv click" data-month="MAR" data-year="2026" data-metric="Cycles/D" data-suffix="" data-drill="{&quot;Carlos Miras&quot;: 4.4, &quot;Olexii Lysenko&quot;: 4.0, &quot;Spencer Arney&quot;: 4.0, &quot;Dan Howard&quot;: 3.33, &quot;Anastasia&quot;: 3.0, &quot;Jacob Blaze&quot;: 2.33, &quot;Nata&quot;: 1.29, &quot;Alex&quot;: 0.67, &quot;Nandu&quot;: 0.5, &quot;Evan Brown&quot;: 0.0, &quot;Krystyna&quot;: 0.0, &quot;Saba Talat&quot;: 0.0}" onclick="showPanel(this)">2.0</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td>
+            <div class="mn click-title" onclick="showInfo('cycles_per_d')">Cycles / Deliverable</div>
+            <div class="mt">Target: TBD</div>
+          </td><td class="mc"><span class="mv click" data-month="JAN" data-year="2026" data-metric="Cycles / Deliverable" data-suffix="" data-drill="{&quot;Anastasia&quot;: 16.0, &quot;Alex&quot;: 4.0, &quot;Nata&quot;: 3.0, &quot;Carlos Miras&quot;: 2.8, &quot;Olexii Lysenko&quot;: 2.67, &quot;Saba Talat&quot;: 2.0, &quot;Dan Howard&quot;: 1.67, &quot;Spencer Arney&quot;: 1.33, &quot;Krystyna&quot;: 1.0}" onclick="showDrill(this)">2.92</span></td><td class="mc"><span class="mv click" data-month="FEB" data-year="2026" data-metric="Cycles / Deliverable" data-suffix="" data-drill="{&quot;Krystyna&quot;: 8.0, &quot;Carlos Miras&quot;: 3.0, &quot;Dan Howard&quot;: 2.67, &quot;Nata&quot;: 2.0, &quot;Spencer Arney&quot;: 1.67, &quot;Alex&quot;: 1.0, &quot;Saba Talat&quot;: 1.0, &quot;Nandu&quot;: 0.0}" onclick="showDrill(this)">2.4</span></td><td class="mc"><span class="mv click" data-month="MAR" data-year="2026" data-metric="Cycles / Deliverable" data-suffix="" data-drill="{&quot;Carlos Miras&quot;: 4.4, &quot;Olexii Lysenko&quot;: 4.0, &quot;Spencer Arney&quot;: 4.0, &quot;Dan Howard&quot;: 3.33, &quot;Anastasia&quot;: 3.0, &quot;Jacob Blaze&quot;: 2.33, &quot;Nata&quot;: 1.29, &quot;Alex&quot;: 0.67, &quot;Nandu&quot;: 0.5, &quot;Evan Brown&quot;: 0.0, &quot;Krystyna&quot;: 0.0, &quot;Saba Talat&quot;: 0.0}" onclick="showDrill(this)">2.0</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td>
         </tr>
         <tr class="mr">
           <td class="ml">
-            <div class="mn">Replies/D</div>
-            <div class="mt" title="Avg replies per deliverable">Target: TBD</div>
-          </td><td class="mc"><span class="mv click" data-month="JAN" data-year="2026" data-metric="Replies/D" data-suffix="" data-drill="{&quot;Anastasia&quot;: 25.0, &quot;Alex&quot;: 15.5, &quot;Carlos Miras&quot;: 13.0, &quot;Olexii Lysenko&quot;: 12.33, &quot;Nata&quot;: 9.0, &quot;Spencer Arney&quot;: 7.0, &quot;Saba Talat&quot;: 4.5, &quot;Dan Howard&quot;: 3.33, &quot;Krystyna&quot;: 3.0}" onclick="showPanel(this)">9.62</span></td><td class="mc"><span class="mv click" data-month="FEB" data-year="2026" data-metric="Replies/D" data-suffix="" data-drill="{&quot;Krystyna&quot;: 19.0, &quot;Carlos Miras&quot;: 10.44, &quot;Nata&quot;: 9.5, &quot;Dan Howard&quot;: 9.33, &quot;Saba Talat&quot;: 6.5, &quot;Spencer Arney&quot;: 3.33, &quot;Alex&quot;: 3.0, &quot;Nandu&quot;: 1.0}" onclick="showPanel(this)">8.36</span></td><td class="mc"><span class="mv click" data-month="MAR" data-year="2026" data-metric="Replies/D" data-suffix="" data-drill="{&quot;Carlos Miras&quot;: 15.6, &quot;Spencer Arney&quot;: 15.0, &quot;Nata&quot;: 10.86, &quot;Dan Howard&quot;: 10.5, &quot;Jacob Blaze&quot;: 6.67, &quot;Anastasia&quot;: 6.0, &quot;Olexii Lysenko&quot;: 5.5, &quot;Alex&quot;: 4.67, &quot;Nandu&quot;: 3.5, &quot;Krystyna&quot;: 3.0, &quot;Saba Talat&quot;: 2.0, &quot;Evan Brown&quot;: 1.0}" onclick="showPanel(this)">8.71</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td>
+            <div class="mn click-title" onclick="showInfo('replies_per_d')">Replies / Deliverable</div>
+            <div class="mt">Target: TBD</div>
+          </td><td class="mc"><span class="mv click" data-month="JAN" data-year="2026" data-metric="Replies / Deliverable" data-suffix="" data-drill="{&quot;Anastasia&quot;: 25.0, &quot;Alex&quot;: 15.5, &quot;Carlos Miras&quot;: 13.0, &quot;Olexii Lysenko&quot;: 12.33, &quot;Nata&quot;: 9.0, &quot;Spencer Arney&quot;: 7.0, &quot;Saba Talat&quot;: 4.5, &quot;Dan Howard&quot;: 3.33, &quot;Krystyna&quot;: 3.0}" onclick="showDrill(this)">9.62</span></td><td class="mc"><span class="mv click" data-month="FEB" data-year="2026" data-metric="Replies / Deliverable" data-suffix="" data-drill="{&quot;Krystyna&quot;: 19.0, &quot;Carlos Miras&quot;: 10.44, &quot;Nata&quot;: 9.5, &quot;Dan Howard&quot;: 9.33, &quot;Saba Talat&quot;: 6.5, &quot;Spencer Arney&quot;: 3.33, &quot;Alex&quot;: 3.0, &quot;Nandu&quot;: 1.0}" onclick="showDrill(this)">8.36</span></td><td class="mc"><span class="mv click" data-month="MAR" data-year="2026" data-metric="Replies / Deliverable" data-suffix="" data-drill="{&quot;Carlos Miras&quot;: 15.6, &quot;Spencer Arney&quot;: 15.0, &quot;Nata&quot;: 10.86, &quot;Dan Howard&quot;: 10.5, &quot;Jacob Blaze&quot;: 7.0, &quot;Anastasia&quot;: 6.0, &quot;Olexii Lysenko&quot;: 5.5, &quot;Alex&quot;: 4.67, &quot;Nandu&quot;: 3.5, &quot;Krystyna&quot;: 3.0, &quot;Saba Talat&quot;: 2.0, &quot;Evan Brown&quot;: 1.0}" onclick="showDrill(this)">8.73</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td>
         </tr></tbody>
 </table>
 
@@ -76,9 +88,9 @@ th,td{padding:18px 10px;border-bottom:1px solid #f0f0f0;vertical-align:middle}
   <tbody>
         <tr class="mr">
           <td class="ml">
-            <div class="mn">Response/D</div>
-            <div class="mt" title="Avg manager first response time (hrs)">Target: TBD</div>
-          </td><td class="mc"><span class="mv click" data-month="JAN" data-year="2026" data-metric="Response/D" data-suffix="h" data-drill="{&quot;Joe&quot;: 3.8, &quot;Gabe&quot;: 4.8, &quot;Alexa&quot;: 6.5}" onclick="showPanel(this)">5.6h</span></td><td class="mc"><span class="mv click" data-month="FEB" data-year="2026" data-metric="Response/D" data-suffix="h" data-drill="{&quot;Alexa&quot;: 1.3, &quot;Gabe&quot;: 8.5, &quot;Joe&quot;: 8.7}" onclick="showPanel(this)">4.7h</span></td><td class="mc"><span class="mv click" data-month="MAR" data-year="2026" data-metric="Response/D" data-suffix="h" data-drill="{&quot;Alexa&quot;: 1.9, &quot;Gabe&quot;: 5.3, &quot;Joe&quot;: 5.4}" onclick="showPanel(this)">3.5h</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td>
+            <div class="mn click-title" onclick="showInfo('response_per_d')">Avg. Response Time</div>
+            <div class="mt">Target: TBD</div>
+          </td><td class="mc"><span class="mv click" data-month="JAN" data-year="2026" data-metric="Avg. Response Time" data-suffix="h" data-drill="{&quot;Joe&quot;: 3.8, &quot;Gabe&quot;: 4.8, &quot;Alexa&quot;: 6.5}" onclick="showDrill(this)">5.6h</span></td><td class="mc"><span class="mv click" data-month="FEB" data-year="2026" data-metric="Avg. Response Time" data-suffix="h" data-drill="{&quot;Alexa&quot;: 1.3, &quot;Gabe&quot;: 8.5, &quot;Joe&quot;: 8.7}" onclick="showDrill(this)">4.7h</span></td><td class="mc"><span class="mv click" data-month="MAR" data-year="2026" data-metric="Avg. Response Time" data-suffix="h" data-drill="{&quot;Alexa&quot;: 1.9, &quot;Gabe&quot;: 5.3, &quot;Joe&quot;: 5.4}" onclick="showDrill(this)">3.5h</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td>
         </tr></tbody>
 </table>
 
@@ -94,23 +106,50 @@ th,td{padding:18px 10px;border-bottom:1px solid #f0f0f0;vertical-align:middle}
 </div>
 
 <script>
-function showPanel(el){
-  const s=el.dataset.suffix||'';
-  let d={};try{d=JSON.parse(el.dataset.drill)}catch(e){}
-  document.getElementById('pt').textContent=el.dataset.metric;
-  document.getElementById('ps').textContent=el.dataset.month+' '+el.dataset.year;
-  const e=Object.entries(d);
-  document.getElementById('pb').innerHTML=e.length
-    ?e.map(([n,v])=>`<div class="dr"><span class="dn">${n}</span><span class="dv">${v}${s}</span></div>`).join('')
-    :'<div class="nd">No breakdown available</div>';
+const METRIC_INFO = {"num_ds": {"label": "# Deliverables", "definition": "Total number of creative pieces submitted for review by the team in a given month.", "formula": "Count of qualifying Slack threads posted that month.", "rules": ["A thread qualifies if the root message contains \u201cFor review:\u201d", "OR the root contains \u201cFor feedback:\u201d and at least one reply contains \u201cFor review:\u201d", "Multiple \u201cFor review:\u201d messages in the same thread still count as 1 deliverable", "Only counts deliverables posted by team members \u2014 manager posts are excluded", "Counted in the month the root message was posted"]}, "ds_per_person": {"label": "Deliverables / Person", "definition": "How many deliverables each team member submitted on average.", "formula": "Total deliverables \u00f7 12 (full team size)", "rules": ["Always divided by all 12 team members, even if someone posted 0 that month", "Click any monthly value to see the per-person breakdown, including zeros"]}, "cycles_per_d": {"label": "Cycles / Deliverable", "definition": "On average, how many review rounds a deliverable goes through before completion. Lower is better \u2014 fewer cycles means faster approvals.", "formula": "Total cycles \u00f7 Total deliverables", "rules": ["A cycle = any message in the thread (after the root) containing \u201cFor feedback:\u201d or \u201cFor review:\u201d", "The root message is never counted as a cycle", "Click any monthly value to see cycles per person\u2019s deliverables"]}, "replies_per_d": {"label": "Replies / Deliverable", "definition": "Average number of discussion messages per deliverable thread, excluding cycle messages.", "formula": "Total non-cycle replies \u00f7 Total deliverables", "rules": ["Replies = any thread message that does not contain \u201cFor feedback:\u201d or \u201cFor review:\u201d", "Includes comments, questions, and general feedback discussion", "Click any monthly value to see replies per person\u2019s deliverables"]}, "response_per_d": {"label": "Avg. Response Time", "definition": "How quickly a manager first responds to a review or feedback request, measured in business hours. Lower is better.", "formula": "Average business hours from cycle message to first manager reply", "rules": ["Only Mon\u2013Fri, 8am\u20135pm in the responding manager\u2019s timezone counts", "Weekends and US federal holidays are excluded", "Any manager (Joe, Gabe, or Alexa) can respond \u2014 the first one to reply gets credit", "If a cycle has no manager response within 72 business hours, it is marked \u201cNo Response\u201d and excluded from the average", "Click any monthly value to see the average per manager"]}};
+
+function showInfo(key) {
+  const info = METRIC_INFO[key];
+  if (!info) return;
+  document.getElementById('pt').textContent = info.label;
+  document.getElementById('ps').textContent = 'Definition & Rules';
+  const rules = info.rules.map(r => `<li>${r}</li>`).join('');
+  document.getElementById('pb').innerHTML = `
+    <div class="info-section">
+      <div class="info-label">What it means</div>
+      <div class="info-text">${info.definition}</div>
+    </div>
+    <div class="info-section">
+      <div class="info-label">How it's calculated</div>
+      <div class="info-formula">${info.formula}</div>
+    </div>
+    <div class="info-section">
+      <div class="info-label">Rules</div>
+      <ul class="info-rules">${rules}</ul>
+    </div>`;
   document.getElementById('ov').classList.add('on');
   document.getElementById('pnl').classList.add('open');
 }
-function close_(){
+
+function showDrill(el) {
+  const s = el.dataset.suffix || '';
+  let d = {};
+  try { d = JSON.parse(el.dataset.drill); } catch(e) {}
+  document.getElementById('pt').textContent = el.dataset.metric;
+  document.getElementById('ps').textContent = el.dataset.month + ' ' + el.dataset.year;
+  const entries = Object.entries(d);
+  document.getElementById('pb').innerHTML = entries.length
+    ? entries.map(([n,v]) => `<div class="dr"><span class="dn">${n}</span><span class="dv">${v}${s}</span></div>`).join('')
+    : '<div class="nd">No breakdown available</div>';
+  document.getElementById('ov').classList.add('on');
+  document.getElementById('pnl').classList.add('open');
+}
+
+function close_() {
   document.getElementById('ov').classList.remove('on');
   document.getElementById('pnl').classList.remove('open');
 }
-document.addEventListener('keydown',e=>{if(e.key==='Escape')close_()});
+document.addEventListener('keydown', e => { if (e.key === 'Escape') close_(); });
 </script>
 </body>
 </html>

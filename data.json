@@ -1,11 +1,11 @@
 {
-  "last_updated": "2026-04-02T02:10:35.590657+00:00",
+  "last_updated": "2026-04-02T02:23:58.126552+00:00",
   "metrics": {
     "2026-03": {
       "num_ds": 45,
       "ds_per_person": 3.75,
       "cycles_per_d": 2.0,
-      "replies_per_d": 8.71,
+      "replies_per_d": 8.73,
       "response_per_d": 3.5,
       "drill": {
         "num_ds": {
@@ -57,7 +57,7 @@
           "Spencer Arney": 15.0,
           "Nata": 10.86,
           "Dan Howard": 10.5,
-          "Jacob Blaze": 6.67,
+          "Jacob Blaze": 7.0,
           "Anastasia": 6.0,
           "Olexii Lysenko": 5.5,
           "Alex": 4.67,
