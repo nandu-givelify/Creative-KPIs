@@ -174,9 +174,15 @@ def process_slack(client, channel_id, users, managers, start_dt, end_dt):
     all_msgs = fetch_history(client, channel_id, start_dt.timestamp(), end_dt.timestamp())
     print(f"  Total channel messages: {len(all_msgs)}")
 
-    roots = [m for m in all_msgs
-             if is_root(m) and not m.get("subtype") and has(m.get("text",""), "for review:")]
-    print(f"  Deliverables found: {len(roots)}")
+    # Candidate roots: "For review:" roots are confirmed deliverables.
+    # "For feedback:" roots are candidates — confirmed only if a reply contains "For review:".
+    review_roots   = [m for m in all_msgs
+                      if is_root(m) and not m.get("subtype") and has(m.get("text",""), "for review:")]
+    feedback_roots = [m for m in all_msgs
+                      if is_root(m) and not m.get("subtype") and has(m.get("text",""), "for feedback:")
+                      and not has(m.get("text",""), "for review:")]  # avoid double-counting
+    print(f"  'For review:' roots: {len(review_roots)}")
+    print(f"  'For feedback:' roots (pending validation): {len(feedback_roots)}")
 
     print(f"\n  Managers being tracked for response time:")
     for mid, m in managers.items():
@@ -184,7 +190,14 @@ def process_slack(client, channel_id, users, managers, start_dt, end_dt):
 
     month_data = {}
     skipped_managers = 0
-    for root in roots:
+    feedback_confirmed = 0
+    feedback_skipped   = 0
+
+    # Combine: confirmed roots first, then feedback candidates
+    all_candidate_roots = [(root, "review") for root in review_roots] + \
+                          [(root, "feedback") for root in feedback_roots]
+
+    for root, root_type in all_candidate_roots:
         rts   = root["ts"]
         month = ts_month(rts)
         pid   = root.get("user","")
@@ -199,6 +212,14 @@ def process_slack(client, channel_id, users, managers, start_dt, end_dt):
         thread  = fetch_thread(client, channel_id, rts)
         replies = thread[1:]
 
+        # For "For feedback:" roots, confirm at least one reply has "For review:"
+        if root_type == "feedback":
+            has_review_reply = any(has(m.get("text",""), "for review:") for m in replies)
+            if not has_review_reply:
+                feedback_skipped += 1
+                continue
+            feedback_confirmed += 1
+
         cycles, other = [], []
         for msg in replies:
             txt = msg.get("text","")
@@ -212,24 +233,25 @@ def process_slack(client, channel_id, users, managers, start_dt, end_dt):
             cts, tagged = float(cyc["ts"]), cyc["tagged"]
             resp_time, resp_mgr = None, None
             tagged_names = [managers.get(t, {}).get("display_name", t) for t in tagged]
-            if tagged:
-                best_ts, best_mgr = None, None
-                for msg in replies:
-                    mts = float(msg["ts"])
-                    if mts > cts and msg.get("user") in tagged:
-                        if best_ts is None or mts < best_ts:
-                            best_ts, best_mgr = mts, msg["user"]
-                if best_ts and best_mgr:
-                    bh = business_hours_between(cts, best_ts, managers[best_mgr]["tz"])
-                    mgr_label = managers[best_mgr].get("manager_label", best_mgr)
-                    print(f"    CYCLE → tagged={tagged_names} | responder={mgr_label} "
-                          f"| biz_hrs={bh} | excluded={'YES (>72h)' if bh > NO_RESPONSE_THRESHOLD_BH else 'no'}")
-                    if bh <= NO_RESPONSE_THRESHOLD_BH:
-                        resp_time, resp_mgr = bh, best_mgr
-                else:
-                    print(f"    CYCLE → tagged={tagged_names} | NO RESPONSE FOUND in thread")
+
+            # Any manager can respond — find first manager reply after this cycle
+            best_ts, best_mgr = None, None
+            for msg in replies:
+                mts = float(msg["ts"])
+                if mts > cts and msg.get("user") in mgr_ids:
+                    if best_ts is None or mts < best_ts:
+                        best_ts, best_mgr = mts, msg["user"]
+
+            if best_ts and best_mgr:
+                bh = business_hours_between(cts, best_ts, managers[best_mgr]["tz"])
+                mgr_label = managers[best_mgr].get("manager_label", best_mgr)
+                print(f"    CYCLE → tagged={tagged_names} | responder={mgr_label} "
+                      f"| biz_hrs={bh} | excluded={'YES (>72h)' if bh > NO_RESPONSE_THRESHOLD_BH else 'no'}")
+                if bh <= NO_RESPONSE_THRESHOLD_BH:
+                    resp_time, resp_mgr = bh, best_mgr
             else:
-                print(f"    CYCLE → no managers tagged (tagged={tagged_names or 'none'})")
+                print(f"    CYCLE → tagged={tagged_names} | NO MANAGER RESPONSE FOUND")
+
             cycle_data.append({
                 "ts": cyc["ts"], "tagged": tagged,
                 "response_time_hours": resp_time,
@@ -244,6 +266,8 @@ def process_slack(client, channel_id, users, managers, start_dt, end_dt):
         })
 
     print(f"  Skipped {skipped_managers} deliverables posted by managers")
+    print(f"  'For feedback:' roots confirmed as deliverables: {feedback_confirmed}")
+    print(f"  'For feedback:' roots skipped (no 'For review:' reply): {feedback_skipped}")
     return month_data
 
 
