@@ -1,6 +1,9 @@
 name: Update Creative KPIs Dashboard
 
 on:
+  push:
+    paths:
+      - 'generate.py'   # auto-runs whenever the script is updated
   schedule:
     - cron: '0 8 1 * *'
   workflow_dispatch:
