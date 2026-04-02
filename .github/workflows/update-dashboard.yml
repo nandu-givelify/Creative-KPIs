@@ -5,7 +5,7 @@ on:
     paths:
       - 'generate.py'   # auto-runs whenever the script is updated
   schedule:
-    - cron: '0 8 1 * *'
+    - cron: '1 0 * * 1'   # 12:01am UTC every Monday
   workflow_dispatch:
 
 jobs:
