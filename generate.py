@@ -194,6 +194,32 @@ def process_slack(client, channel_id, users, managers, start_dt, end_dt):
     print(f"  'For review:' roots: {len(review_roots)}")
     print(f"  'For feedback:' roots (pending validation): {len(feedback_roots)}")
 
+    # ── DEBUG: trace every message containing "For review:" or "For feedback:" ──
+    evan_id = next((uid for uid, u in users.items()
+                    if "evan" in u.get("display_name","").lower() or
+                       "evan" in u.get("name","").lower()), None)
+    print(f"\n  DEBUG — Evan's Slack user ID: {evan_id}")
+    print(f"  DEBUG — All 'For review:' / 'For feedback:' messages in fetch window:")
+    for m in all_msgs:
+        txt = m.get("text","")
+        if not (has(txt, "for review:") or has(txt, "for feedback:")):
+            continue
+        uid   = m.get("user","")
+        uname = users.get(uid,{}).get("display_name","?")
+        ts    = m.get("ts","")
+        tts   = m.get("thread_ts","")
+        sub   = m.get("subtype") or "none"
+        root  = is_root(m)
+        dt    = datetime.fromtimestamp(float(ts), tz=timezone.utc).strftime("%Y-%m-%d %H:%M")
+        phrase = "For review:" if has(txt,"for review:") else "For feedback:"
+        if not root:
+            reason = "not root — reply sent to channel?"
+        elif sub != "none":
+            reason = f"has subtype: {sub}"
+        else:
+            reason = "OK"
+        print(f"    [{dt}] {uname:20s} | {phrase:13s} | root={str(root):5s} | subtype={sub:10s} → {reason}")
+
     print(f"\n  Managers being tracked for response time:")
     for mid, m in managers.items():
         print(f"    {m['manager_label']}: id={mid} tz={m['tz']}")
