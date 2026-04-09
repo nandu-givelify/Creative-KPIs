@@ -194,16 +194,62 @@ def process_slack(client, channel_id, users, managers, start_dt, end_dt):
     print(f"  'For review:' roots: {len(review_roots)}")
     print(f"  'For feedback:' roots (pending validation): {len(feedback_roots)}")
 
-    # ── DEBUG: write all "For review:" / "For feedback:" messages to debug.txt ──
+    # ── DEBUG: show ALL of Evan's messages + all For review/feedback messages ──
     evan_id = next((uid for uid, u in users.items()
                     if "evan" in u.get("display_name","").lower() or
                        "evan" in u.get("name","").lower()), None)
+
+    def extract_blocks_text(blocks):
+        """Pull plain text out of Slack rich text blocks."""
+        parts = []
+        for block in (blocks or []):
+            for el in block.get("elements", []):
+                for sub in el.get("elements", []):
+                    if sub.get("type") == "text":
+                        parts.append(sub.get("text",""))
+                    elif sub.get("type") == "user":
+                        parts.append(f"<@{sub.get('user_id','')}>")
+        return " ".join(parts)
+
     debug_lines = [
         f"Fetch window: {start_dt.date()} → {end_dt.date()}",
         f"Evan's Slack user ID: {evan_id}",
-        f"Total messages fetched: {len(all_msgs)}",
+        f"Total messages in window: {len(all_msgs)}",
         "",
-        f"{'Date':<18} {'Name':<22} {'Phrase':<14} {'Root':<6} {'Subtype':<16} Reason",
+        "═" * 80,
+        "SECTION 1 — ALL messages from Evan Brown",
+        "═" * 80,
+    ]
+    evan_msgs = [m for m in all_msgs if m.get("user") == evan_id]
+    debug_lines.append(f"Total messages from Evan: {len(evan_msgs)}")
+    debug_lines.append("")
+    for m in evan_msgs:
+        ts    = m.get("ts","")
+        tts   = m.get("thread_ts","")
+        sub   = m.get("subtype") or "none"
+        root  = is_root(m)
+        txt   = m.get("text","")
+        blks  = m.get("blocks",[])
+        btext = extract_blocks_text(blks)
+        dt    = datetime.fromtimestamp(float(ts), tz=timezone.utc).strftime("%Y-%m-%d %H:%M")
+        has_review   = has(txt,"for review:") or has(btext,"for review:")
+        has_feedback = has(txt,"for feedback:") or has(btext,"for feedback:")
+        phrase = "For review:" if has_review else ("For feedback:" if has_feedback else "—none—")
+        debug_lines += [
+            f"[{dt}] root={root} | subtype={sub}",
+            f"  text field:   {txt[:120]!r}",
+            f"  blocks text:  {btext[:120]!r}",
+            f"  phrase found: {phrase}",
+            f"  in text field: {has(txt,'for review:') or has(txt,'for feedback:')}",
+            f"  in blocks:     {has(btext,'for review:') or has(btext,'for feedback:')}",
+            "",
+        ]
+
+    debug_lines += [
+        "═" * 80,
+        "SECTION 2 — All 'For review:' / 'For feedback:' messages (all users, text field only)",
+        "═" * 80,
+        f"{'Date':<18} {'Name':<22} {'Phrase':<14} {'Root':<6} {'Subtype':<16} Verdict",
         "-" * 90,
     ]
     for m in all_msgs:
@@ -213,23 +259,15 @@ def process_slack(client, channel_id, users, managers, start_dt, end_dt):
         uid   = m.get("user","")
         uname = users.get(uid,{}).get("display_name","?")
         ts    = m.get("ts","")
-        tts   = m.get("thread_ts","")
         sub   = m.get("subtype") or "none"
         root  = is_root(m)
         dt    = datetime.fromtimestamp(float(ts), tz=timezone.utc).strftime("%Y-%m-%d %H:%M")
         phrase = "For review:" if has(txt,"for review:") else "For feedback:"
-        if not root:
-            reason = "SKIPPED — reply sent to channel (thread_ts != ts)"
-        elif sub != "none":
-            reason = f"SKIPPED — has subtype: {sub}"
-        else:
-            reason = "COUNTED"
-        debug_lines.append(
-            f"{dt:<18} {uname:<22} {phrase:<14} {str(root):<6} {sub:<16} {reason}"
-        )
-    debug_lines.append("")
-    debug_lines.append(f"'For review:' roots counted:  {len(review_roots)}")
-    debug_lines.append(f"'For feedback:' roots found:  {len(feedback_roots)}")
+        verdict = "COUNTED" if (root and sub == "none") else \
+                  ("SKIPPED — reply/broadcast" if not root else f"SKIPPED — subtype:{sub}")
+        debug_lines.append(f"{dt:<18} {uname:<22} {phrase:<14} {str(root):<6} {sub:<16} {verdict}")
+
+    debug_lines += ["", f"'For review:' roots: {len(review_roots)}", f"'For feedback:' roots: {len(feedback_roots)}"]
     with open("debug.txt", "w") as f:
         f.write("\n".join(debug_lines))
     print("  DEBUG output written to debug.txt")
