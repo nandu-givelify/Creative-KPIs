@@ -1,0 +1,569 @@
+Fetch window: 2026-01-09 → 2026-04-09
+Evan's Slack user ID: U07JT54G938
+Total messages fetched: 825
+
+Date               Name                   Phrase         Root   Subtype          Reason
+------------------------------------------------------------------------------------------
+2026-04-09 18:24   Spencer Arney          For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-04-09 17:07   Nata                   For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-04-09 16:51   Alex                   For feedback:  True   none             COUNTED
+2026-04-09 16:30   Krystyna               For feedback:  True   none             COUNTED
+2026-04-09 15:15   Nata                   For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-04-09 13:54   Olexii Lysenko         For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-04-09 13:14   Alex                   For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-04-09 13:06   Nata                   For feedback:  True   none             COUNTED
+2026-04-08 23:51   Carlos Miras           For review:    True   none             COUNTED
+2026-04-08 23:26   Nandu                  For review:    True   none             COUNTED
+2026-04-08 20:59   Jacob Blaze            For review:    True   none             COUNTED
+2026-04-08 18:45   Dan Howard             For review:    True   none             COUNTED
+2026-04-08 17:44   Nata                   For review:    True   none             COUNTED
+2026-04-08 17:22   Anastasia              For review:    True   none             COUNTED
+2026-04-08 17:14   Alex                   For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-04-08 17:04   Carlos Miras           For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-04-08 16:10   Carlos Miras           For review:    True   none             COUNTED
+2026-04-08 16:05   Krystyna               For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-04-08 14:46   Jacob Blaze            For review:    True   none             COUNTED
+2026-04-08 14:23   Carlos Miras           For review:    True   none             COUNTED
+2026-04-08 13:34   Nata                   For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-04-07 22:32   Spencer Arney          For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-04-07 21:50   Carlos Miras           For review:    True   none             COUNTED
+2026-04-07 20:39   Carlos Miras           For feedback:  True   none             COUNTED
+2026-04-07 16:37   Olexii Lysenko         For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-04-07 15:27   Krystyna               For review:    True   none             COUNTED
+2026-04-07 12:31   Alex                   For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-04-06 22:55   Carlos Miras           For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-04-06 22:21   Saba Talat             For feedback:  True   none             COUNTED
+2026-04-06 22:18   Carlos Miras           For review:    True   none             COUNTED
+2026-04-06 18:40   Alex                   For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-04-06 17:06   Nata                   For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-04-06 14:40   Nata                   For review:    True   none             COUNTED
+2026-04-06 14:05   Nata                   For review:    True   none             COUNTED
+2026-04-06 14:05   Spencer Arney          For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-04-06 13:42   Krystyna               For review:    True   none             COUNTED
+2026-04-03 20:45   Spencer Arney          For review:    True   none             COUNTED
+2026-04-03 20:36   Spencer Arney          For feedback:  True   none             COUNTED
+2026-04-03 19:27   Carlos Miras           For feedback:  True   none             COUNTED
+2026-04-03 19:11   Dan Howard             For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-04-03 18:32   Nata                   For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-04-03 17:47   Carlos Miras           For feedback:  True   none             COUNTED
+2026-04-03 17:45   Jacob Blaze            For review:    True   none             COUNTED
+2026-04-03 17:26   Dan Howard             For feedback:  True   none             COUNTED
+2026-04-03 17:02   Olexii Lysenko         For feedback:  True   none             COUNTED
+2026-04-03 16:52   Saba Talat             For feedback:  True   none             COUNTED
+2026-04-03 13:57   Olexii Lysenko         For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-04-03 13:34   Nata                   For review:    True   none             COUNTED
+2026-04-03 00:24   Jacob Blaze            For review:    True   none             COUNTED
+2026-04-02 20:07   Dan Howard             For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-04-02 19:18   Saba Talat             For review:    True   none             COUNTED
+2026-04-02 17:27   Anastasia              For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-04-02 16:34   Carlos Miras           For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-04-02 16:26   Nata                   For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-04-02 15:42   Carlos Miras           For review:    True   none             COUNTED
+2026-04-02 14:12   Nata                   For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-04-01 19:39   Saba Talat             For review:    True   none             COUNTED
+2026-04-01 18:41   Nandu                  For review:    True   none             COUNTED
+2026-04-01 17:17   Anastasia              For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-04-01 17:13   Spencer Arney          For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-04-01 17:02   Olexii Lysenko         For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-04-01 15:38   Nata                   For review:    True   none             COUNTED
+2026-04-01 15:16   Nata                   For review:    True   none             COUNTED
+2026-04-01 14:51   Alex                   For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-04-01 14:30   Jacob Blaze            For review:    True   none             COUNTED
+2026-03-31 21:54   Nandu                  For review:    True   none             COUNTED
+2026-03-31 19:01   Carlos Miras           For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-31 17:19   Nata                   For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-31 16:20   Carlos Miras           For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-31 15:54   Carlos Miras           For review:    True   none             COUNTED
+2026-03-31 14:18   Nata                   For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-31 13:53   Olexii Lysenko         For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-30 20:22   Nata                   For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-30 20:07   Carlos Miras           For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-30 17:44   Anastasia              For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-30 16:17   Carlos Miras           For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-30 16:10   Jacob Blaze            For feedback:  True   none             COUNTED
+2026-03-30 13:57   Olexii Lysenko         For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-30 11:28   Nata                   For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-27 23:10   Dan Howard             For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-27 22:03   Carlos Miras           For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-27 21:39   Carlos Miras           For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-27 21:09   Carlos Miras           For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-27 20:04   Saba Talat             For feedback:  True   none             COUNTED
+2026-03-27 19:42   Carlos Miras           For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-27 18:28   Carlos Miras           For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-27 18:05   Krystyna               For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-27 17:20   Nata                   For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-27 17:10   Nata                   For review:    True   none             COUNTED
+2026-03-27 15:14   Nata                   For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-27 14:35   Nata                   For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-27 13:02   Alex                   For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-27 01:02   Carlos Miras           For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-26 20:59   Carlos Miras           For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-26 20:44   Spencer Arney          For feedback:  True   none             COUNTED
+2026-03-26 18:05   Anastasia              For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-26 16:22   Olexii Lysenko         For feedback:  True   none             COUNTED
+2026-03-26 16:10   Nata                   For review:    True   none             COUNTED
+2026-03-26 15:52   Nata                   For review:    True   none             COUNTED
+2026-03-26 15:13   Dan Howard             For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-26 14:22   Carlos Miras           For feedback:  True   none             COUNTED
+2026-03-26 10:46   Nata                   For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-26 00:07   Nandu                  For review:    True   none             COUNTED
+2026-03-25 19:54   Carlos Miras           For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-25 19:03   Jacob Blaze            For review:    True   none             COUNTED
+2026-03-25 18:46   Carlos Miras           For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-25 17:48   Nata                   For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-25 17:33   Carlos Miras           For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-25 17:09   Jacob Blaze            For review:    True   none             COUNTED
+2026-03-25 17:08   Dan Howard             For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-25 16:15   Olexii Lysenko         For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-25 14:38   Krystyna               For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-25 13:24   Alex                   For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-25 01:01   Evan Brown             For review:    True   none             COUNTED
+2026-03-24 23:13   Carlos Miras           For feedback:  True   none             COUNTED
+2026-03-24 21:53   Spencer Arney          For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-24 20:23   Nandu                  For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-24 20:13   Jacob Blaze            For feedback:  True   none             COUNTED
+2026-03-24 17:55   Carlos Miras           For review:    True   none             COUNTED
+2026-03-24 16:58   Alex                   For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-24 16:40   Dan Howard             For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-24 12:47   Olexii Lysenko         For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-23 20:54   Nandu                  For review:    True   none             COUNTED
+2026-03-23 18:50   Carlos Miras           For feedback:  True   none             COUNTED
+2026-03-23 18:45   Carlos Miras           For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-23 18:27   Anastasia              For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-23 17:37   Carlos Miras           For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-23 17:23   Nata                   For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-23 16:32   Dan Howard             For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-23 16:25   Dan Howard             For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-23 10:25   Nata                   For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-20 20:27   Dan Howard             For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-20 19:03   Spencer Arney          For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-20 17:47   Alex                   For feedback:  True   none             COUNTED
+2026-03-20 17:29   Dan Howard             For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-20 15:50   Nata                   For review:    True   none             COUNTED
+2026-03-20 15:35   Gabe                   For feedback:  True   none             COUNTED
+2026-03-20 14:54   Nata                   For feedback:  True   none             COUNTED
+2026-03-20 13:34   Anastasia              For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-20 02:53   Dan Howard             For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-19 23:05   Carlos Miras           For feedback:  True   none             COUNTED
+2026-03-19 22:57   Dan Howard             For feedback:  True   none             COUNTED
+2026-03-19 18:15   Dan Howard             For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-19 16:42   Carlos Miras           For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-19 16:33   Krystyna               For review:    True   none             COUNTED
+2026-03-19 14:58   Alex                   For review:    True   none             COUNTED
+2026-03-19 13:09   Alex                   For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-19 09:55   Nata                   For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-19 00:20   Carlos Miras           For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-19 00:06   Dan Howard             For review:    True   none             COUNTED
+2026-03-18 19:45   Spencer Arney          For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-18 19:15   Carlos Miras           For feedback:  True   none             COUNTED
+2026-03-18 18:19   Anastasia              For review:    True   none             COUNTED
+2026-03-18 18:19   Olexii Lysenko         For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-18 17:57   Krystyna               For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-18 17:14   Carlos Miras           For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-18 14:12   Alex                   For review:    True   none             COUNTED
+2026-03-18 03:08   Andrew Kallemeyn       For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-18 01:38   Nandu                  For review:    True   none             COUNTED
+2026-03-17 22:08   Andrew Kallemeyn       For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-17 21:39   Alexa Patterson (MST)  For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-17 21:38   Alexa Patterson (MST)  For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-17 18:14   Saba Talat             For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-17 17:55   Saba Talat             For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-17 17:05   Olexii Lysenko         For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-17 17:05   Carlos Miras           For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-17 16:58   Saba Talat             For feedback:  True   none             COUNTED
+2026-03-17 16:51   Andrew Kallemeyn       For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-17 16:19   Carlos Miras           For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-17 15:30   Nata                   For review:    True   none             COUNTED
+2026-03-17 14:39   Gabe                   For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-17 11:17   Nata                   For review:    True   none             COUNTED
+2026-03-17 03:06   Dan Howard             For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-17 00:15   Alexa Patterson (MST)  For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-16 22:55   Alexa Patterson (MST)  For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-16 22:34   Carlos Miras           For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-16 21:41   Spencer Arney          For feedback:  True   none             COUNTED
+2026-03-16 21:00   Carlos Miras           For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-16 18:56   Anastasia              For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-16 17:31   Anastasia              For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-16 17:25   Nata                   For review:    True   none             COUNTED
+2026-03-16 14:57   Saba Talat             For feedback:  True   none             COUNTED
+2026-03-16 14:52   Nata                   For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-16 14:27   Olexii Lysenko         For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-16 13:58   Nata                   For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-14 00:47   Alexa Patterson (MST)  For review:    True   none             COUNTED
+2026-03-14 00:28   Alexa Patterson (MST)  For review:    True   none             COUNTED
+2026-03-14 00:13   Spencer Arney          For feedback:  True   none             COUNTED
+2026-03-13 22:41   Dan Howard             For review:    True   none             COUNTED
+2026-03-13 18:46   Dan Howard             For review:    True   none             COUNTED
+2026-03-13 17:37   Anastasia              For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-13 16:58   Krystyna               For feedback:  True   none             COUNTED
+2026-03-13 16:51   Nata                   For review:    True   none             COUNTED
+2026-03-12 23:55   Andrew Kallemeyn       For feedback:  True   none             COUNTED
+2026-03-12 18:12   Krystyna               For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-12 16:54   Nandu                  For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-12 13:51   Olexii Lysenko         For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-12 10:33   Nata                   For review:    True   none             COUNTED
+2026-03-12 02:35   Carlos Miras           For feedback:  True   none             COUNTED
+2026-03-11 23:56   Nandu                  For review:    True   none             COUNTED
+2026-03-11 21:39   Carlos Miras           For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-11 20:32   Nata                   For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-11 19:54   Carlos Miras           For feedback:  True   none             COUNTED
+2026-03-11 18:16   Anastasia              For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-11 15:16   Saba Talat             For review:    True   none             COUNTED
+2026-03-11 14:40   Nata                   For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-11 14:35   Saba Talat             For feedback:  True   none             COUNTED
+2026-03-11 11:29   Alex                   For review:    True   none             COUNTED
+2026-03-10 18:04   Dan Howard             For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-10 17:21   Alex                   For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-10 17:14   Spencer Arney          For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-10 16:58   Gabe                   For feedback:  True   none             COUNTED
+2026-03-10 16:58   Gabe                   For feedback:  True   none             COUNTED
+2026-03-10 14:27   Nata                   For review:    True   none             COUNTED
+2026-03-10 13:35   Nata                   For review:    True   none             COUNTED
+2026-03-09 20:29   Carlos Miras           For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-09 20:03   Dan Howard             For review:    True   none             COUNTED
+2026-03-09 19:31   Carlos Miras           For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-09 18:31   Nandu                  For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-09 18:31   Anastasia              For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-09 18:15   Nata                   For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-09 17:33   Nata                   For review:    True   none             COUNTED
+2026-03-09 14:45   Olexii Lysenko         For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-07 00:20   Carlos Miras           For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-06 22:50   Carlos Miras           For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-06 18:19   Krystyna               For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-06 18:12   Carlos Miras           For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-06 18:10   Nata                   For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-05 19:13   Carlos Miras           For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-05 17:00   Nata                   For feedback:  True   none             COUNTED
+2026-03-05 16:23   Nandu                  For feedback:  True   none             COUNTED
+2026-03-05 00:32   Nandu                  For review:    True   none             COUNTED
+2026-03-04 23:29   Carlos Miras           For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-04 21:46   Dan Howard             For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-04 21:16   Spencer Arney          For feedback:  True   none             COUNTED
+2026-03-04 20:31   Dan Howard             For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-04 20:17   Dan Howard             For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-04 18:56   Krystyna               For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-04 18:51   Dan Howard             For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-04 18:16   Dan Howard             For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-04 17:49   Andrew Kallemeyn       For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-04 17:47   Nata                   For review:    True   none             COUNTED
+2026-03-04 17:38   Nata                   For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-04 17:15   Anastasia              For review:    True   none             COUNTED
+2026-03-04 15:47   Alex                   For feedback:  True   none             COUNTED
+2026-03-04 10:45   Nata                   For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-03 22:05   Dan Howard             For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-03 21:52   Dan Howard             For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-03 21:32   Carlos Miras           For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-03 20:03   Dan Howard             For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-03 19:54   Dan Howard             For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-03 18:49   Dan Howard             For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-03 18:34   Nata                   For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-03 18:11   Krystyna               For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-03 17:37   Carlos Miras           For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-03 17:12   Olexii Lysenko         For feedback:  True   none             COUNTED
+2026-03-03 14:09   Nata                   For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-03 13:00   Nandu                  For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-03 01:40   Dan Howard             For feedback:  True   none             COUNTED
+2026-03-03 00:58   Carlos Miras           For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-02 22:31   Carlos Miras           For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-02 22:30   Spencer Arney          For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-02 19:39   Nata                   For feedback:  True   none             COUNTED
+2026-03-02 18:26   Andrew Kallemeyn       For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-03-02 18:10   Andrew Kallemeyn       For feedback:  True   none             COUNTED
+2026-03-02 16:23   Nata                   For feedback:  True   none             COUNTED
+2026-03-02 14:23   Alex                   For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-28 12:24   Olexii Lysenko         For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-27 23:58   Nandu                  For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-27 21:34   Carlos Miras           For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-27 19:37   Carlos Miras           For review:    True   none             COUNTED
+2026-02-27 17:46   Alex                   For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-27 13:35   Krystyna               For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-26 23:03   Spencer Arney          For feedback:  True   none             COUNTED
+2026-02-26 20:47   Dan Howard             For feedback:  True   none             COUNTED
+2026-02-26 19:16   Carlos Miras           For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-26 18:07   Nandu                  For review:    True   none             COUNTED
+2026-02-26 17:52   Nata                   For feedback:  True   none             COUNTED
+2026-02-26 15:32   Olexii Lysenko         For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-26 15:08   Dan Howard             For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-26 13:37   Alex                   For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-26 00:50   Carlos Miras           For review:    True   none             COUNTED
+2026-02-25 23:55   Dan Howard             For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-25 22:07   Dan Howard             For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-25 21:33   Carlos Miras           For review:    True   none             COUNTED
+2026-02-25 18:52   Dan Howard             For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-25 18:40   Dan Howard             For feedback:  True   none             COUNTED
+2026-02-25 17:48   Carlos Miras           For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-25 17:34   Anastasia              For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-25 12:21   Nata                   For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-25 00:53   Carlos Miras           For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-25 00:11   Carlos Miras           For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-24 18:08   Alex                   For feedback:  True   none             COUNTED
+2026-02-24 17:58   Carlos Miras           For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-24 17:34   Carlos Miras           For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-24 17:15   Krystyna               For review:    True   none             COUNTED
+2026-02-24 16:53   Olexii Lysenko         For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-24 15:10   Nata                   For feedback:  True   none             COUNTED
+2026-02-24 06:20   Andrew Kallemeyn       For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-24 00:23   Carlos Miras           For feedback:  True   none             COUNTED
+2026-02-23 22:56   Spencer Arney          For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-23 22:45   Spencer Arney          For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-23 22:06   Carlos Miras           For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-23 19:18   Andrew Kallemeyn       For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-23 17:38   Nandu                  For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-23 12:20   Nata                   For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-23 11:03   Nata                   For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-22 21:37   Olexii Lysenko         For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-21 00:57   Dan Howard             For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-20 23:04   Carlos Miras           For feedback:  True   none             COUNTED
+2026-02-20 22:47   Carlos Miras           For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-20 20:48   Nandu                  For feedback:  True   none             COUNTED
+2026-02-20 19:44   Carlos Miras           For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-20 17:14   Nata                   For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-20 15:56   Nata                   For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-20 15:00   Dan Howard             For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-20 14:29   Alex                   For review:    True   none             COUNTED
+2026-02-20 12:25   Nata                   For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-20 00:11   Nandu                  For feedback:  True   none             COUNTED
+2026-02-19 22:38   Carlos Miras           For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-19 22:17   Nandu                  For feedback:  True   none             COUNTED
+2026-02-19 20:39   Dan Howard             For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-19 18:32   Alex                   For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-19 18:25   Carlos Miras           For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-19 17:34   Carlos Miras           For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-19 16:38   Saba Talat             For feedback:  True   none             COUNTED
+2026-02-19 15:19   Nata                   For feedback:  True   none             COUNTED
+2026-02-18 21:47   Spencer Arney          For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-18 21:08   Spencer Arney          For feedback:  True   none             COUNTED
+2026-02-18 19:42   Saba Talat             For feedback:  True   none             COUNTED
+2026-02-18 18:48   Dan Howard             For feedback:  True   none             COUNTED
+2026-02-18 18:43   Olexii Lysenko         For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-18 17:50   Nata                   For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-18 17:43   Carlos Miras           For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-18 14:35   Nata                   For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-17 21:57   Carlos Miras           For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-17 20:12   Carlos Miras           For feedback:  True   none             COUNTED
+2026-02-17 19:24   Andrew Kallemeyn       For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-17 18:34   Nata                   For feedback:  True   none             COUNTED
+2026-02-17 15:26   Dan Howard             For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-17 14:40   Nata                   For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-17 12:43   Alex                   For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-17 05:56   Evan Brown             For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-16 23:20   Carlos Miras           For feedback:  True   none             COUNTED
+2026-02-16 23:05   Nandu                  For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-16 19:55   Spencer Arney          For feedback:  True   none             COUNTED
+2026-02-16 18:07   Anastasia              For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-16 17:48   Nata                   For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-16 16:59   Nata                   For feedback:  True   none             COUNTED
+2026-02-13 23:36   Dan Howard             For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-13 18:43   Alexa Patterson (MST)  For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-13 18:02   Carlos Miras           For feedback:  True   none             COUNTED
+2026-02-13 16:50   Alex                   For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-13 12:56   Nata                   For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-13 11:07   Nata                   For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-13 04:17   Carlos Miras           For feedback:  True   none             COUNTED
+2026-02-13 02:47   Spencer Arney          For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-12 18:08   Alex                   For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-12 16:32   Anastasia              For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-12 14:32   Nata                   For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-12 13:13   Alex                   For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-11 22:26   Carlos Miras           For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-11 20:26   Dan Howard             For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-11 20:19   Alexa Patterson (MST)  For review:    True   none             COUNTED
+2026-02-11 19:43   Carlos Miras           For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-11 18:16   Nata                   For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-11 16:50   Nata                   For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-11 16:43   Olexii Lysenko         For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-11 16:40   Alex                   For feedback:  True   none             COUNTED
+2026-02-11 16:23   Nandu                  For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-11 15:14   Nata                   For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-11 01:59   Spencer Arney          For feedback:  True   none             COUNTED
+2026-02-10 23:10   Nandu                  For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-10 21:50   Carlos Miras           For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-10 20:12   Carlos Miras           For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-10 19:28   Dan Howard             For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-10 18:42   Nata                   For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-10 17:05   Carlos Miras           For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-10 12:37   Nata                   For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-10 12:25   Nata                   For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-10 01:10   Dan Howard             For feedback:  True   none             COUNTED
+2026-02-09 23:45   Carlos Miras           For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-09 17:53   Nandu                  For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-09 16:53   Nandu                  For feedback:  True   none             COUNTED
+2026-02-09 16:24   Nata                   For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-09 15:13   Alex                   For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-07 00:30   Carlos Miras           For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-06 23:57   Dan Howard             For feedback:  True   none             COUNTED
+2026-02-06 21:18   Nata                   For review:    True   none             COUNTED
+2026-02-06 20:00   Carlos Miras           For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-06 19:50   Dan Howard             For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-06 19:25   Nata                   For review:    True   none             COUNTED
+2026-02-06 17:39   Anastasia              For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-06 14:59   Nata                   For feedback:  True   none             COUNTED
+2026-02-06 14:45   Dan Howard             For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-05 23:13   Carlos Miras           For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-05 22:36   Dan Howard             For feedback:  True   none             COUNTED
+2026-02-05 22:19   Dan Howard             For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-05 21:17   Nandu                  For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-05 19:44   Carlos Miras           For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-05 18:06   Carlos Miras           For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-05 17:35   Anastasia              For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-05 16:00   Dan Howard             For feedback:  True   none             COUNTED
+2026-02-04 18:52   Carlos Miras           For feedback:  True   none             COUNTED
+2026-02-04 18:39   Alex                   For feedback:  True   none             COUNTED
+2026-02-04 16:14   Saba Talat             For feedback:  True   none             COUNTED
+2026-02-04 16:00   Saba Talat             For feedback:  True   none             COUNTED
+2026-02-04 15:01   Nandu                  For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-04 01:15   Carlos Miras           For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-04 00:51   Carlos Miras           For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-03 22:49   Carlos Miras           For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-03 22:20   Dan Howard             For feedback:  True   none             COUNTED
+2026-02-03 20:31   Carlos Miras           For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-03 17:11   Carlos Miras           For review:    True   none             COUNTED
+2026-02-03 16:53   Olexii Lysenko         For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-03 16:45   Nata                   For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-03 16:05   Nandu                  For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-03 15:46   Spencer Arney          For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-03 15:15   Alex                   For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-03 10:24   Nata                   For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-02 22:23   Alexa Patterson (MST)  For review:    True   none             COUNTED
+2026-02-02 21:39   Carlos Miras           For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-02 19:27   Carlos Miras           For feedback:  True   none             COUNTED
+2026-02-02 19:18   Carlos Miras           For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-02 17:40   Nandu                  For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-02 17:03   Nata                   For feedback:  True   none             COUNTED
+2026-02-02 15:36   Nandu                  For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-02 13:39   Olexii Lysenko         For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-02-02 10:53   Nata                   For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-01-30 22:16   Carlos Miras           For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-01-30 21:38   Carlos Miras           For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-01-30 18:18   Nata                   For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-01-30 17:58   Joe Bennett            For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-01-30 16:30   Carlos Miras           For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-01-30 15:54   Olexii Lysenko         For feedback:  True   none             COUNTED
+2026-01-30 06:37   Carlos Miras           For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-01-30 05:30   Carlos Miras           For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-01-30 00:45   Joe Bennett            For review:    True   none             COUNTED
+2026-01-30 00:40   Carlos Miras           For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-01-29 22:55   Joe Bennett            For review:    True   none             COUNTED
+2026-01-29 21:51   Joe Bennett            For review:    True   none             COUNTED
+2026-01-29 21:30   Carlos Miras           For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-01-29 20:42   Nandu                  For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-01-29 18:25   Nata                   For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-01-29 17:40   Dan Howard             For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-01-29 16:38   Carlos Miras           For feedback:  True   none             COUNTED
+2026-01-29 00:14   Carlos Miras           For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-01-28 23:41   Carlos Miras           For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-01-28 23:25   Nandu                  For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-01-28 18:56   Anastasia              For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-01-28 18:37   Carlos Miras           For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-01-28 17:29   Carlos Miras           For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-01-28 17:16   Carlos Miras           For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-01-28 13:43   Alex                   For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-01-28 12:07   Krystyna               For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-01-27 22:40   Carlos Miras           For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-01-27 22:27   Dan Howard             For feedback:  True   none             COUNTED
+2026-01-27 21:17   Carlos Miras           For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-01-27 20:13   Carlos Miras           For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-01-27 18:45   Olexii Lysenko         For feedback:  True   none             COUNTED
+2026-01-27 18:26   Dan Howard             For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-01-27 17:59   Alex                   For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-01-27 15:00   Dan Howard             For feedback:  True   none             COUNTED
+2026-01-27 14:45   Nandu                  For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-01-27 14:29   Nata                   For feedback:  True   none             COUNTED
+2026-01-27 13:38   Krystyna               For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-01-27 03:21   Spencer Arney          For feedback:  True   none             COUNTED
+2026-01-26 23:24   Dan Howard             For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-01-26 22:50   Nandu                  For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-01-26 21:22   Carlos Miras           For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-01-26 21:02   Dan Howard             For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-01-26 19:36   Carlos Miras           For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-01-26 18:29   Saba Talat             For feedback:  True   none             COUNTED
+2026-01-26 17:33   Carlos Miras           For review:    True   none             COUNTED
+2026-01-26 17:03   Krystyna               For review:    True   none             COUNTED
+2026-01-26 16:59   Carlos Miras           For review:    True   none             COUNTED
+2026-01-26 15:27   Nata                   For feedback:  True   none             COUNTED
+2026-01-26 11:38   Nata                   For feedback:  True   none             COUNTED
+2026-01-23 21:42   Carlos Miras           For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-01-23 21:31   Dan Howard             For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-01-23 21:25   Noah Albrecht (CST)    For feedback:  True   none             COUNTED
+2026-01-23 20:45   Carlos Miras           For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-01-23 20:21   Nandu                  For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-01-23 19:09   Anastasia              For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-01-23 18:48   Carlos Miras           For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-01-23 16:04   Carlos Miras           For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-01-23 14:03   Alex                   For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-01-23 00:16   Carlos Miras           For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-01-22 22:44   Nandu                  For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-01-22 21:44   Saba Talat             For feedback:  True   none             COUNTED
+2026-01-22 21:43   Saba Talat             For feedback:  True   none             COUNTED
+2026-01-22 21:08   Carlos Miras           For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-01-22 19:43   Carlos Miras           For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-01-22 17:42   Carlos Miras           For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-01-22 17:20   Dan Howard             For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-01-22 13:49   Alex                   For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-01-22 13:41   Olexii Lysenko         For review:    True   none             COUNTED
+2026-01-22 01:10   Carlos Miras           For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-01-22 00:40   Carlos Miras           For review:    True   none             COUNTED
+2026-01-22 00:38   Carlos Miras           For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-01-21 22:49   Carlos Miras           For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-01-21 16:28   Spencer Arney          For review:    True   none             COUNTED
+2026-01-21 15:09   Nata                   For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-01-21 14:27   Alex                   For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-01-21 13:26   Nata                   For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-01-21 01:10   Andrew Kallemeyn       For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-01-21 00:19   Nandu                  For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-01-21 00:10   Nandu                  For feedback:  True   none             COUNTED
+2026-01-20 22:57   Carlos Miras           For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-01-20 19:29   Carlos Miras           For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-01-20 16:17   Nata                   For feedback:  True   none             COUNTED
+2026-01-20 14:21   Nandu                  For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-01-19 19:05   Andrew Kallemeyn       For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-01-19 17:19   Alex                   For review:    True   none             COUNTED
+2026-01-19 17:09   Nata                   For feedback:  True   none             COUNTED
+2026-01-19 13:04   Olexii Lysenko         For review:    True   none             COUNTED
+2026-01-19 12:31   Krystyna               For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-01-17 00:45   Noah Albrecht (CST)    For feedback:  True   none             COUNTED
+2026-01-16 22:43   Dan Howard             For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-01-16 18:00   Krystyna               For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-01-16 17:51   Alex                   For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-01-16 16:16   Alex                   For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-01-16 15:58   Dan Howard             For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-01-16 15:53   Carlos Miras           For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-01-16 15:34   Nata                   For feedback:  True   none             COUNTED
+2026-01-16 15:00   Dan Howard             For feedback:  True   none             COUNTED
+2026-01-15 23:26   Saba Talat             For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-01-15 23:25   Saba Talat             For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-01-15 22:42   Carlos Miras           For feedback:  True   none             COUNTED
+2026-01-15 18:51   Anastasia              For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-01-15 17:17   Krystyna               For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-01-15 16:25   Nandu                  For feedback:  True   none             COUNTED
+2026-01-15 15:32   Krystyna               For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-01-15 15:00   Dan Howard             For feedback:  True   none             COUNTED
+2026-01-14 19:06   Andrew Kallemeyn       For feedback:  True   none             COUNTED
+2026-01-14 17:00   Dan Howard             For feedback:  True   none             COUNTED
+2026-01-14 16:21   Spencer Arney          For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-01-13 22:45   Noah Albrecht (CST)    For feedback:  True   none             COUNTED
+2026-01-13 19:44   Spencer Arney          For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-01-13 19:12   Nandu                  For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-01-13 18:41   Krystyna               For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-01-13 16:48   Alex                   For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-01-13 15:59   Carlos Miras           For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-01-12 22:10   Carlos Miras           For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-01-12 20:07   Nandu                  For feedback:  True   none             COUNTED
+2026-01-12 17:51   Dan Howard             For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-01-12 15:30   Alex                   For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-01-12 12:52   Saba Talat             For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-01-12 12:51   Saba Talat             For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-01-09 20:37   Dan Howard             For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-01-09 20:29   Spencer Arney          For review:    True   none             COUNTED
+2026-01-09 18:29   Saba Talat             For feedback:  True   none             COUNTED
+2026-01-09 18:27   Saba Talat             For feedback:  True   none             COUNTED
+2026-01-09 18:00   Krystyna               For feedback:  False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-01-09 17:28   Olexii Lysenko         For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-01-09 16:52   Nandu                  For feedback:  True   none             COUNTED
+2026-01-09 16:33   Alex                   For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-01-09 15:38   Dan Howard             For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-01-09 13:30   Krystyna               For review:    False  thread_broadcast SKIPPED — reply sent to channel (thread_ts != ts)
+2026-01-09 13:12   Alex                   For feedback:  True   none             COUNTED
+
+'For review:' roots counted:  86
+'For feedback:' roots found:  113
