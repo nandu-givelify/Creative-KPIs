@@ -53,13 +53,23 @@ MONTH_KEYS = ["01","02","03","04","05","06","07","08","09","10","11","12"]
 # ═══════════════════════════════════════════════════════════════════════════════
 
 def get_date_range():
+    """Return (start, end) covering exactly the last 3 months from today.
+    e.g. if today is April 14 → start = January 14, end = April 14 (now)
+    """
     today = datetime.now(tz=timezone.utc)
     m, y = today.month - 3, today.year
     if m <= 0:
         m += 12
         y -= 1
-    start = datetime(y, m, 1, 0, 0, 0, tzinfo=timezone.utc)
-    end   = datetime(today.year, today.month, 1, tzinfo=timezone.utc) - timedelta(seconds=1)
+    # Same day of month, 3 months back
+    try:
+        start = datetime(y, m, today.day, 0, 0, 0, tzinfo=timezone.utc)
+    except ValueError:
+        # Edge case: e.g. May 31 → Feb 31 doesn't exist, use last day of that month
+        import calendar
+        last_day = calendar.monthrange(y, m)[1]
+        start = datetime(y, m, last_day, 0, 0, 0, tzinfo=timezone.utc)
+    end = today
     return start, end
 
 # ═══════════════════════════════════════════════════════════════════════════════
