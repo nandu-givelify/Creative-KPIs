@@ -1,5 +1,5 @@
 {
-  "last_updated": "2026-04-09T18:55:55.977487+00:00",
+  "last_updated": "2026-04-09T19:00:46.564185+00:00",
   "metrics": {
     "2026-03": {
       "num_ds": 46,
@@ -136,66 +136,129 @@
       }
     },
     "2026-01": {
-      "num_ds": 24,
-      "ds_per_person": 2.0,
-      "cycles_per_d": 2.92,
-      "replies_per_d": 9.79,
-      "response_per_d": 5.6,
+      "num_ds": 20,
+      "ds_per_person": 1.67,
+      "cycles_per_d": 2.3,
+      "replies_per_d": 9.75,
+      "response_per_d": 4.2,
       "drill": {
         "num_ds": {
           "Carlos Miras": 5,
           "Nata": 3,
-          "Dan Howard": 3,
           "Olexii Lysenko": 3,
           "Spencer Arney": 3,
-          "Alex": 2,
-          "Krystyna": 2,
+          "Dan Howard": 2,
           "Saba Talat": 2,
-          "Anastasia": 1,
+          "Alex": 1,
+          "Krystyna": 1,
           "Nandu": 0,
+          "Anastasia": 0,
           "Evan Brown": 0,
           "Andrew Kallemeyn": 0
         },
         "ds_per_person": {
           "Carlos Miras": 5,
           "Nata": 3,
-          "Dan Howard": 3,
           "Olexii Lysenko": 3,
           "Spencer Arney": 3,
-          "Alex": 2,
-          "Krystyna": 2,
+          "Dan Howard": 2,
           "Saba Talat": 2,
-          "Anastasia": 1,
+          "Alex": 1,
+          "Krystyna": 1,
           "Nandu": 0,
+          "Anastasia": 0,
           "Evan Brown": 0,
           "Andrew Kallemeyn": 0
         },
         "cycles_per_d": {
-          "Anastasia": 16.0,
-          "Alex": 4.0,
+          "Alex": 3.0,
           "Nata": 3.0,
           "Carlos Miras": 2.8,
           "Olexii Lysenko": 2.67,
+          "Krystyna": 2.0,
           "Saba Talat": 2.0,
-          "Dan Howard": 1.67,
           "Spencer Arney": 1.33,
-          "Krystyna": 1.0
+          "Dan Howard": 1.0
         },
         "replies_per_d": {
-          "Anastasia": 25.0,
-          "Alex": 15.5,
+          "Alex": 22.0,
           "Carlos Miras": 13.0,
           "Olexii Lysenko": 12.33,
           "Nata": 10.33,
           "Spencer Arney": 7.0,
           "Saba Talat": 4.5,
-          "Dan Howard": 3.33,
-          "Krystyna": 3.0
+          "Krystyna": 4.0,
+          "Dan Howard": 3.0
         },
         "response_per_d": {
-          "Joe": 3.8,
-          "Gabe": 4.8,
-          "Alexa": 6.5
+          "Joe": 3.5,
+          "Gabe": 3.9,
+          "Alexa": 4.7
+        }
+      }
+    },
+    "2026-04": {
+      "num_ds": 27,
+      "ds_per_person": 2.25,
+      "cycles_per_d": 0.81,
+      "replies_per_d": 3.48,
+      "response_per_d": 1.2,
+      "drill": {
+        "num_ds": {
+          "Carlos Miras": 7,
+          "Nata": 6,
+          "Jacob Blaze": 5,
+          "Nandu": 2,
+          "Krystyna": 2,
+          "Saba Talat": 2,
+          "Dan Howard": 1,
+          "Anastasia": 1,
+          "Spencer Arney": 1,
+          "Alex": 0,
+          "Evan Brown": 0,
+          "Andrew Kallemeyn": 0,
+          "Olexii Lysenko": 0
+        },
+        "ds_per_person": {
+          "Carlos Miras": 7,
+          "Nata": 6,
+          "Jacob Blaze": 5,
+          "Nandu": 2,
+          "Krystyna": 2,
+          "Saba Talat": 2,
+          "Dan Howard": 1,
+          "Anastasia": 1,
+          "Spencer Arney": 1,
+          "Alex": 0,
+          "Evan Brown": 0,
+          "Andrew Kallemeyn": 0,
+          "Olexii Lysenko": 0
+        },
+        "cycles_per_d": {
+          "Jacob Blaze": 2.2,
+          "Nata": 1.0,
+          "Carlos Miras": 0.57,
+          "Krystyna": 0.5,
+          "Nandu": 0.0,
+          "Dan Howard": 0.0,
+          "Anastasia": 0.0,
+          "Spencer Arney": 0.0,
+          "Saba Talat": 0.0
+        },
+        "replies_per_d": {
+          "Jacob Blaze": 6.2,
+          "Krystyna": 5.0,
+          "Nata": 4.33,
+          "Spencer Arney": 3.0,
+          "Carlos Miras": 2.14,
+          "Saba Talat": 2.0,
+          "Nandu": 1.5,
+          "Dan Howard": 1.0,
+          "Anastasia": 1.0
+        },
+        "response_per_d": {
+          "Alexa": 1.0,
+          "Gabe": 5.9
         }
       }
     }
