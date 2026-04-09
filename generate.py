@@ -194,12 +194,18 @@ def process_slack(client, channel_id, users, managers, start_dt, end_dt):
     print(f"  'For review:' roots: {len(review_roots)}")
     print(f"  'For feedback:' roots (pending validation): {len(feedback_roots)}")
 
-    # ── DEBUG: trace every message containing "For review:" or "For feedback:" ──
+    # ── DEBUG: write all "For review:" / "For feedback:" messages to debug.txt ──
     evan_id = next((uid for uid, u in users.items()
                     if "evan" in u.get("display_name","").lower() or
                        "evan" in u.get("name","").lower()), None)
-    print(f"\n  DEBUG — Evan's Slack user ID: {evan_id}")
-    print(f"  DEBUG — All 'For review:' / 'For feedback:' messages in fetch window:")
+    debug_lines = [
+        f"Fetch window: {start_dt.date()} → {end_dt.date()}",
+        f"Evan's Slack user ID: {evan_id}",
+        f"Total messages fetched: {len(all_msgs)}",
+        "",
+        f"{'Date':<18} {'Name':<22} {'Phrase':<14} {'Root':<6} {'Subtype':<16} Reason",
+        "-" * 90,
+    ]
     for m in all_msgs:
         txt = m.get("text","")
         if not (has(txt, "for review:") or has(txt, "for feedback:")):
@@ -213,12 +219,20 @@ def process_slack(client, channel_id, users, managers, start_dt, end_dt):
         dt    = datetime.fromtimestamp(float(ts), tz=timezone.utc).strftime("%Y-%m-%d %H:%M")
         phrase = "For review:" if has(txt,"for review:") else "For feedback:"
         if not root:
-            reason = "not root — reply sent to channel?"
+            reason = "SKIPPED — reply sent to channel (thread_ts != ts)"
         elif sub != "none":
-            reason = f"has subtype: {sub}"
+            reason = f"SKIPPED — has subtype: {sub}"
         else:
-            reason = "OK"
-        print(f"    [{dt}] {uname:20s} | {phrase:13s} | root={str(root):5s} | subtype={sub:10s} → {reason}")
+            reason = "COUNTED"
+        debug_lines.append(
+            f"{dt:<18} {uname:<22} {phrase:<14} {str(root):<6} {sub:<16} {reason}"
+        )
+    debug_lines.append("")
+    debug_lines.append(f"'For review:' roots counted:  {len(review_roots)}")
+    debug_lines.append(f"'For feedback:' roots found:  {len(feedback_roots)}")
+    with open("debug.txt", "w") as f:
+        f.write("\n".join(debug_lines))
+    print("  DEBUG output written to debug.txt")
 
     print(f"\n  Managers being tracked for response time:")
     for mid, m in managers.items():
