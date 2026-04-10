@@ -8,6 +8,7 @@ The GitHub Actions workflow commits and pushes those files.
 
 import json
 import os
+import re
 import time
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
@@ -49,7 +50,7 @@ MONTHS     = ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV",
 MONTH_KEYS = ["01","02","03","04","05","06","07","08","09","10","11","12"]
 
 # ═══════════════════════════════════════════════════════════════════════════════
-#  DATE RANGE  — rolling last 3 complete months
+#  DATE RANGE  — rolling last 3 months from today
 # ═══════════════════════════════════════════════════════════════════════════════
 
 def get_date_range():
@@ -61,11 +62,9 @@ def get_date_range():
     if m <= 0:
         m += 12
         y -= 1
-    # Same day of month, 3 months back
     try:
         start = datetime(y, m, today.day, 0, 0, 0, tzinfo=timezone.utc)
     except ValueError:
-        # Edge case: e.g. May 31 → Feb 31 doesn't exist, use last day of that month
         import calendar
         last_day = calendar.monthrange(y, m)[1]
         start = datetime(y, m, last_day, 0, 0, 0, tzinfo=timezone.utc)
@@ -169,193 +168,249 @@ def business_hours_between(start_ts, end_ts, tz_str):
     return round(total, 2)
 
 # ═══════════════════════════════════════════════════════════════════════════════
+#  TEXT HELPERS  (handle Slack bold/italic and rich-text blocks)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def normalize(text):
+    """Strip Slack markdown markers and fix spacing around colons."""
+    text = re.sub(r'[*_]', '', text or '')
+    # "For review :" → "For review:"   (some mobile clients add a space)
+    text = re.sub(r'(?i)(for\s+review|for\s+feedback)\s+:', r'\1:', text)
+    return text
+
+
+def extract_blocks_text(blocks):
+    """Pull plain text + user mentions out of Slack rich-text blocks."""
+    parts = []
+    for block in (blocks or []):
+        for el in block.get("elements", []):
+            for sub in el.get("elements", []):
+                if sub.get("type") == "text":
+                    parts.append(sub.get("text", ""))
+                elif sub.get("type") == "user":
+                    parts.append(f"<@{sub.get('user_id', '')}>")
+    return " ".join(parts)
+
+
+def get_full_text(msg):
+    """Combined normalized text from both text field and rich-text blocks."""
+    return (normalize(msg.get("text") or "") + " " +
+            normalize(extract_blocks_text(msg.get("blocks", [])))).strip()
+
+
+def msg_has(msg, phrase):
+    """True if phrase appears (case-insensitive) in the message's text or blocks."""
+    return phrase.lower() in get_full_text(msg).lower()
+
+
+def is_review(msg):    return msg_has(msg, "for review:")
+def is_feedback(msg):  return msg_has(msg, "for feedback:")
+def is_cycle_msg(msg): return is_review(msg) or is_feedback(msg)
+
+def is_root(m):
+    return m.get("thread_ts", m.get("ts")) == m.get("ts")
+
+def ts_month(ts):
+    return datetime.fromtimestamp(float(ts), tz=timezone.utc).strftime("%Y-%m")
+
+# ═══════════════════════════════════════════════════════════════════════════════
 #  DATA PROCESSING
 # ═══════════════════════════════════════════════════════════════════════════════
 
-def ts_month(ts):  return datetime.fromtimestamp(float(ts), tz=timezone.utc).strftime("%Y-%m")
-def has(txt, p):   return p.lower() in txt.lower()
-def mgr_tags(txt, ids): return [i for i in ids if f"<@{i}>" in txt]
-def is_root(m):    return m.get("thread_ts", m.get("ts")) == m.get("ts")
+def collect_candidate_thread_ts(all_msgs):
+    """
+    Scan channel history to find thread_ts values for potential deliverable threads.
 
+    Returns:
+        confirmed_ts  — threads with a visible "For review:" message
+        candidate_ts  — root messages with replies that aren't yet confirmed
+                        (their non-broadcast replies may hide a "For review:")
+    """
+    confirmed_ts = set()
+    roots_with_replies = set()
 
-def process_slack(client, channel_id, users, managers, start_dt, end_dt):
-    mgr_ids = list(managers.keys())
-    print(f"\n  Date range: {start_dt.date()} → {end_dt.date()}")
-    all_msgs = fetch_history(client, channel_id, start_dt.timestamp(), end_dt.timestamp())
-    print(f"  Total channel messages: {len(all_msgs)}")
-
-    # Candidate roots: "For review:" roots are confirmed deliverables.
-    # "For feedback:" roots are candidates — confirmed only if a reply contains "For review:".
-    review_roots   = [m for m in all_msgs
-                      if is_root(m) and not m.get("subtype") and has(m.get("text",""), "for review:")]
-    feedback_roots = [m for m in all_msgs
-                      if is_root(m) and not m.get("subtype") and has(m.get("text",""), "for feedback:")
-                      and not has(m.get("text",""), "for review:")]  # avoid double-counting
-    print(f"  'For review:' roots: {len(review_roots)}")
-    print(f"  'For feedback:' roots (pending validation): {len(feedback_roots)}")
-
-    # ── DEBUG: show ALL of Evan's messages + all For review/feedback messages ──
-    evan_id = next((uid for uid, u in users.items()
-                    if "evan" in u.get("display_name","").lower() or
-                       "evan" in u.get("name","").lower()), None)
-
-    def extract_blocks_text(blocks):
-        """Pull plain text out of Slack rich text blocks."""
-        parts = []
-        for block in (blocks or []):
-            for el in block.get("elements", []):
-                for sub in el.get("elements", []):
-                    if sub.get("type") == "text":
-                        parts.append(sub.get("text",""))
-                    elif sub.get("type") == "user":
-                        parts.append(f"<@{sub.get('user_id','')}>")
-        return " ".join(parts)
-
-    debug_lines = [
-        f"Fetch window: {start_dt.date()} → {end_dt.date()}",
-        f"Evan's Slack user ID: {evan_id}",
-        f"Total messages in window: {len(all_msgs)}",
-        "",
-        "═" * 80,
-        "SECTION 1 — ALL messages from Evan Brown",
-        "═" * 80,
-    ]
-    evan_msgs = [m for m in all_msgs if m.get("user") == evan_id]
-    debug_lines.append(f"Total messages from Evan: {len(evan_msgs)}")
-    debug_lines.append("")
-    for m in evan_msgs:
-        ts    = m.get("ts","")
-        tts   = m.get("thread_ts","")
-        sub   = m.get("subtype") or "none"
-        root  = is_root(m)
-        txt   = m.get("text","")
-        blks  = m.get("blocks",[])
-        btext = extract_blocks_text(blks)
-        dt    = datetime.fromtimestamp(float(ts), tz=timezone.utc).strftime("%Y-%m-%d %H:%M")
-        has_review   = has(txt,"for review:") or has(btext,"for review:")
-        has_feedback = has(txt,"for feedback:") or has(btext,"for feedback:")
-        phrase = "For review:" if has_review else ("For feedback:" if has_feedback else "—none—")
-        debug_lines += [
-            f"[{dt}] root={root} | subtype={sub}",
-            f"  text field:   {txt[:120]!r}",
-            f"  blocks text:  {btext[:120]!r}",
-            f"  phrase found: {phrase}",
-            f"  in text field: {has(txt,'for review:') or has(txt,'for feedback:')}",
-            f"  in blocks:     {has(btext,'for review:') or has(btext,'for feedback:')}",
-            "",
-        ]
-
-    debug_lines += [
-        "═" * 80,
-        "SECTION 2 — All 'For review:' / 'For feedback:' messages (all users, text field only)",
-        "═" * 80,
-        f"{'Date':<18} {'Name':<22} {'Phrase':<14} {'Root':<6} {'Subtype':<16} Verdict",
-        "-" * 90,
-    ]
     for m in all_msgs:
-        txt = m.get("text","")
-        if not (has(txt, "for review:") or has(txt, "for feedback:")):
+        tts = m.get("thread_ts") or m.get("ts")
+        if is_review(m):
+            confirmed_ts.add(tts)
+        if is_root(m) and int(m.get("reply_count", 0)) > 0:
+            roots_with_replies.add(m["ts"])
+
+    candidate_ts = roots_with_replies - confirmed_ts
+    return confirmed_ts, candidate_ts
+
+
+def process_deliverable_thread(thread, users, managers, month_data, start_ts, end_ts):
+    """
+    Analyze one confirmed deliverable thread and append per-designer entries to month_data.
+
+    Deliverable rules per designer:
+    - Deliverable  : their first "For review:" message in the thread.
+    - Cycles       : all their other "For review:" / "For feedback:" messages
+                     (before or after their deliverable).
+    - Replies      : every other message, attributed as follows —
+        • Before any designer's first "For review:" → retroactively assigned to
+          the first designer who enters.
+        • After designer[0] enters, before designer[1] → designer[0] only.
+        • After designer[1] enters → all designers who have entered so far.
+    - Response time: from each cycle message to the first manager reply,
+                     in business hours (capped at 72 bh; over-cap = excluded).
+    - Only designers whose first "For review:" falls within [start_ts, end_ts]
+      are counted in this run's metrics.
+    """
+    if not thread:
+        return
+
+    mgr_ids = set(managers.keys())
+
+    # ── Step 1: find each team member's first "For review:" index ───────────
+    first_review_idx = {}  # uid → message index in thread
+    for i, msg in enumerate(thread):
+        uid = msg.get("user", "")
+        if uid and uid not in mgr_ids and is_review(msg):
+            if uid not in first_review_idx:
+                first_review_idx[uid] = i
+
+    if not first_review_idx:
+        return  # No team member posted "For review:" — not a deliverable thread
+
+    # ── Step 2: keep only designers whose deliverable is within the date window ─
+    first_review_idx = {
+        uid: idx for uid, idx in first_review_idx.items()
+        if start_ts <= float(thread[idx]["ts"]) <= end_ts
+    }
+    if not first_review_idx:
+        return
+
+    # ── Step 3: ordered entry list (chronological by first "For review:") ───
+    entry_order = sorted(first_review_idx.keys(), key=lambda uid: first_review_idx[uid])
+
+    # ── Step 4: collect each designer's cycle messages ───────────────────────
+    # Cycles = all their "For review:" / "For feedback:" except their deliverable
+    designer_cycles = {uid: [] for uid in first_review_idx}
+    for i, msg in enumerate(thread):
+        uid = msg.get("user", "")
+        if uid in first_review_idx and is_cycle_msg(msg) and i != first_review_idx[uid]:
+            designer_cycles[uid].append(msg)
+
+    # ── Step 5: compute reply attribution per message ────────────────────────
+    reply_attribution = []  # parallel to thread; each entry = list of designer UIDs
+
+    for i, msg in enumerate(thread):
+        uid = msg.get("user", "")
+
+        # Designer's deliverable message — not a reply for anyone
+        if uid in first_review_idx and first_review_idx[uid] == i:
+            reply_attribution.append([])
             continue
-        uid   = m.get("user","")
-        uname = users.get(uid,{}).get("display_name","?")
-        ts    = m.get("ts","")
-        sub   = m.get("subtype") or "none"
-        root  = is_root(m)
-        dt    = datetime.fromtimestamp(float(ts), tz=timezone.utc).strftime("%Y-%m-%d %H:%M")
-        phrase = "For review:" if has(txt,"for review:") else "For feedback:"
-        verdict = "COUNTED" if (root and sub == "none") else \
-                  ("SKIPPED — reply/broadcast" if not root else f"SKIPPED — subtype:{sub}")
-        debug_lines.append(f"{dt:<18} {uname:<22} {phrase:<14} {str(root):<6} {sub:<16} {verdict}")
 
-    debug_lines += ["", f"'For review:' roots: {len(review_roots)}", f"'For feedback:' roots: {len(feedback_roots)}"]
-    with open("debug.txt", "w") as f:
-        f.write("\n".join(debug_lines))
-    print("  DEBUG output written to debug.txt")
-
-    print(f"\n  Managers being tracked for response time:")
-    for mid, m in managers.items():
-        print(f"    {m['manager_label']}: id={mid} tz={m['tz']}")
-
-    month_data = {}
-    skipped_managers = 0
-    feedback_confirmed = 0
-    feedback_skipped   = 0
-
-    # Combine: confirmed roots first, then feedback candidates
-    all_candidate_roots = [(root, "review") for root in review_roots] + \
-                          [(root, "feedback") for root in feedback_roots]
-
-    for root, root_type in all_candidate_roots:
-        rts   = root["ts"]
-        month = ts_month(rts)
-        pid   = root.get("user","")
-        pu    = users.get(pid, {})
-        pname = pu.get("display_name") or pu.get("name","Unknown")
-
-        # Skip deliverables posted by managers — they are reviewers only
-        if pid in managers:
-            skipped_managers += 1
+        # Designer's cycle message — not a reply for anyone
+        if uid in first_review_idx and is_cycle_msg(msg):
+            reply_attribution.append([])
             continue
 
-        thread  = fetch_thread(client, channel_id, rts)
-        replies = thread[1:]
+        # Regular reply — who gets credit?
+        # "entered" = designers whose first "For review:" came before this message
+        entered = [d for d in entry_order if first_review_idx[d] < i]
 
-        # For "For feedback:" roots, confirm at least one reply has "For review:"
-        if root_type == "feedback":
-            has_review_reply = any(has(m.get("text",""), "for review:") for m in replies)
-            if not has_review_reply:
-                feedback_skipped += 1
-                continue
-            feedback_confirmed += 1
+        if not entered:
+            reply_attribution.append(None)   # pre-entry placeholder
+        else:
+            reply_attribution.append(list(entered))
 
-        cycles, other = [], []
-        for msg in replies:
-            txt = msg.get("text","")
-            if has(txt, "for feedback:") or has(txt, "for review:"):
-                cycles.append({"ts": msg["ts"], "user": msg.get("user",""), "tagged": mgr_tags(txt, mgr_ids)})
-            else:
-                other.append(msg)
+    # Resolve pre-entry placeholders → first designer to enter
+    first_designer = entry_order[0]
+    reply_attribution = [
+        [first_designer] if x is None else x
+        for x in reply_attribution
+    ]
+
+    # ── Step 6: count replies per designer ───────────────────────────────────
+    designer_reply_count = {uid: 0 for uid in first_review_idx}
+    for attribution in reply_attribution:
+        for uid in attribution:
+            if uid in designer_reply_count:
+                designer_reply_count[uid] += 1
+
+    # ── Step 7: compute response times for each designer's cycles ────────────
+    mgr_id_list = list(mgr_ids)
+
+    for uid in first_review_idx:
+        deliv_idx = first_review_idx[uid]
+        deliv_msg = thread[deliv_idx]
+        month = ts_month(deliv_msg["ts"])
+        pinfo = users.get(uid, {})
+        pname = pinfo.get("display_name") or pinfo.get("name") or "Unknown"
 
         cycle_data = []
-        for cyc in cycles:
-            cts, tagged = float(cyc["ts"]), cyc["tagged"]
-            resp_time, resp_mgr = None, None
-            tagged_names = [managers.get(t, {}).get("display_name", t) for t in tagged]
-
-            # Any manager can respond — find first manager reply after this cycle
+        for cyc_msg in designer_cycles[uid]:
+            cts = float(cyc_msg["ts"])
             best_ts, best_mgr = None, None
-            for msg in replies:
-                mts = float(msg["ts"])
-                if mts > cts and msg.get("user") in mgr_ids:
+            for m in thread:
+                mts = float(m["ts"])
+                if mts > cts and m.get("user") in mgr_ids:
                     if best_ts is None or mts < best_ts:
-                        best_ts, best_mgr = mts, msg["user"]
+                        best_ts, best_mgr = mts, m["user"]
 
+            resp_time = None
             if best_ts and best_mgr:
                 bh = business_hours_between(cts, best_ts, managers[best_mgr]["tz"])
-                mgr_label = managers[best_mgr].get("manager_label", best_mgr)
-                print(f"    CYCLE → tagged={tagged_names} | responder={mgr_label} "
-                      f"| biz_hrs={bh} | excluded={'YES (>72h)' if bh > NO_RESPONSE_THRESHOLD_BH else 'no'}")
                 if bh <= NO_RESPONSE_THRESHOLD_BH:
-                    resp_time, resp_mgr = bh, best_mgr
-            else:
-                print(f"    CYCLE → tagged={tagged_names} | NO MANAGER RESPONSE FOUND")
+                    resp_time = bh
 
+            full_txt = get_full_text(cyc_msg)
+            tagged = [mid for mid in mgr_id_list if f"<@{mid}>" in full_txt]
             cycle_data.append({
-                "ts": cyc["ts"], "tagged": tagged,
-                "response_time_hours": resp_time,
-                "responding_manager_id": resp_mgr,
+                "ts":                     cyc_msg["ts"],
+                "tagged":                 tagged,
+                "response_time_hours":    resp_time,
+                "responding_manager_id":  best_mgr if resp_time is not None else None,
             })
 
         month_data.setdefault(month, []).append({
-            "root_ts": rts, "month": month,
-            "poster_id": pid, "poster_name": pname,
-            "cycle_count": len(cycles), "reply_count": len(other),
-            "cycles": cycle_data,
+            "root_ts":     thread[0]["ts"],
+            "month":       month,
+            "poster_id":   uid,
+            "poster_name": pname,
+            "cycle_count": len(designer_cycles[uid]),
+            "reply_count": designer_reply_count[uid],
+            "cycles":      cycle_data,
         })
 
-    print(f"  Skipped {skipped_managers} deliverables posted by managers")
-    print(f"  'For feedback:' roots confirmed as deliverables: {feedback_confirmed}")
-    print(f"  'For feedback:' roots skipped (no 'For review:' reply): {feedback_skipped}")
+
+def process_slack(client, channel_id, users, managers, start_dt, end_dt):
+    start_ts = start_dt.timestamp()
+    end_ts   = end_dt.timestamp()
+
+    print(f"\n  Date range: {start_dt.date()} → {end_dt.date()}")
+    all_msgs = fetch_history(client, channel_id, start_ts, end_ts)
+    print(f"  Total channel messages in window: {len(all_msgs)}")
+
+    # ── Find candidate and confirmed deliverable threads ─────────────────────
+    confirmed_ts, candidate_ts = collect_candidate_thread_ts(all_msgs)
+    print(f"  Confirmed deliverable threads (visible 'For review:'): {len(confirmed_ts)}")
+    print(f"  Candidate threads to scan (roots with replies, no visible 'For review:'): {len(candidate_ts)}")
+
+    # ── Fetch candidate threads; promote those containing a hidden "For review:" ─
+    thread_cache = {}
+    for rts in candidate_ts:
+        thread = fetch_thread(client, channel_id, rts)
+        thread_cache[rts] = thread
+        for msg in thread[1:]:   # skip root — already checked in history
+            if is_review(msg):
+                confirmed_ts.add(rts)
+                break
+
+    print(f"  Total confirmed deliverable threads after full scan: {len(confirmed_ts)}")
+
+    # ── Process every confirmed deliverable thread ────────────────────────────
+    month_data = {}
+    for rts in confirmed_ts:
+        thread = thread_cache.get(rts) or fetch_thread(client, channel_id, rts)
+        process_deliverable_thread(thread, users, managers, month_data, start_ts, end_ts)
+
+    total_ds = sum(len(v) for v in month_data.values())
+    print(f"  Total deliverable entries found: {total_ds}")
     return month_data
 
 
@@ -371,45 +426,46 @@ def compute_metrics(month_data, managers):
         pd, pc, pr = {}, {}, {}
         for d in deliverables:
             p = d["poster_name"]
-            pd[p] = pd.get(p,0)+1; pc[p] = pc.get(p,0)+d["cycle_count"]; pr[p] = pr.get(p,0)+d["reply_count"]
+            pd[p] = pd.get(p, 0) + 1
+            pc[p] = pc.get(p, 0) + d["cycle_count"]
+            pr[p] = pr.get(p, 0) + d["reply_count"]
 
-        tc = sum(d["cycle_count"]  for d in deliverables)
-        tr = sum(d["reply_count"]  for d in deliverables)
+        tc = sum(d["cycle_count"] for d in deliverables)
+        tr = sum(d["reply_count"] for d in deliverables)
 
         mgr_times = {}
         for d in deliverables:
             for c in d["cycles"]:
                 if c["response_time_hours"] is not None:
                     mid   = c["responding_manager_id"]
-                    label = managers.get(mid,{}).get("manager_label", mid)
-                    mgr_times.setdefault(label,[]).append(c["response_time_hours"])
+                    label = managers.get(mid, {}).get("manager_label", mid)
+                    mgr_times.setdefault(label, []).append(c["response_time_hours"])
 
         all_t    = [t for ts in mgr_times.values() for t in ts]
-        avg_resp = round(sum(all_t)/len(all_t),1) if all_t else None
-        mgr_avgs = {k: round(sum(v)/len(v),1) for k,v in mgr_times.items()}
+        avg_resp = round(sum(all_t)/len(all_t), 1) if all_t else None
+        mgr_avgs = {k: round(sum(v)/len(v), 1) for k, v in mgr_times.items()}
 
-        sd = lambda d: dict(sorted(d.items(), key=lambda x:-x[1]))
-        sa = lambda d: dict(sorted(d.items(), key=lambda x: x[1]))
+        sd = lambda d: dict(sorted(d.items(), key=lambda x: -x[1]))
+        sa = lambda d: dict(sorted(d.items(), key=lambda x:  x[1]))
 
         # Ds/Person always divides by the full team (12 members), not just those who posted.
         # All 12 members appear in the drill-down; non-posters show 0.
         full_team_ds = {name: pd.get(name, 0) for name in TEAM_MEMBERS}
-        # Also include anyone who posted but isn't in the hardcoded list (edge case)
         for name, count in pd.items():
             if name not in full_team_ds:
                 full_team_ds[name] = count
 
         result[month] = {
-            "num_ds":        n,
-            "ds_per_person": round(n / len(TEAM_MEMBERS), 2),
-            "cycles_per_d":  round(tc/n,2),
-            "replies_per_d": round(tr/n,2),
+            "num_ds":         n,
+            "ds_per_person":  round(n / len(TEAM_MEMBERS), 2),
+            "cycles_per_d":   round(tc/n, 2),
+            "replies_per_d":  round(tr/n, 2),
             "response_per_d": avg_resp,
             "drill": {
-                "num_ds":        sd(full_team_ds),
-                "ds_per_person": sd(full_team_ds),
-                "cycles_per_d":  sd({k:round(pc[k]/pd[k],2) for k in pd}),
-                "replies_per_d": sd({k:round(pr[k]/pd[k],2) for k in pd}),
+                "num_ds":         sd(full_team_ds),
+                "ds_per_person":  sd(full_team_ds),
+                "cycles_per_d":   sd({k: round(pc[k]/pd[k], 2) for k in pd}),
+                "replies_per_d":  sd({k: round(pr[k]/pd[k], 2) for k in pd}),
                 "response_per_d": sa(mgr_avgs),
             }
         }
@@ -434,11 +490,11 @@ METRIC_INFO = {
         "definition": "Total number of creative pieces submitted for review by the team in a given month.",
         "formula": "Count of qualifying Slack threads posted that month.",
         "rules": [
-            "A thread qualifies if the root message contains \u201cFor review:\u201d",
-            "OR the root contains \u201cFor feedback:\u201d and at least one reply contains \u201cFor review:\u201d",
-            "Multiple \u201cFor review:\u201d messages in the same thread still count as 1 deliverable",
-            "Only counts deliverables posted by team members \u2014 manager posts are excluded",
-            "Counted in the month the root message was posted",
+            "A thread qualifies as a deliverable thread if any message in it \u2014 root or reply \u2014 contains \u201cFor review:\u201d",
+            "Each team member who posts \u201cFor review:\u201d in that thread gets credited with 1 deliverable",
+            "The deliverable date is the timestamp of their first \u201cFor review:\u201d message",
+            "If two designers both post \u201cFor review:\u201d in the same thread, each gets their own separate deliverable",
+            "Messages from managers (Joe, Gabe, Alexa) are never counted as deliverables",
         ],
     },
     "ds_per_person": {
@@ -452,41 +508,42 @@ METRIC_INFO = {
     },
     "cycles_per_d": {
         "label": "Cycles / Deliverable",
-        "definition": "On average, how many review rounds a deliverable goes through before completion. Lower is better \u2014 fewer cycles means faster approvals.",
+        "definition": "On average, how many additional review rounds a deliverable goes through after the initial submission. Lower is better \u2014 fewer cycles means faster approvals.",
         "formula": "Total cycles \u00f7 Total deliverables",
         "rules": [
-            "A cycle = any message in the thread (after the root) containing \u201cFor feedback:\u201d or \u201cFor review:\u201d",
-            "The root message is never counted as a cycle",
-            "Click any monthly value to see cycles per person\u2019s deliverables",
+            "A cycle = any \u201cFor review:\u201d or \u201cFor feedback:\u201d message posted by the designer in that thread, other than their first \u201cFor review:\u201d (the deliverable submission itself)",
+            "Cycles before the deliverable message also count (e.g. \u201cFor feedback:\u201d posted earlier in the same thread)",
+            "Click any monthly value to see cycles per person",
         ],
     },
     "replies_per_d": {
         "label": "Replies / Deliverable",
-        "definition": "Average number of discussion messages per deliverable thread, excluding cycle messages.",
-        "formula": "Total non-cycle replies \u00f7 Total deliverables",
+        "definition": "Average number of discussion messages attributed to each deliverable, excluding the deliverable and cycle messages themselves.",
+        "formula": "Total attributed replies \u00f7 Total deliverables",
         "rules": [
-            "Replies = any thread message that does not contain \u201cFor feedback:\u201d or \u201cFor review:\u201d",
-            "Includes comments, questions, and general feedback discussion",
-            "Click any monthly value to see replies per person\u2019s deliverables",
+            "Messages before any designer enters the thread are retroactively counted for the first designer who posts \u201cFor review:\u201d",
+            "Messages between the first and second designer\u2019s entry count for the first designer only",
+            "Once multiple designers are involved, all subsequent replies count for each of them",
+            "Click any monthly value to see replies per person",
         ],
     },
     "response_per_d": {
         "label": "Avg. Response Time",
-        "definition": "How quickly a manager first responds to a review or feedback request, measured in business hours. Lower is better.",
-        "formula": "Average business hours from cycle message to first manager reply",
+        "definition": "How quickly a manager first responds to a review or feedback cycle, measured in business hours. Lower is better.",
+        "formula": "Average business hours from each cycle message to the first manager reply",
         "rules": [
             "Only Mon\u2013Fri, 8am\u20135pm in the responding manager\u2019s timezone counts",
-            "Weekends and US federal holidays are excluded",
-            "Any manager (Joe, Gabe, or Alexa) can respond \u2014 the first one to reply gets credit",
-            "If a cycle has no manager response within 72 business hours, it is marked \u201cNo Response\u201d and excluded from the average",
-            "Click any monthly value to see the average per manager",
+            "Weekends are excluded",
+            "Any manager (Joe, Gabe, or Alexa) can respond \u2014 the first one to reply after a cycle message gets credit",
+            "If no manager responds within 72 business hours, that cycle is marked \u201cNo Response\u201d and excluded from the average",
+            "Click any monthly value to see the average response time per manager",
         ],
     },
 }
 
 def fmt(val, key):
     if val is None: return None
-    if key == "num_ds":        return str(int(val))
+    if key == "num_ds":         return str(int(val))
     if key == "response_per_d": return f"{val}h"
     return str(val)
 
@@ -500,11 +557,11 @@ def build_rows(metrics, section, year):
 
         cells = ""
         for i, mk in enumerate(MONTH_KEYS):
-            ym     = f"{year}-{mk}"
-            md     = metrics.get(ym, {})
-            val    = md.get(key)
-            drill  = md.get("drill", {}).get(key, {})
-            disp   = fmt(val, key)
+            ym    = f"{year}-{mk}"
+            md    = metrics.get(ym, {})
+            val   = md.get(key)
+            drill = md.get("drill", {}).get(key, {})
+            disp  = fmt(val, key)
             suffix = "h" if key == "response_per_d" else ""
 
             if disp is None or not md:
@@ -569,13 +626,11 @@ th,td{{padding:18px 10px;border-bottom:1px solid #f0f0f0;vertical-align:middle}}
 .px{{background:none;border:none;cursor:pointer;color:#bbb;font-size:1.15rem;padding:0;margin-left:10px;line-height:1;flex-shrink:0}}
 .px:hover{{color:#333}}
 .pb{{flex:1;overflow-y:auto;padding:24px 28px 32px}}
-/* Drill-down rows */
 .dr{{display:flex;justify-content:space-between;align-items:center;padding:13px 0;border-bottom:1px solid #f8f8f8}}
 .dr:last-child{{border:none}}
 .dn{{font-size:.88rem;color:#444}}
 .dv{{font-size:.88rem;font-weight:600;color:#111}}
 .nd{{color:#bbb;font-size:.82rem;padding:20px 0;text-align:center}}
-/* Info panel sections */
 .info-section{{margin-bottom:24px}}
 .info-label{{font-size:9.5px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#bbb;margin-bottom:8px}}
 .info-text{{font-size:.88rem;color:#333;line-height:1.6}}
@@ -696,8 +751,8 @@ def main():
         print("  No data.json found — starting fresh")
 
     print("\n[4/5] Fetching and processing Slack data...")
-    month_data   = process_slack(client, CHANNEL_ID, users, managers, start_dt, end_dt)
-    new_metrics  = compute_metrics(month_data, managers)
+    month_data  = process_slack(client, CHANNEL_ID, users, managers, start_dt, end_dt)
+    new_metrics = compute_metrics(month_data, managers)
     for m, d in sorted(new_metrics.items()):
         print(f"  {m}: {d['num_ds']} Ds | Cycles/D={d['cycles_per_d']} | "
               f"Replies/D={d['replies_per_d']} | Response/D={d['response_per_d']}")
@@ -706,10 +761,10 @@ def main():
 
     print("\n[5/5] Writing output files...")
     html = generate_html(merged)
-    with open("index.html","w") as f: f.write(html)
+    with open("index.html", "w") as f: f.write(html)
     print("  ✓ index.html")
 
-    with open("data.json","w") as f:
+    with open("data.json", "w") as f:
         json.dump({"last_updated": datetime.now(tz=timezone.utc).isoformat(),
                    "metrics": merged, "targets": TARGETS}, f, indent=2)
     print("  ✓ data.json")
@@ -721,4 +776,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
