@@ -4,343 +4,95 @@
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Creative KPIs</title>
 <style>
-<style>
-            * {
-                box-sizing: border-box;
-                margin: 0;
-                padding: 0
-            }
-
-            body {
-                font-family: -apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-serif;
-                background: #fff;
-                color: #111;
-            }
-
-            h1 {
-                font-size: 2.5rem;
-                font-weight: 300;
-                letter-spacing: -.5px;
-                padding: 20px 20px 0 20px;
-            }
-            .pk {
-                overflow: auto;
-                padding: 20px 0;
-            }
-            .sl {
-                font-size: 10.5px;
-                font-weight: 600;
-                letter-spacing: 2px;
-                text-transform: uppercase;
-                color: #999;
-                padding: 10px 20px;
-                position: sticky;
-                left: 0;
-            }
-
-            table {
-                width: 100%;
-                border-collapse: collapse;
-                margin-bottom: 40px
-            }
-
-            th,td {
-                padding: 20px 10px;
-                border-bottom: 1px solid #f0f0f0;
-                vertical-align: middle
-            }
-
-            .mh {
-                font-size: 10px;
-                font-weight: 500;
-                letter-spacing: 1.2px;
-                text-transform: uppercase;
-                color: #999;
-                text-align: center;
-                min-width: 62px
-            }
-.mhl {
-    text-align: left;
-    padding: 20px;
-    position: sticky;
-    left: 0;
-    background: #fff;
-}
-            .ml {
-                min-width: 200px;
-                padding: 20px;
-                position: sticky;
-                left: 0;
-                background: #fff;
-            }
-
-            .mn {
-                font-size: 1.05rem;
-                font-weight: 600;
-                color: #111;
-                margin-bottom: 4px
-            }
-
-            .mn.click-title {
-                cursor: pointer;
-                display: inline-block
-            }
-
-            .mn.click-title:hover {
-                color: #0057d9;
-                text-decoration: underline;
-                text-decoration-style: dotted;
-                text-decoration-color: #0057d9
-            }
-
-            .mt {
-                font-size: .72rem;
-                color: #777
-            }
-
-            .mc {
-                text-align: center
-            }
-
-            .mv {
-                font-size: .97rem;
-                font-weight: 500;
-                color: #222
-            }
-
-            .mv.click {
-                cursor: pointer;
-                text-decoration: underline;
-                text-decoration-style: dotted;
-                text-decoration-color: #ddd;
-                transition: color .15s,text-decoration-color .15s
-            }
-
-            .mv.click:hover {
-                color: #0057d9;
-                text-decoration-color: #0057d9
-            }
-
-            .empty {
-                color: #e0e0e0;
-                font-size: .8rem
-            }
-
-            .ov {
-                display: none;
-                position: fixed;
-                inset: 0;
-                background: rgba(0,0,0,.1);
-                z-index: 100
-            }
-
-            .ov.on {
-                display: block
-            }
-
-            .pnl {
-                position: fixed;
-                top: 0;
-                right: -440px;
-                width: 420px;
-                height: 100vh;
-                background: #fff;
-                box-shadow: -4px 0 28px rgba(0,0,0,.09);
-                z-index: 101;
-                transition: right .27s cubic-bezier(.4,0,.2,1);
-                display: flex;
-                flex-direction: column
-            }
-@media only screen and (max-width: 600px) {
-  .pnl {width: 100%;}
-}
-            .pnl.open {
-                right: 0
-            }
-
-            .ph {
-                padding: 28px 28px 20px;
-                border-bottom: 1px solid #f2f2f2;
-                display: flex;
-                justify-content: space-between;
-                align-items: flex-start
-            }
-
-            .pt {
-                font-size: 1.05rem;
-                font-weight: 600;
-                color: #111
-            }
-
-            .ps {
-                font-size: .73rem;
-                color: #aaa;
-                margin-top: 4px
-            }
-
-            .px {
-                background: none;
-                border: none;
-                cursor: pointer;
-                color: #bbb;
-                font-size: 1.5rem;
-                padding: 10px;
-                margin-left: 10px;
-                line-height: 1;
-                flex-shrink: 0
-            }
-
-            .px:hover {
-                color: #333
-            }
-
-            .pb {
-                flex: 1;
-                overflow-y: auto;
-                padding: 24px 28px 32px
-            }
-
-            /* Drill-down rows */
-            .dr {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                padding: 13px 0;
-                border-bottom: 1px solid #f8f8f8
-            }
-
-            .dr:last-child {
-                border: none
-            }
-
-            .dn {
-                font-size: .88rem;
-                color: #444
-            }
-
-            .dv {
-                font-size: .88rem;
-                font-weight: 600;
-                color: #111
-            }
-
-            .nd {
-                color: #bbb;
-                font-size: .82rem;
-                padding: 20px 0;
-                text-align: center
-            }
-
-            /* Info panel sections */
-            .info-section {
-                margin-bottom: 24px
-            }
-
-            .info-label {
-                font-size: 9.5px;
-                font-weight: 700;
-                letter-spacing: 1.5px;
-                text-transform: uppercase;
-                color: #999;
-                margin-bottom: 8px
-            }
-
-            .info-text {
-                font-size: .88rem;
-                color: #333;
-                line-height: 1.6
-            }
-
-            .info-formula {
-                font-size: .88rem;
-                color: #333;
-                background: #f7f7f7;
-                border-radius: 6px;
-                padding: 10px 14px;
-                font-family: monospace;
-                line-height: 1.5
-            }
-
-            .info-rules {
-                list-style: none;
-                padding: 0;
-                margin: 0
-            }
-
-            .info-rules li {
-                font-size: .85rem;
-                color: #444;
-                line-height: 1.55;
-                padding: 5px 0 5px 16px;
-                border-bottom: 1px solid #f5f5f5;
-                position: relative
-            }
-
-            .info-rules li:last-child {
-                border: none
-            }
-
-            .info-rules li::before {
-                content: "–";
-                position: absolute;
-                left: 0;
-                color: #999;
-            }
-
-            .ft {
-                font-size: .68rem;
-                padding: 0px 20px;
-                       color: #999;
-                position: sticky;
-                left: 0;
-            }
-        </style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-serif;background:#fff;color:#111;padding:52px 64px}
+h1{font-size:2.6rem;font-weight:300;letter-spacing:-.5px;margin-bottom:52px}
+.sl{font-size:10.5px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:#bbb;margin-bottom:10px}
+table{width:100%;border-collapse:collapse;margin-bottom:52px}
+th,td{padding:18px 10px;border-bottom:1px solid #f0f0f0;vertical-align:middle}
+.mh{font-size:10px;font-weight:500;letter-spacing:1.2px;text-transform:uppercase;color:#c0c0c0;text-align:center;min-width:62px}
+.ml{min-width:200px;padding-right:28px}
+.mn{font-size:1.05rem;font-weight:600;color:#111;margin-bottom:4px}
+.mn.click-title{cursor:pointer;display:inline-block}
+.mn.click-title:hover{color:#0057d9;text-decoration:underline;text-decoration-style:dotted;text-decoration-color:#0057d9}
+.mt{font-size:.72rem;color:#c0c0c0}
+.mc{text-align:center}
+.mv{font-size:.97rem;font-weight:500;color:#222}
+.mv.click{cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-decoration-color:#ddd;transition:color .15s,text-decoration-color .15s}
+.mv.click:hover{color:#0057d9;text-decoration-color:#0057d9}
+.empty{color:#e0e0e0;font-size:.8rem}
+.ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.1);z-index:100}
+.ov.on{display:block}
+.pnl{position:fixed;top:0;right:-440px;width:420px;height:100vh;background:#fff;box-shadow:-4px 0 28px rgba(0,0,0,.09);z-index:101;transition:right .27s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column}
+.pnl.open{right:0}
+.ph{padding:28px 28px 20px;border-bottom:1px solid #f2f2f2;display:flex;justify-content:space-between;align-items:flex-start}
+.pt{font-size:1.05rem;font-weight:600;color:#111}
+.ps{font-size:.73rem;color:#aaa;margin-top:4px}
+.px{background:none;border:none;cursor:pointer;color:#bbb;font-size:1.15rem;padding:0;margin-left:10px;line-height:1;flex-shrink:0}
+.px:hover{color:#333}
+.pb{flex:1;overflow-y:auto;padding:24px 28px 32px}
+.dr{display:flex;justify-content:space-between;align-items:center;padding:13px 0;border-bottom:1px solid #f8f8f8}
+.dr:last-child{border:none}
+.dn{font-size:.88rem;color:#444}
+.dv{font-size:.88rem;font-weight:600;color:#111}
+.nd{color:#bbb;font-size:.82rem;padding:20px 0;text-align:center}
+.info-section{margin-bottom:24px}
+.info-label{font-size:9.5px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#bbb;margin-bottom:8px}
+.info-text{font-size:.88rem;color:#333;line-height:1.6}
+.info-formula{font-size:.88rem;color:#333;background:#f7f7f7;border-radius:6px;padding:10px 14px;font-family:monospace;line-height:1.5}
+.info-rules{list-style:none;padding:0;margin:0}
+.info-rules li{font-size:.85rem;color:#444;line-height:1.55;padding:5px 0 5px 16px;border-bottom:1px solid #f5f5f5;position:relative}
+.info-rules li:last-child{border:none}
+.info-rules li::before{content:"–";position:absolute;left:0;color:#bbb}
+.ft{margin-top:48px;font-size:.68rem;color:#ccc}
+</style>
 </head>
 <body>
 <h1>Creative KPIs</h1>
-<div class="pk">
+
+<div class="sl">Deliverables</div>
 <table>
-  <thead><tr><th class="mh mhl">Deliverables</th><th class="mh">JAN</th><th class="mh">FEB</th><th class="mh">MAR</th><th class="mh">APR</th><th class="mh">MAY</th><th class="mh">JUN</th><th class="mh">JUL</th><th class="mh">AUG</th><th class="mh">SEP</th><th class="mh">OCT</th><th class="mh">NOV</th><th class="mh">DEC</th></tr></thead>
+  <thead><tr><th class="ml"></th><th class="mh">JAN</th><th class="mh">FEB</th><th class="mh">MAR</th><th class="mh">APR</th><th class="mh">MAY</th><th class="mh">JUN</th><th class="mh">JUL</th><th class="mh">AUG</th><th class="mh">SEP</th><th class="mh">OCT</th><th class="mh">NOV</th><th class="mh">DEC</th></tr></thead>
   <tbody>
         <tr class="mr">
           <td class="ml">
             <div class="mn click-title" onclick="showInfo('num_ds')"># Deliverables</div>
             <div class="mt">Target: 48</div>
-          </td><td class="mc"><span class="mv click" data-month="JAN" data-year="2026" data-metric="# Deliverables" data-suffix="" data-drill="{&quot;Carlos Miras&quot;: 7, &quot;Dan Howard&quot;: 6, &quot;Evan Brown&quot;: 6, &quot;Krystyna&quot;: 3, &quot;Nata&quot;: 2, &quot;Alex&quot;: 2, &quot;Olexii Lysenko&quot;: 2, &quot;Nandu&quot;: 1, &quot;Saba Talat&quot;: 1, &quot;Spencer Arney&quot;: 1, &quot;Anastasia&quot;: 0, &quot;Andrew Kallemeyn&quot;: 0}" onclick="showDrill(this)">31</span></td><td class="mc"><span class="mv click" data-month="FEB" data-year="2026" data-metric="# Deliverables" data-suffix="" data-drill="{&quot;Carlos Miras&quot;: 9, &quot;Nata&quot;: 6, &quot;Evan Brown&quot;: 4, &quot;Dan Howard&quot;: 2, &quot;Alex&quot;: 2, &quot;Spencer Arney&quot;: 2, &quot;Nandu&quot;: 1, &quot;Krystyna&quot;: 1, &quot;Olexii Lysenko&quot;: 1, &quot;Anastasia&quot;: 0, &quot;Saba Talat&quot;: 0, &quot;Andrew Kallemeyn&quot;: 0}" onclick="showDrill(this)">28</span></td><td class="mc"><span class="mv click" data-month="MAR" data-year="2026" data-metric="# Deliverables" data-suffix="" data-drill="{&quot;Nata&quot;: 14, &quot;Evan Brown&quot;: 10, &quot;Dan Howard&quot;: 9, &quot;Nandu&quot;: 6, &quot;Carlos Miras&quot;: 6, &quot;Alex&quot;: 3, &quot;Saba Talat&quot;: 3, &quot;Anastasia&quot;: 2, &quot;Olexii Lysenko&quot;: 2, &quot;Spencer Arney&quot;: 2, &quot;Jacob Blaze&quot;: 2, &quot;Krystyna&quot;: 1, &quot;Andrew Kallemeyn&quot;: 0}" onclick="showDrill(this)">60</span></td><td class="mc"><span class="mv click" data-month="APR" data-year="2026" data-metric="# Deliverables" data-suffix="" data-drill="{&quot;Carlos Miras&quot;: 6, &quot;Nata&quot;: 5, &quot;Jacob Blaze&quot;: 5, &quot;Saba Talat&quot;: 3, &quot;Nandu&quot;: 2, &quot;Dan Howard&quot;: 2, &quot;Evan Brown&quot;: 2, &quot;Krystyna&quot;: 2, &quot;Alex&quot;: 1, &quot;Anastasia&quot;: 1, &quot;Olexii Lysenko&quot;: 1, &quot;Spencer Arney&quot;: 1, &quot;Andrew Kallemeyn&quot;: 0}" onclick="showDrill(this)">31</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td>
+          </td><td class="mc"><span class="mv click" data-month="JAN" data-year="2026" data-metric="# Deliverables" data-suffix="" data-drill="{&quot;Carlos Miras&quot;: 8, &quot;Dan Howard&quot;: 7, &quot;Evan Brown&quot;: 5, &quot;Krystyna&quot;: 3, &quot;Nata&quot;: 2, &quot;Alex&quot;: 2, &quot;Olexii Lysenko&quot;: 2, &quot;Nandu&quot;: 1, &quot;Saba Talat&quot;: 1, &quot;Spencer Arney&quot;: 1, &quot;Anastasia&quot;: 0, &quot;Andrew Kallemeyn&quot;: 0}" onclick="showDrill(this)">32</span></td><td class="mc"><span class="mv click" data-month="FEB" data-year="2026" data-metric="# Deliverables" data-suffix="" data-drill="{&quot;Carlos Miras&quot;: 10, &quot;Nata&quot;: 6, &quot;Evan Brown&quot;: 4, &quot;Dan Howard&quot;: 3, &quot;Spencer Arney&quot;: 3, &quot;Alex&quot;: 2, &quot;Nandu&quot;: 1, &quot;Krystyna&quot;: 1, &quot;Olexii Lysenko&quot;: 1, &quot;Anastasia&quot;: 0, &quot;Saba Talat&quot;: 0, &quot;Andrew Kallemeyn&quot;: 0}" onclick="showDrill(this)">31</span></td><td class="mc"><span class="mv click" data-month="MAR" data-year="2026" data-metric="# Deliverables" data-suffix="" data-drill="{&quot;Nata&quot;: 15, &quot;Evan Brown&quot;: 11, &quot;Dan Howard&quot;: 9, &quot;Nandu&quot;: 6, &quot;Carlos Miras&quot;: 6, &quot;Alex&quot;: 3, &quot;Saba Talat&quot;: 3, &quot;Jacob Blaze&quot;: 3, &quot;Anastasia&quot;: 2, &quot;Olexii Lysenko&quot;: 2, &quot;Spencer Arney&quot;: 2, &quot;Krystyna&quot;: 1, &quot;Andrew Kallemeyn&quot;: 0}" onclick="showDrill(this)">63</span></td><td class="mc"><span class="mv click" data-month="APR" data-year="2026" data-metric="# Deliverables" data-suffix="" data-drill="{&quot;Nata&quot;: 7, &quot;Carlos Miras&quot;: 7, &quot;Jacob Blaze&quot;: 6, &quot;Nandu&quot;: 4, &quot;Evan Brown&quot;: 4, &quot;Saba Talat&quot;: 4, &quot;Dan Howard&quot;: 2, &quot;Krystyna&quot;: 2, &quot;Alex&quot;: 1, &quot;Anastasia&quot;: 1, &quot;Olexii Lysenko&quot;: 1, &quot;Spencer Arney&quot;: 1, &quot;Andrew Kallemeyn&quot;: 0}" onclick="showDrill(this)">40</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td>
         </tr>
         <tr class="mr">
           <td class="ml">
             <div class="mn click-title" onclick="showInfo('ds_per_person')">Deliverables / Person</div>
             <div class="mt">Target: 4</div>
-          </td><td class="mc"><span class="mv click" data-month="JAN" data-year="2026" data-metric="Deliverables / Person" data-suffix="" data-drill="{&quot;Carlos Miras&quot;: 7, &quot;Dan Howard&quot;: 6, &quot;Evan Brown&quot;: 6, &quot;Krystyna&quot;: 3, &quot;Nata&quot;: 2, &quot;Alex&quot;: 2, &quot;Olexii Lysenko&quot;: 2, &quot;Nandu&quot;: 1, &quot;Saba Talat&quot;: 1, &quot;Spencer Arney&quot;: 1, &quot;Anastasia&quot;: 0, &quot;Andrew Kallemeyn&quot;: 0}" onclick="showDrill(this)">2.58</span></td><td class="mc"><span class="mv click" data-month="FEB" data-year="2026" data-metric="Deliverables / Person" data-suffix="" data-drill="{&quot;Carlos Miras&quot;: 9, &quot;Nata&quot;: 6, &quot;Evan Brown&quot;: 4, &quot;Dan Howard&quot;: 2, &quot;Alex&quot;: 2, &quot;Spencer Arney&quot;: 2, &quot;Nandu&quot;: 1, &quot;Krystyna&quot;: 1, &quot;Olexii Lysenko&quot;: 1, &quot;Anastasia&quot;: 0, &quot;Saba Talat&quot;: 0, &quot;Andrew Kallemeyn&quot;: 0}" onclick="showDrill(this)">2.33</span></td><td class="mc"><span class="mv click" data-month="MAR" data-year="2026" data-metric="Deliverables / Person" data-suffix="" data-drill="{&quot;Nata&quot;: 14, &quot;Evan Brown&quot;: 10, &quot;Dan Howard&quot;: 9, &quot;Nandu&quot;: 6, &quot;Carlos Miras&quot;: 6, &quot;Alex&quot;: 3, &quot;Saba Talat&quot;: 3, &quot;Anastasia&quot;: 2, &quot;Olexii Lysenko&quot;: 2, &quot;Spencer Arney&quot;: 2, &quot;Jacob Blaze&quot;: 2, &quot;Krystyna&quot;: 1, &quot;Andrew Kallemeyn&quot;: 0}" onclick="showDrill(this)">5.0</span></td><td class="mc"><span class="mv click" data-month="APR" data-year="2026" data-metric="Deliverables / Person" data-suffix="" data-drill="{&quot;Carlos Miras&quot;: 6, &quot;Nata&quot;: 5, &quot;Jacob Blaze&quot;: 5, &quot;Saba Talat&quot;: 3, &quot;Nandu&quot;: 2, &quot;Dan Howard&quot;: 2, &quot;Evan Brown&quot;: 2, &quot;Krystyna&quot;: 2, &quot;Alex&quot;: 1, &quot;Anastasia&quot;: 1, &quot;Olexii Lysenko&quot;: 1, &quot;Spencer Arney&quot;: 1, &quot;Andrew Kallemeyn&quot;: 0}" onclick="showDrill(this)">2.58</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td>
+          </td><td class="mc"><span class="mv click" data-month="JAN" data-year="2026" data-metric="Deliverables / Person" data-suffix="" data-drill="{&quot;Carlos Miras&quot;: 8, &quot;Dan Howard&quot;: 7, &quot;Evan Brown&quot;: 5, &quot;Krystyna&quot;: 3, &quot;Nata&quot;: 2, &quot;Alex&quot;: 2, &quot;Olexii Lysenko&quot;: 2, &quot;Nandu&quot;: 1, &quot;Saba Talat&quot;: 1, &quot;Spencer Arney&quot;: 1, &quot;Anastasia&quot;: 0, &quot;Andrew Kallemeyn&quot;: 0}" onclick="showDrill(this)">2.67</span></td><td class="mc"><span class="mv click" data-month="FEB" data-year="2026" data-metric="Deliverables / Person" data-suffix="" data-drill="{&quot;Carlos Miras&quot;: 10, &quot;Nata&quot;: 6, &quot;Evan Brown&quot;: 4, &quot;Dan Howard&quot;: 3, &quot;Spencer Arney&quot;: 3, &quot;Alex&quot;: 2, &quot;Nandu&quot;: 1, &quot;Krystyna&quot;: 1, &quot;Olexii Lysenko&quot;: 1, &quot;Anastasia&quot;: 0, &quot;Saba Talat&quot;: 0, &quot;Andrew Kallemeyn&quot;: 0}" onclick="showDrill(this)">2.58</span></td><td class="mc"><span class="mv click" data-month="MAR" data-year="2026" data-metric="Deliverables / Person" data-suffix="" data-drill="{&quot;Nata&quot;: 15, &quot;Evan Brown&quot;: 11, &quot;Dan Howard&quot;: 9, &quot;Nandu&quot;: 6, &quot;Carlos Miras&quot;: 6, &quot;Alex&quot;: 3, &quot;Saba Talat&quot;: 3, &quot;Jacob Blaze&quot;: 3, &quot;Anastasia&quot;: 2, &quot;Olexii Lysenko&quot;: 2, &quot;Spencer Arney&quot;: 2, &quot;Krystyna&quot;: 1, &quot;Andrew Kallemeyn&quot;: 0}" onclick="showDrill(this)">5.25</span></td><td class="mc"><span class="mv click" data-month="APR" data-year="2026" data-metric="Deliverables / Person" data-suffix="" data-drill="{&quot;Nata&quot;: 7, &quot;Carlos Miras&quot;: 7, &quot;Jacob Blaze&quot;: 6, &quot;Nandu&quot;: 4, &quot;Evan Brown&quot;: 4, &quot;Saba Talat&quot;: 4, &quot;Dan Howard&quot;: 2, &quot;Krystyna&quot;: 2, &quot;Alex&quot;: 1, &quot;Anastasia&quot;: 1, &quot;Olexii Lysenko&quot;: 1, &quot;Spencer Arney&quot;: 1, &quot;Andrew Kallemeyn&quot;: 0}" onclick="showDrill(this)">3.33</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td>
         </tr>
         <tr class="mr">
           <td class="ml">
             <div class="mn click-title" onclick="showInfo('cycles_per_d')">Cycles / Deliverable</div>
             <div class="mt">Target: TBD</div>
-          </td><td class="mc"><span class="mv click" data-month="JAN" data-year="2026" data-metric="Cycles / Deliverable" data-suffix="" data-drill="{&quot;Nandu&quot;: 22.0, &quot;Alex&quot;: 4.0, &quot;Carlos Miras&quot;: 3.29, &quot;Evan Brown&quot;: 3.17, &quot;Krystyna&quot;: 2.67, &quot;Saba Talat&quot;: 2.0, &quot;Dan Howard&quot;: 1.5, &quot;Nata&quot;: 0.5, &quot;Olexii Lysenko&quot;: 0.0, &quot;Spencer Arney&quot;: 0.0}" onclick="showDrill(this)">2.97</span></td><td class="mc"><span class="mv click" data-month="FEB" data-year="2026" data-metric="Cycles / Deliverable" data-suffix="" data-drill="{&quot;Olexii Lysenko&quot;: 11.0, &quot;Krystyna&quot;: 8.0, &quot;Carlos Miras&quot;: 2.89, &quot;Dan Howard&quot;: 2.5, &quot;Nata&quot;: 2.17, &quot;Spencer Arney&quot;: 2.0, &quot;Evan Brown&quot;: 1.5, &quot;Alex&quot;: 1.0, &quot;Nandu&quot;: 0.0}" onclick="showDrill(this)">2.68</span></td><td class="mc"><span class="mv click" data-month="MAR" data-year="2026" data-metric="Cycles / Deliverable" data-suffix="" data-drill="{&quot;Spencer Arney&quot;: 4.5, &quot;Olexii Lysenko&quot;: 4.5, &quot;Carlos Miras&quot;: 4.0, &quot;Anastasia&quot;: 3.5, &quot;Jacob Blaze&quot;: 3.5, &quot;Dan Howard&quot;: 3.11, &quot;Nata&quot;: 1.5, &quot;Alex&quot;: 0.67, &quot;Saba Talat&quot;: 0.67, &quot;Nandu&quot;: 0.5, &quot;Evan Brown&quot;: 0.5, &quot;Krystyna&quot;: 0.0}" onclick="showDrill(this)">1.95</span></td><td class="mc"><span class="mv click" data-month="APR" data-year="2026" data-metric="Cycles / Deliverable" data-suffix="" data-drill="{&quot;Alex&quot;: 8.0, &quot;Olexii Lysenko&quot;: 4.0, &quot;Jacob Blaze&quot;: 2.6, &quot;Dan Howard&quot;: 2.5, &quot;Nata&quot;: 1.0, &quot;Saba Talat&quot;: 0.67, &quot;Carlos Miras&quot;: 0.67, &quot;Krystyna&quot;: 0.5, &quot;Nandu&quot;: 0.0, &quot;Evan Brown&quot;: 0.0, &quot;Spencer Arney&quot;: 0.0, &quot;Anastasia&quot;: 0.0}" onclick="showDrill(this)">1.35</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td>
+          </td><td class="mc"><span class="mv click" data-month="JAN" data-year="2026" data-metric="Cycles / Deliverable" data-suffix="" data-drill="{&quot;Nandu&quot;: 22.0, &quot;Alex&quot;: 4.0, &quot;Carlos Miras&quot;: 3.0, &quot;Evan Brown&quot;: 2.8, &quot;Krystyna&quot;: 2.67, &quot;Saba Talat&quot;: 2.0, &quot;Dan Howard&quot;: 1.57, &quot;Nata&quot;: 0.5, &quot;Olexii Lysenko&quot;: 0.0, &quot;Spencer Arney&quot;: 0.0}" onclick="showDrill(this)">2.81</span></td><td class="mc"><span class="mv click" data-month="FEB" data-year="2026" data-metric="Cycles / Deliverable" data-suffix="" data-drill="{&quot;Olexii Lysenko&quot;: 11.0, &quot;Krystyna&quot;: 8.0, &quot;Dan Howard&quot;: 3.67, &quot;Carlos Miras&quot;: 2.7, &quot;Nata&quot;: 2.17, &quot;Spencer Arney&quot;: 1.67, &quot;Evan Brown&quot;: 1.5, &quot;Alex&quot;: 1.0, &quot;Nandu&quot;: 0.0}" onclick="showDrill(this)">2.68</span></td><td class="mc"><span class="mv click" data-month="MAR" data-year="2026" data-metric="Cycles / Deliverable" data-suffix="" data-drill="{&quot;Olexii Lysenko&quot;: 4.5, &quot;Spencer Arney&quot;: 4.5, &quot;Jacob Blaze&quot;: 4.0, &quot;Carlos Miras&quot;: 4.0, &quot;Anastasia&quot;: 3.5, &quot;Dan Howard&quot;: 3.22, &quot;Nata&quot;: 1.47, &quot;Alex&quot;: 0.67, &quot;Saba Talat&quot;: 0.67, &quot;Nandu&quot;: 0.5, &quot;Evan Brown&quot;: 0.45, &quot;Krystyna&quot;: 0.0}" onclick="showDrill(this)">1.97</span></td><td class="mc"><span class="mv click" data-month="APR" data-year="2026" data-metric="Cycles / Deliverable" data-suffix="" data-drill="{&quot;Alex&quot;: 8.0, &quot;Olexii Lysenko&quot;: 4.0, &quot;Dan Howard&quot;: 2.5, &quot;Jacob Blaze&quot;: 2.33, &quot;Nata&quot;: 1.0, &quot;Carlos Miras&quot;: 0.57, &quot;Saba Talat&quot;: 0.5, &quot;Krystyna&quot;: 0.5, &quot;Evan Brown&quot;: 0.25, &quot;Nandu&quot;: 0.0, &quot;Spencer Arney&quot;: 0.0, &quot;Anastasia&quot;: 0.0}" onclick="showDrill(this)">1.15</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td>
         </tr>
         <tr class="mr">
           <td class="ml">
             <div class="mn click-title" onclick="showInfo('replies_per_d')">Replies / Deliverable</div>
             <div class="mt">Target: TBD</div>
-          </td><td class="mc"><span class="mv click" data-month="JAN" data-year="2026" data-metric="Replies / Deliverable" data-suffix="" data-drill="{&quot;Nandu&quot;: 53.0, &quot;Evan Brown&quot;: 21.83, &quot;Carlos Miras&quot;: 18.0, &quot;Alex&quot;: 15.5, &quot;Krystyna&quot;: 9.67, &quot;Spencer Arney&quot;: 7.0, &quot;Nata&quot;: 4.5, &quot;Dan Howard&quot;: 3.83, &quot;Saba Talat&quot;: 3.0, &quot;Olexii Lysenko&quot;: 1.5}" onclick="showDrill(this)">13.39</span></td><td class="mc"><span class="mv click" data-month="FEB" data-year="2026" data-metric="Replies / Deliverable" data-suffix="" data-drill="{&quot;Olexii Lysenko&quot;: 31.0, &quot;Krystyna&quot;: 19.0, &quot;Evan Brown&quot;: 15.5, &quot;Carlos Miras&quot;: 12.67, &quot;Spencer Arney&quot;: 8.0, &quot;Nata&quot;: 7.83, &quot;Dan Howard&quot;: 4.5, &quot;Alex&quot;: 3.0, &quot;Nandu&quot;: 1.0}" onclick="showDrill(this)">10.89</span></td><td class="mc"><span class="mv click" data-month="MAR" data-year="2026" data-metric="Replies / Deliverable" data-suffix="" data-drill="{&quot;Carlos Miras&quot;: 14.33, &quot;Spencer Arney&quot;: 14.0, &quot;Dan Howard&quot;: 13.78, &quot;Nata&quot;: 10.64, &quot;Olexii Lysenko&quot;: 10.0, &quot;Evan Brown&quot;: 8.0, &quot;Jacob Blaze&quot;: 8.0, &quot;Anastasia&quot;: 6.5, &quot;Saba Talat&quot;: 5.0, &quot;Alex&quot;: 4.67, &quot;Nandu&quot;: 3.5, &quot;Krystyna&quot;: 3.0}" onclick="showDrill(this)">9.48</span></td><td class="mc"><span class="mv click" data-month="APR" data-year="2026" data-metric="Replies / Deliverable" data-suffix="" data-drill="{&quot;Alex&quot;: 14.0, &quot;Jacob Blaze&quot;: 6.2, &quot;Dan Howard&quot;: 5.5, &quot;Krystyna&quot;: 5.0, &quot;Nata&quot;: 4.8, &quot;Olexii Lysenko&quot;: 4.0, &quot;Spencer Arney&quot;: 3.0, &quot;Saba Talat&quot;: 2.33, &quot;Carlos Miras&quot;: 2.33, &quot;Nandu&quot;: 1.5, &quot;Anastasia&quot;: 1.0, &quot;Evan Brown&quot;: 0.5}" onclick="showDrill(this)">3.97</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td>
+          </td><td class="mc"><span class="mv click" data-month="JAN" data-year="2026" data-metric="Replies / Deliverable" data-suffix="" data-drill="{&quot;Nandu&quot;: 53.0, &quot;Evan Brown&quot;: 20.6, &quot;Carlos Miras&quot;: 17.62, &quot;Alex&quot;: 15.5, &quot;Krystyna&quot;: 9.67, &quot;Spencer Arney&quot;: 7.0, &quot;Nata&quot;: 4.5, &quot;Dan Howard&quot;: 3.71, &quot;Saba Talat&quot;: 3.0, &quot;Olexii Lysenko&quot;: 1.5}" onclick="showDrill(this)">12.66</span></td><td class="mc"><span class="mv click" data-month="FEB" data-year="2026" data-metric="Replies / Deliverable" data-suffix="" data-drill="{&quot;Olexii Lysenko&quot;: 31.0, &quot;Krystyna&quot;: 19.0, &quot;Evan Brown&quot;: 15.5, &quot;Carlos Miras&quot;: 11.7, &quot;Dan Howard&quot;: 8.0, &quot;Nata&quot;: 7.83, &quot;Spencer Arney&quot;: 6.0, &quot;Alex&quot;: 3.0, &quot;Nandu&quot;: 1.0}" onclick="showDrill(this)">10.48</span></td><td class="mc"><span class="mv click" data-month="MAR" data-year="2026" data-metric="Replies / Deliverable" data-suffix="" data-drill="{&quot;Spencer Arney&quot;: 14.5, &quot;Carlos Miras&quot;: 14.33, &quot;Dan Howard&quot;: 13.78, &quot;Jacob Blaze&quot;: 10.0, &quot;Nata&quot;: 10.0, &quot;Olexii Lysenko&quot;: 10.0, &quot;Evan Brown&quot;: 7.45, &quot;Anastasia&quot;: 6.5, &quot;Saba Talat&quot;: 5.0, &quot;Alex&quot;: 4.67, &quot;Nandu&quot;: 3.5, &quot;Krystyna&quot;: 3.0}" onclick="showDrill(this)">9.32</span></td><td class="mc"><span class="mv click" data-month="APR" data-year="2026" data-metric="Replies / Deliverable" data-suffix="" data-drill="{&quot;Alex&quot;: 14.0, &quot;Olexii Lysenko&quot;: 10.0, &quot;Jacob Blaze&quot;: 6.33, &quot;Dan Howard&quot;: 5.5, &quot;Krystyna&quot;: 5.0, &quot;Evan Brown&quot;: 4.75, &quot;Nata&quot;: 4.43, &quot;Spencer Arney&quot;: 3.0, &quot;Carlos Miras&quot;: 2.14, &quot;Saba Talat&quot;: 2.0, &quot;Nandu&quot;: 1.0, &quot;Anastasia&quot;: 1.0}" onclick="showDrill(this)">4.1</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td>
         </tr></tbody>
 </table>
 
-
+<div class="sl">Time to First Response</div>
 <table>
-  <thead><tr><th class="mh mhl">First Response Time</th><th class="mh">JAN</th><th class="mh">FEB</th><th class="mh">MAR</th><th class="mh">APR</th><th class="mh">MAY</th><th class="mh">JUN</th><th class="mh">JUL</th><th class="mh">AUG</th><th class="mh">SEP</th><th class="mh">OCT</th><th class="mh">NOV</th><th class="mh">DEC</th></tr></thead>
+  <thead><tr><th class="ml"></th><th class="mh">JAN</th><th class="mh">FEB</th><th class="mh">MAR</th><th class="mh">APR</th><th class="mh">MAY</th><th class="mh">JUN</th><th class="mh">JUL</th><th class="mh">AUG</th><th class="mh">SEP</th><th class="mh">OCT</th><th class="mh">NOV</th><th class="mh">DEC</th></tr></thead>
   <tbody>
         <tr class="mr">
           <td class="ml">
             <div class="mn click-title" onclick="showInfo('response_per_d')">Avg. Response Time</div>
             <div class="mt">Target: TBD</div>
-          </td><td class="mc"><span class="mv click" data-month="JAN" data-year="2026" data-metric="Avg. Response Time" data-suffix="h" data-drill="{&quot;Alexa&quot;: 1.7, &quot;Joe&quot;: 3.1, &quot;Gabe&quot;: 5.5}" onclick="showDrill(this)">4.0h</span></td><td class="mc"><span class="mv click" data-month="FEB" data-year="2026" data-metric="Avg. Response Time" data-suffix="h" data-drill="{&quot;Joe&quot;: 2.1, &quot;Alexa&quot;: 3.1, &quot;Gabe&quot;: 8.1}" onclick="showDrill(this)">4.6h</span></td><td class="mc"><span class="mv click" data-month="MAR" data-year="2026" data-metric="Avg. Response Time" data-suffix="h" data-drill="{&quot;Alexa&quot;: 3.0, &quot;Gabe&quot;: 6.8, &quot;Joe&quot;: 7.4}" onclick="showDrill(this)">5.2h</span></td><td class="mc"><span class="mv click" data-month="APR" data-year="2026" data-metric="Avg. Response Time" data-suffix="h" data-drill="{&quot;Alexa&quot;: 1.1, &quot;Joe&quot;: 5.5, &quot;Gabe&quot;: 9.0}" onclick="showDrill(this)">4.3h</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td>
+          </td><td class="mc"><span class="mv click" data-month="JAN" data-year="2026" data-metric="Avg. Response Time" data-suffix="h" data-drill="{&quot;Alexa&quot;: 1.6, &quot;Joe&quot;: 3.5, &quot;Gabe&quot;: 5.7}" onclick="showDrill(this)">4.1h</span></td><td class="mc"><span class="mv click" data-month="FEB" data-year="2026" data-metric="Avg. Response Time" data-suffix="h" data-drill="{&quot;Joe&quot;: 2.8, &quot;Alexa&quot;: 3.0, &quot;Gabe&quot;: 8.1}" onclick="showDrill(this)">4.5h</span></td><td class="mc"><span class="mv click" data-month="MAR" data-year="2026" data-metric="Avg. Response Time" data-suffix="h" data-drill="{&quot;Alexa&quot;: 3.1, &quot;Gabe&quot;: 6.8, &quot;Joe&quot;: 7.9}" onclick="showDrill(this)">5.4h</span></td><td class="mc"><span class="mv click" data-month="APR" data-year="2026" data-metric="Avg. Response Time" data-suffix="h" data-drill="{&quot;Alexa&quot;: 2.4, &quot;Joe&quot;: 4.7, &quot;Gabe&quot;: 9.0}" onclick="showDrill(this)">4.6h</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td><td class="mc"><span class="empty">—</span></td>
         </tr></tbody>
 </table>
 
-<div class="ft">Last updated: April 10, 2026</div>
+<div class="ft">Last updated: April 13, 2026</div>
 
 <div class="ov" id="ov" onclick="close_()"></div>
 <div class="pnl" id="pnl">
@@ -397,6 +149,5 @@ function close_() {
 }
 document.addEventListener('keydown', e => { if (e.key === 'Escape') close_(); });
 </script>
-</div>
 </body>
 </html>
