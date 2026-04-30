@@ -413,6 +413,35 @@ def process_slack(client, channel_id, users, managers, start_dt, end_dt):
 
     total_ds = sum(len(v) for v in month_data.values())
     print(f"  Total deliverable entries found: {total_ds}")
+
+    # ── DIAGNOSTIC: print every deliverable so we can spot gaps in the log ───
+    print("\n  DIAGNOSTIC — all deliverable entries by month:")
+    for month in sorted(month_data.keys()):
+        entries = month_data[month]
+        print(f"  {month}: {len(entries)} entries")
+        for d in entries:
+            root_dt = datetime.fromtimestamp(float(d['root_ts']), tz=timezone.utc).strftime("%Y-%m-%d")
+            deliv_dt = datetime.fromtimestamp(
+                float(d['root_ts']), tz=timezone.utc).strftime("%Y-%m-%d")
+            # Show thread root date and poster — helps cross-check with Slack
+            print(f"    [{root_dt}] {d['poster_name']}  "
+                  f"(thread_ts={d['root_ts']}, cycles={d['cycle_count']}, replies={d['reply_count']})")
+
+    # ── DIAGNOSTIC: scan history for ALL 'For review:' messages to catch anything missed ─
+    print("\n  DIAGNOSTIC — every 'For review:' message visible in channel history:")
+    review_msgs = [m for m in all_msgs if is_review(m)]
+    print(f"  Found {len(review_msgs)} 'For review:' messages in history:")
+    for m in sorted(review_msgs, key=lambda x: float(x.get("ts", 0))):
+        uid   = m.get("user", "")
+        uname = users.get(uid, {}).get("display_name", uid)
+        ts    = m.get("ts", "")
+        dt    = datetime.fromtimestamp(float(ts), tz=timezone.utc).strftime("%Y-%m-%d %H:%M")
+        tts   = m.get("thread_ts") or ts
+        root  = is_root(m)
+        sub   = m.get("subtype") or "—"
+        txt   = get_full_text(m)[:80]
+        print(f"    [{dt}] {uname:<20} root={root} sub={sub:<16} thread_ts={tts}  \"{txt}\"")
+
     return month_data
 
 
