@@ -1,5 +1,5 @@
 {
-  "last_updated": "2026-04-30T22:21:05.488407+00:00",
+  "last_updated": "2026-04-30T22:28:56.560210+00:00",
   "metrics": {
     "2026-03": {
       "num_ds": 63,
@@ -46,8 +46,8 @@
           "Anastasia": 3.5,
           "Dan Howard": 3.33,
           "Nata": 1.47,
-          "Alex": 0.67,
           "Saba Talat": 0.67,
+          "Alex": 0.67,
           "Nandu": 0.5,
           "Evan Brown": 0.45,
           "Krystyna": 0.0
@@ -193,8 +193,8 @@
           "Alex": 15.5,
           "Krystyna": 7.8,
           "Spencer Arney": 5.5,
-          "Nata": 4.5,
           "Saba Talat": 4.5,
+          "Nata": 4.5,
           "Dan Howard": 3.89,
           "Olexii Lysenko": 1.5
         },
