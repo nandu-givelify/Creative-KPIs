@@ -119,12 +119,23 @@ def find_managers(users, manager_names):
 def fetch_history(client, channel_id, oldest, latest):
     msgs, cursor = [], None
     while True:
-        try:
-            r = client.conversations_history(
-                channel=channel_id, oldest=str(oldest),
-                latest=str(latest), limit=200, cursor=cursor)
-        except SlackApiError as e:
-            print(f"  Error fetching history: {e}"); break
+        for attempt in range(5):
+            try:
+                r = client.conversations_history(
+                    channel=channel_id, oldest=str(oldest),
+                    latest=str(latest), limit=200, cursor=cursor)
+                break
+            except SlackApiError as e:
+                if e.response.get("error") == "ratelimited":
+                    wait = int(e.response.headers.get("Retry-After", 10))
+                    print(f"  Rate limited on history — waiting {wait}s (attempt {attempt+1})")
+                    time.sleep(wait + 1)
+                else:
+                    print(f"  Error fetching history: {e}")
+                    return msgs
+        else:
+            print(f"  Gave up on history fetch after 5 rate-limit retries")
+            return msgs
         msgs.extend(r.get("messages", []))
         if not r.get("has_more"): break
         cursor = r.get("response_metadata", {}).get("next_cursor")
@@ -136,16 +147,27 @@ def fetch_history(client, channel_id, oldest, latest):
 def fetch_thread(client, channel_id, thread_ts):
     msgs, cursor = [], None
     while True:
-        try:
-            r = client.conversations_replies(
-                channel=channel_id, ts=thread_ts, limit=200, cursor=cursor)
-        except SlackApiError as e:
-            print(f"  Error fetching thread {thread_ts}: {e}"); break
+        for attempt in range(5):   # retry up to 5 times on rate-limit
+            try:
+                r = client.conversations_replies(
+                    channel=channel_id, ts=thread_ts, limit=200, cursor=cursor)
+                break  # success
+            except SlackApiError as e:
+                if e.response.get("error") == "ratelimited":
+                    wait = int(e.response.headers.get("Retry-After", 10))
+                    print(f"  Rate limited on thread {thread_ts} — waiting {wait}s (attempt {attempt+1})")
+                    time.sleep(wait + 1)
+                else:
+                    print(f"  Error fetching thread {thread_ts}: {e}")
+                    return msgs  # non-rate-limit error — return what we have
+        else:
+            print(f"  Gave up on thread {thread_ts} after 5 rate-limit retries")
+            return msgs
         msgs.extend(r.get("messages", []))
         if not r.get("has_more"): break
         cursor = r.get("response_metadata", {}).get("next_cursor")
         if not cursor: break
-        time.sleep(0.5)
+        time.sleep(1.5)   # increased from 0.5s to stay well under rate limit
     return msgs  # index 0 = root
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -428,9 +450,17 @@ def process_slack(client, channel_id, users, managers, start_dt, end_dt):
                   f"(thread_ts={d['root_ts']}, cycles={d['cycle_count']}, replies={d['reply_count']})")
 
     # ── DIAGNOSTIC: scan history for ALL 'For review:' messages to catch anything missed ─
+    print(f"\n  DIAGNOSTIC — confirmed_ts size: {len(confirmed_ts)}")
     print("\n  DIAGNOSTIC — every 'For review:' message visible in channel history:")
     review_msgs = [m for m in all_msgs if is_review(m)]
     print(f"  Found {len(review_msgs)} 'For review:' messages in history:")
+
+    # Build set of root_ts values from deliverables so we can flag missing ones
+    found_root_ts = set()
+    for entries in month_data.values():
+        for d in entries:
+            found_root_ts.add(d["root_ts"])
+
     for m in sorted(review_msgs, key=lambda x: float(x.get("ts", 0))):
         uid   = m.get("user", "")
         uname = users.get(uid, {}).get("display_name", uid)
@@ -440,7 +470,12 @@ def process_slack(client, channel_id, users, managers, start_dt, end_dt):
         root  = is_root(m)
         sub   = m.get("subtype") or "—"
         txt   = get_full_text(m)[:80]
-        print(f"    [{dt}] {uname:<20} root={root} sub={sub:<16} thread_ts={tts}  \"{txt}\"")
+        in_confirmed = tts in confirmed_ts
+        produced_d   = tts in found_root_ts
+        flag = "" if produced_d else " ◄ NO DELIVERABLE"
+        if not in_confirmed: flag += " [NOT IN confirmed_ts!]"
+        print(f"    [{dt}] {uname:<20} root={root} confirmed={in_confirmed} deliverable={produced_d}{flag}")
+        print(f"           thread_ts={tts}  \"{txt}\"")
 
     return month_data
 
