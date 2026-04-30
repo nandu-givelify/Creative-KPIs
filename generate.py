@@ -514,16 +514,17 @@ def compute_metrics(month_data, managers):
         sd = lambda d: dict(sorted(d.items(), key=lambda x: -x[1]))
         sa = lambda d: dict(sorted(d.items(), key=lambda x:  x[1]))
 
-        # Ds/Person always divides by the full team (12 members), not just those who posted.
-        # All 12 members appear in the drill-down; non-posters show 0.
+        # Ds/Person divides by the number of people who actually posted that month.
+        # Drill-down shows only active posters (no zeros for non-posters).
         full_team_ds = {name: pd.get(name, 0) for name in TEAM_MEMBERS}
         for name, count in pd.items():
             if name not in full_team_ds:
                 full_team_ds[name] = count
+        active_posters = len(pd)  # only people who posted at least 1 deliverable
 
         result[month] = {
             "num_ds":         n,
-            "ds_per_person":  round(n / len(TEAM_MEMBERS), 2),
+            "ds_per_person":  round(n / active_posters, 2) if active_posters else 0,
             "cycles_per_d":   round(tc/n, 2),
             "replies_per_d":  round(tr/n, 2),
             "response_per_d": avg_resp,
@@ -565,11 +566,12 @@ METRIC_INFO = {
     },
     "ds_per_person": {
         "label": "Deliverables / Person",
-        "definition": "How many deliverables each team member submitted on average.",
-        "formula": "Total deliverables \u00f7 12 (full team size)",
+        "definition": "How many deliverables each active team member submitted on average in that month.",
+        "formula": "Total deliverables \u00f7 number of people who posted at least one deliverable",
         "rules": [
-            "Always divided by all 12 team members, even if someone posted 0 that month",
-            "Click any monthly value to see the per-person breakdown, including zeros",
+            "Only counts people who actually submitted a deliverable that month \u2014 inactive members are excluded from the denominator",
+            "This reflects the average workload of those who were actively delivering",
+            "Click any monthly value to see the per-person breakdown",
         ],
     },
     "cycles_per_d": {
