@@ -54,20 +54,22 @@ MONTH_KEYS = ["01","02","03","04","05","06","07","08","09","10","11","12"]
 # ═══════════════════════════════════════════════════════════════════════════════
 
 def get_date_range():
-    """Return (start, end) covering exactly the last 3 months from today.
-    e.g. if today is April 14 → start = January 14, end = April 14 (now)
+    """Return (start, end) anchored to the 1st of the month 3 months ago.
+
+    Always starts on the 1st so we capture complete calendar months and
+    never overwrite a month's data with a partial fetch.
+
+    Examples:
+      Run on April 30  → start = Jan  1, end = April 30  (covers Jan–Apr fully)
+      Run on May  15   → start = Feb  1, end = May  15   (covers Feb–May; Jan preserved in data.json)
+      Run on Jan   5   → start = Oct  1 (prev year), end = Jan 5
     """
     today = datetime.now(tz=timezone.utc)
     m, y = today.month - 3, today.year
     if m <= 0:
         m += 12
         y -= 1
-    try:
-        start = datetime(y, m, today.day, 0, 0, 0, tzinfo=timezone.utc)
-    except ValueError:
-        import calendar
-        last_day = calendar.monthrange(y, m)[1]
-        start = datetime(y, m, last_day, 0, 0, 0, tzinfo=timezone.utc)
+    start = datetime(y, m, 1, 0, 0, 0, tzinfo=timezone.utc)  # always 1st of the month
     end = today
     return start, end
 
