@@ -116,26 +116,33 @@ def find_managers(users, manager_names):
 #  SLACK — MESSAGE FETCHING
 # ═══════════════════════════════════════════════════════════════════════════════
 
+def _slack_call_with_retry(fn, label):
+    """Call a Slack SDK function with up to 5 retries on rate-limit errors."""
+    for attempt in range(5):
+        try:
+            return fn()
+        except SlackApiError as e:
+            if "ratelimited" in str(e).lower():
+                wait = 15 * (2 ** attempt)   # 15s, 30s, 60s, 120s, 240s
+                print(f"  Rate limited ({label}) — waiting {wait}s (attempt {attempt+1}/5)")
+                time.sleep(wait)
+            else:
+                print(f"  Slack error ({label}): {e}")
+                return None   # non-rate-limit error — caller handles None
+    print(f"  Gave up on {label} after 5 rate-limit retries")
+    return None
+
+
 def fetch_history(client, channel_id, oldest, latest):
     msgs, cursor = [], None
     while True:
-        for attempt in range(5):
-            try:
-                r = client.conversations_history(
-                    channel=channel_id, oldest=str(oldest),
-                    latest=str(latest), limit=200, cursor=cursor)
-                break
-            except SlackApiError as e:
-                if e.response.get("error") == "ratelimited":
-                    wait = int(e.response.headers.get("Retry-After", 10))
-                    print(f"  Rate limited on history — waiting {wait}s (attempt {attempt+1})")
-                    time.sleep(wait + 1)
-                else:
-                    print(f"  Error fetching history: {e}")
-                    return msgs
-        else:
-            print(f"  Gave up on history fetch after 5 rate-limit retries")
-            return msgs
+        r = _slack_call_with_retry(
+            lambda: client.conversations_history(
+                channel=channel_id, oldest=str(oldest),
+                latest=str(latest), limit=200, cursor=cursor),
+            "history")
+        if r is None:
+            break
         msgs.extend(r.get("messages", []))
         if not r.get("has_more"): break
         cursor = r.get("response_metadata", {}).get("next_cursor")
@@ -147,27 +154,17 @@ def fetch_history(client, channel_id, oldest, latest):
 def fetch_thread(client, channel_id, thread_ts):
     msgs, cursor = [], None
     while True:
-        for attempt in range(5):   # retry up to 5 times on rate-limit
-            try:
-                r = client.conversations_replies(
-                    channel=channel_id, ts=thread_ts, limit=200, cursor=cursor)
-                break  # success
-            except SlackApiError as e:
-                if e.response.get("error") == "ratelimited":
-                    wait = int(e.response.headers.get("Retry-After", 10))
-                    print(f"  Rate limited on thread {thread_ts} — waiting {wait}s (attempt {attempt+1})")
-                    time.sleep(wait + 1)
-                else:
-                    print(f"  Error fetching thread {thread_ts}: {e}")
-                    return msgs  # non-rate-limit error — return what we have
-        else:
-            print(f"  Gave up on thread {thread_ts} after 5 rate-limit retries")
-            return msgs
+        r = _slack_call_with_retry(
+            lambda: client.conversations_replies(
+                channel=channel_id, ts=thread_ts, limit=200, cursor=cursor),
+            f"thread {thread_ts}")
+        if r is None:
+            break
         msgs.extend(r.get("messages", []))
         if not r.get("has_more"): break
         cursor = r.get("response_metadata", {}).get("next_cursor")
         if not cursor: break
-        time.sleep(1.5)   # increased from 0.5s to stay well under rate limit
+        time.sleep(1.5)
     return msgs  # index 0 = root
 
 # ═══════════════════════════════════════════════════════════════════════════════
