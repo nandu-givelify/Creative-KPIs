@@ -1,5 +1,5 @@
 {
-  "last_updated": "2026-05-04T09:08:52.500383+00:00",
+  "last_updated": "2026-05-11T02:56:33.298464+00:00",
   "metrics": {
     "2026-03": {
       "num_ds": 63,
@@ -46,8 +46,8 @@
           "Anastasia": 3.5,
           "Dan Howard": 3.33,
           "Nata": 1.47,
-          "Alex": 0.67,
           "Saba Talat": 0.67,
+          "Alex": 0.67,
           "Nandu": 0.5,
           "Evan Brown": 0.45,
           "Krystyna": 0.0
@@ -208,9 +208,9 @@
     "2026-04": {
       "num_ds": 92,
       "ds_per_person": 7.08,
-      "cycles_per_d": 1.72,
-      "replies_per_d": 6.89,
-      "response_per_d": 4.2,
+      "cycles_per_d": 1.98,
+      "replies_per_d": 7.62,
+      "response_per_d": 3.9,
       "drill": {
         "num_ds": {
           "Jacob Blaze": 17,
@@ -243,96 +243,105 @@
           "Andrew Kallemeyn": 1
         },
         "cycles_per_d": {
-          "Anastasia": 8.0,
+          "Anastasia": 16.0,
+          "Alex": 4.25,
           "Andrew Kallemeyn": 4.0,
-          "Alex": 3.75,
-          "Nata": 2.83,
+          "Nata": 2.92,
           "Dan Howard": 2.75,
           "Olexii Lysenko": 2.5,
-          "Jacob Blaze": 1.88,
+          "Jacob Blaze": 2.29,
+          "Saba Talat": 1.83,
           "Spencer Arney": 1.67,
-          "Saba Talat": 1.58,
-          "Evan Brown": 1.0,
+          "Evan Brown": 1.25,
+          "Carlos Miras": 0.82,
           "Krystyna": 0.75,
-          "Carlos Miras": 0.73,
           "Nandu": 0.33
         },
         "replies_per_d": {
-          "Anastasia": 17.0,
-          "Dan Howard": 11.75,
-          "Evan Brown": 10.12,
-          "Nata": 9.58,
-          "Alex": 8.5,
-          "Jacob Blaze": 8.41,
+          "Anastasia": 32.0,
+          "Dan Howard": 12.0,
+          "Evan Brown": 10.62,
+          "Jacob Blaze": 9.82,
+          "Nata": 9.67,
+          "Alex": 9.0,
+          "Saba Talat": 7.42,
           "Andrew Kallemeyn": 7.0,
-          "Saba Talat": 6.0,
           "Spencer Arney": 5.0,
           "Olexii Lysenko": 5.0,
           "Krystyna": 4.5,
-          "Carlos Miras": 3.18,
-          "Nandu": 2.44
+          "Carlos Miras": 3.36,
+          "Nandu": 2.56
         },
         "response_per_d": {
-          "Alexa": 2.8,
-          "Joe": 3.7,
-          "Gabe": 6.5
+          "Alexa": 2.6,
+          "Joe": 3.4,
+          "Gabe": 6.1
         }
       }
     },
     "2026-05": {
-      "num_ds": 8,
-      "ds_per_person": 1.6,
-      "cycles_per_d": 0.88,
-      "replies_per_d": 2.5,
-      "response_per_d": 2.0,
+      "num_ds": 28,
+      "ds_per_person": 3.11,
+      "cycles_per_d": 1.04,
+      "replies_per_d": 4.43,
+      "response_per_d": 2.2,
       "drill": {
         "num_ds": {
-          "Jacob Blaze": 4,
-          "Alex": 1,
+          "Jacob Blaze": 6,
+          "Saba Talat": 5,
+          "Dan Howard": 4,
+          "Nata": 3,
+          "Spencer Arney": 3,
+          "Nandu": 2,
+          "Alex": 2,
+          "Evan Brown": 2,
           "Carlos Miras": 1,
-          "Saba Talat": 1,
-          "Spencer Arney": 1,
-          "Nata": 0,
-          "Nandu": 0,
-          "Dan Howard": 0,
           "Anastasia": 0,
-          "Evan Brown": 0,
           "Krystyna": 0,
           "Andrew Kallemeyn": 0,
           "Olexii Lysenko": 0
         },
         "ds_per_person": {
-          "Jacob Blaze": 4,
-          "Alex": 1,
+          "Jacob Blaze": 6,
+          "Saba Talat": 5,
+          "Dan Howard": 4,
+          "Nata": 3,
+          "Spencer Arney": 3,
+          "Nandu": 2,
+          "Alex": 2,
+          "Evan Brown": 2,
           "Carlos Miras": 1,
-          "Saba Talat": 1,
-          "Spencer Arney": 1,
-          "Nata": 0,
-          "Nandu": 0,
-          "Dan Howard": 0,
           "Anastasia": 0,
-          "Evan Brown": 0,
           "Krystyna": 0,
           "Andrew Kallemeyn": 0,
           "Olexii Lysenko": 0
         },
         "cycles_per_d": {
-          "Alex": 3.0,
-          "Saba Talat": 1.0,
+          "Alex": 2.0,
+          "Spencer Arney": 1.67,
+          "Dan Howard": 1.5,
+          "Saba Talat": 1.2,
           "Carlos Miras": 1.0,
-          "Jacob Blaze": 0.5,
-          "Spencer Arney": 0.0
+          "Jacob Blaze": 0.83,
+          "Nata": 0.67,
+          "Evan Brown": 0.0,
+          "Nandu": 0.0
         },
         "replies_per_d": {
+          "Spencer Arney": 11.0,
           "Carlos Miras": 10.0,
+          "Dan Howard": 4.25,
+          "Saba Talat": 4.2,
           "Alex": 4.0,
-          "Jacob Blaze": 1.25,
-          "Saba Talat": 1.0,
-          "Spencer Arney": 0.0
+          "Jacob Blaze": 3.83,
+          "Nata": 3.33,
+          "Evan Brown": 0.5,
+          "Nandu": 0.5
         },
         "response_per_d": {
-          "Alexa": 0.6,
-          "Gabe": 2.3
+          "Alexa": 1.0,
+          "Gabe": 2.1,
+          "Joe": 3.1
         }
       }
     }
