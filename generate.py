@@ -26,13 +26,17 @@ if not SLACK_TOKEN:
 CHANNEL_ID    = "C042J20J3M5"
 MANAGER_NAMES = ["Joe", "Gabe", "Alexa"]
 
-# Full team roster — every member appears in the drill-down (with 0 if they didn't post).
-# Ds/Person divides by the number of active posters that month, not a fixed 12.
-TEAM_MEMBERS = [
-    "Nata", "Nandu", "Dan Howard", "Alex", "Carlos Miras",
-    "Anastasia", "Evan Brown", "Krystyna", "Saba Talat",
-    "Andrew Kallemeyn", "Olexii Lysenko", "Spencer Arney",
+# Designer groups — used for the Separated view and drill-down rosters.
+PRODUCT_DESIGNERS = [
+    "Evan Brown", "Saba Talat", "Alex", "Krystyna", "Nandu",
+    "Olexii Lysenko", "Spencer Arney", "Andrew Kallemeyn",
 ]
+MARKETING_DESIGNERS = [
+    "Nata", "Carlos Miras", "Dan Howard", "Jacob Blaze", "Anastasia",
+]
+# Full roster (combined) — every member appears in the drill-down.
+# Ds/Person divides by the number of active posters that month, not a fixed number.
+TEAM_MEMBERS = PRODUCT_DESIGNERS + MARKETING_DESIGNERS
 
 TARGETS = {
     "num_ds":         48,
@@ -444,9 +448,25 @@ def process_slack(client, channel_id, users, managers, start_dt, end_dt):
     return month_data
 
 
-def compute_metrics(month_data, managers):
+def compute_metrics(month_data, managers, roster=None):
+    """
+    Compute monthly KPI metrics from raw deliverable data.
+
+    roster: optional list of designer names to include (for Product / Marketing views).
+            When set, only deliverables from those designers are counted, and the
+            drill-down shows all roster members (with 0 for inactive ones).
+            When None, uses TEAM_MEMBERS and counts everyone.
+    """
+    roster_set   = set(roster) if roster is not None else None
+    roster_list  = list(roster) if roster is not None else TEAM_MEMBERS
+
     result = {}
-    for month, deliverables in month_data.items():
+    for month, all_deliverables in month_data.items():
+        deliverables = (
+            [d for d in all_deliverables if d["poster_name"] in roster_set]
+            if roster_set is not None else all_deliverables
+        )
+
         n = len(deliverables)
         if n == 0:
             result[month] = {"num_ds":0,"ds_per_person":0,"cycles_per_d":0,
@@ -478,13 +498,13 @@ def compute_metrics(month_data, managers):
         sd = lambda d: dict(sorted(d.items(), key=lambda x: -x[1]))
         sa = lambda d: dict(sorted(d.items(), key=lambda x:  x[1]))
 
-        # Ds/Person divides by the number of people who actually posted that month.
-        # Drill-down shows only active posters (no zeros for non-posters).
-        full_team_ds = {name: pd.get(name, 0) for name in TEAM_MEMBERS}
+        # Drill-down: show all roster members (0 for inactive), plus any
+        # unexpected names that showed up in the data.
+        full_team_ds = {name: pd.get(name, 0) for name in roster_list}
         for name, count in pd.items():
             if name not in full_team_ds:
                 full_team_ds[name] = count
-        active_posters = len(pd)  # only people who posted at least 1 deliverable
+        active_posters = len(pd)
 
         result[month] = {
             "num_ds":         n,
@@ -618,11 +638,20 @@ def build_rows(metrics, section, year):
     return html
 
 
-def generate_html(metrics, year=2026):
-    mh  = "".join(f'<th class="mh">{m}</th>' for m in MONTHS)
-    dr  = build_rows(metrics, "deliverables", year)
-    rr  = build_rows(metrics, "response",     year)
-    upd = datetime.now(tz=timezone.utc).strftime("%B %d, %Y")
+def generate_html(metrics_combined, metrics_product, metrics_marketing, year=2026):
+    mh = "".join(f'<th class="mh">{m}</th>' for m in MONTHS)
+
+    # Combined view rows
+    dr_c = build_rows(metrics_combined,  "deliverables", year)
+    rr_c = build_rows(metrics_combined,  "response",     year)
+
+    # Separated view rows
+    dr_p = build_rows(metrics_product,   "deliverables", year)
+    rr_p = build_rows(metrics_product,   "response",     year)
+    dr_m = build_rows(metrics_marketing, "deliverables", year)
+    rr_m = build_rows(metrics_marketing, "response",     year)
+
+    upd     = datetime.now(tz=timezone.utc).strftime("%B %d, %Y")
     info_js = json.dumps(METRIC_INFO)
 
     return f"""<!DOCTYPE html>
@@ -633,8 +662,14 @@ def generate_html(metrics, year=2026):
 <style>
 *{{box-sizing:border-box;margin:0;padding:0}}
 body{{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-serif;background:#fff;color:#111;padding:52px 64px}}
-h1{{font-size:2.6rem;font-weight:300;letter-spacing:-.5px;margin-bottom:52px}}
+.hdr{{display:flex;align-items:center;justify-content:space-between;margin-bottom:52px}}
+h1{{font-size:2.6rem;font-weight:300;letter-spacing:-.5px}}
+.vnav{{display:flex;gap:4px}}
+.nbtn{{background:none;border:1px solid #e0e0e0;border-radius:6px;cursor:pointer;font-size:.8rem;font-weight:500;color:#888;padding:7px 18px;transition:all .15s;letter-spacing:.2px}}
+.nbtn.active{{background:#111;border-color:#111;color:#fff}}
+.nbtn:hover:not(.active){{border-color:#aaa;color:#333}}
 .sl{{font-size:10.5px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:#bbb;margin-bottom:10px}}
+.grp-hdr{{font-size:1.25rem;font-weight:500;color:#111;margin:8px 0 28px;padding-bottom:14px;border-bottom:1.5px solid #111}}
 table{{width:100%;border-collapse:collapse;margin-bottom:52px}}
 th,td{{padding:18px 10px;border-bottom:1px solid #f0f0f0;vertical-align:middle}}
 .mh{{font-size:10px;font-weight:500;letter-spacing:1.2px;text-transform:uppercase;color:#c0c0c0;text-align:center;min-width:62px}}
@@ -675,19 +710,62 @@ th,td{{padding:18px 10px;border-bottom:1px solid #f0f0f0;vertical-align:middle}}
 </style>
 </head>
 <body>
-<h1>Creative KPIs</h1>
 
-<div class="sl">Deliverables</div>
-<table>
-  <thead><tr><th class="ml"></th>{mh}</tr></thead>
-  <tbody>{dr}</tbody>
-</table>
+<div class="hdr">
+  <h1>Creative KPIs</h1>
+  <div class="vnav">
+    <button class="nbtn active" id="btn-combined"  onclick="showView('combined')">Combined</button>
+    <button class="nbtn"        id="btn-separated" onclick="showView('separated')">Separated</button>
+  </div>
+</div>
 
-<div class="sl">Time to First Response</div>
-<table>
-  <thead><tr><th class="ml"></th>{mh}</tr></thead>
-  <tbody>{rr}</tbody>
-</table>
+<!-- ═══ COMBINED VIEW ═══ -->
+<div id="view-combined">
+  <div class="sl">Deliverables</div>
+  <table>
+    <thead><tr><th class="ml"></th>{mh}</tr></thead>
+    <tbody>{dr_c}</tbody>
+  </table>
+
+  <div class="sl">Time to First Response</div>
+  <table>
+    <thead><tr><th class="ml"></th>{mh}</tr></thead>
+    <tbody>{rr_c}</tbody>
+  </table>
+</div>
+
+<!-- ═══ SEPARATED VIEW ═══ -->
+<div id="view-separated" style="display:none">
+
+  <div class="grp-hdr">Product Deliverables</div>
+
+  <div class="sl">Deliverables</div>
+  <table>
+    <thead><tr><th class="ml"></th>{mh}</tr></thead>
+    <tbody>{dr_p}</tbody>
+  </table>
+
+  <div class="sl">Time to First Response</div>
+  <table>
+    <thead><tr><th class="ml"></th>{mh}</tr></thead>
+    <tbody>{rr_p}</tbody>
+  </table>
+
+  <div class="grp-hdr">Marketing Deliverables</div>
+
+  <div class="sl">Deliverables</div>
+  <table>
+    <thead><tr><th class="ml"></th>{mh}</tr></thead>
+    <tbody>{dr_m}</tbody>
+  </table>
+
+  <div class="sl">Time to First Response</div>
+  <table>
+    <thead><tr><th class="ml"></th>{mh}</tr></thead>
+    <tbody>{rr_m}</tbody>
+  </table>
+
+</div>
 
 <div class="ft">Last updated: {upd}</div>
 
@@ -702,6 +780,13 @@ th,td{{padding:18px 10px;border-bottom:1px solid #f0f0f0;vertical-align:middle}}
 
 <script>
 const METRIC_INFO = {info_js};
+
+function showView(v) {{
+  document.getElementById('view-combined').style.display  = v === 'combined'  ? '' : 'none';
+  document.getElementById('view-separated').style.display = v === 'separated' ? '' : 'none';
+  document.getElementById('btn-combined').classList.toggle('active',  v === 'combined');
+  document.getElementById('btn-separated').classList.toggle('active', v === 'separated');
+}}
 
 function showInfo(key) {{
   const info = METRIC_INFO[key];
@@ -772,33 +857,48 @@ def main():
     start_dt, end_dt = get_date_range()
 
     print("\n[3/5] Loading existing data.json...")
-    existing = {}
+    existing_c, existing_p, existing_m = {}, {}, {}
     if os.path.exists("data.json"):
         try:
-            existing = json.load(open("data.json")).get("metrics", {})
-            print(f"  Found data for: {sorted(existing.keys())}")
+            saved = json.load(open("data.json"))
+            existing_c = saved.get("metrics",           {})
+            existing_p = saved.get("metrics_product",   {})
+            existing_m = saved.get("metrics_marketing", {})
+            print(f"  Found combined data for: {sorted(existing_c.keys())}")
         except Exception:
             print("  Could not parse data.json — starting fresh")
     else:
         print("  No data.json found — starting fresh")
 
     print("\n[4/5] Fetching and processing Slack data...")
-    month_data  = process_slack(client, CHANNEL_ID, users, managers, start_dt, end_dt)
-    new_metrics = compute_metrics(month_data, managers)
-    for m, d in sorted(new_metrics.items()):
-        print(f"  {m}: {d['num_ds']} Ds | Cycles/D={d['cycles_per_d']} | "
-              f"Replies/D={d['replies_per_d']} | Response/D={d['response_per_d']}")
+    month_data = process_slack(client, CHANNEL_ID, users, managers, start_dt, end_dt)
 
-    merged = {**existing, **new_metrics}
+    new_c = compute_metrics(month_data, managers)
+    new_p = compute_metrics(month_data, managers, roster=PRODUCT_DESIGNERS)
+    new_m = compute_metrics(month_data, managers, roster=MARKETING_DESIGNERS)
+
+    for m, d in sorted(new_c.items()):
+        print(f"  {m}: {d['num_ds']} Ds (combined) | "
+              f"product={new_p.get(m,{}).get('num_ds',0)} | "
+              f"marketing={new_m.get(m,{}).get('num_ds',0)}")
+
+    merged_c = {**existing_c, **new_c}
+    merged_p = {**existing_p, **new_p}
+    merged_m = {**existing_m, **new_m}
 
     print("\n[5/5] Writing output files...")
-    html = generate_html(merged)
+    html = generate_html(merged_c, merged_p, merged_m)
     with open("index.html", "w") as f: f.write(html)
     print("  ✓ index.html")
 
     with open("data.json", "w") as f:
-        json.dump({"last_updated": datetime.now(tz=timezone.utc).isoformat(),
-                   "metrics": merged, "targets": TARGETS}, f, indent=2)
+        json.dump({
+            "last_updated":      datetime.now(tz=timezone.utc).isoformat(),
+            "metrics":           merged_c,
+            "metrics_product":   merged_p,
+            "metrics_marketing": merged_m,
+            "targets":           TARGETS,
+        }, f, indent=2)
     print("  ✓ data.json")
 
     print(f"\n{'═'*56}")
