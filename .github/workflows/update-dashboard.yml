@@ -24,7 +24,7 @@ jobs:
           python-version: '3.11'
 
       - name: Install dependencies
-        run: pip install slack_sdk requests
+        run: pip install "slack_sdk>=3.19,<4" requests
 
       - name: Generate dashboard
         env:
