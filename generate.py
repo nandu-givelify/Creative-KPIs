@@ -26,8 +26,8 @@ if not SLACK_TOKEN:
 CHANNEL_ID    = "C042J20J3M5"
 MANAGER_NAMES = ["Joe", "Gabe", "Alexa"]
 
-# Full team roster — used so Ds/Person always divides by 12
-# and every member appears in the drill-down (with 0 if they didn't post)
+# Full team roster — every member appears in the drill-down (with 0 if they didn't post).
+# Ds/Person divides by the number of active posters that month, not a fixed 12.
 TEAM_MEMBERS = [
     "Nata", "Nandu", "Dan Howard", "Alex", "Carlos Miras",
     "Anastasia", "Evan Brown", "Krystyna", "Saba Talat",
@@ -243,16 +243,16 @@ def collect_candidate_thread_ts(all_msgs):
     Scan channel history to find thread_ts values for potential deliverable threads.
 
     Returns:
-        confirmed_ts  — threads with a visible "For review:" message
+        confirmed_ts  — threads with a visible "For review:" or "For feedback:" message
         candidate_ts  — root messages with replies that aren't yet confirmed
-                        (their non-broadcast replies may hide a "For review:")
+                        (their non-broadcast replies may hide a "For review:"/"For feedback:")
     """
     confirmed_ts = set()
     roots_with_replies = set()
 
     for m in all_msgs:
         tts = m.get("thread_ts") or m.get("ts")
-        if is_review(m):
+        if is_cycle_msg(m):   # "For review:" OR "For feedback:"
             confirmed_ts.add(tts)
         if is_root(m) and int(m.get("reply_count", 0)) > 0:
             roots_with_replies.add(m["ts"])
@@ -266,17 +266,18 @@ def process_deliverable_thread(thread, users, managers, month_data, start_ts, en
     Analyze one confirmed deliverable thread and append per-designer entries to month_data.
 
     Deliverable rules per designer:
-    - Deliverable  : their first "For review:" message in the thread.
+    - Deliverable  : their first "For review:" OR "For feedback:" message in the thread.
     - Cycles       : all their other "For review:" / "For feedback:" messages
                      (before or after their deliverable).
     - Replies      : every other message, attributed as follows —
-        • Before any designer's first "For review:" → retroactively assigned to
+        • Before any designer's first review/feedback → retroactively assigned to
           the first designer who enters.
         • After designer[0] enters, before designer[1] → designer[0] only.
         • After designer[1] enters → all designers who have entered so far.
+        • Deliverable and cycle messages (from any designer) are never counted as replies.
     - Response time: from each cycle message to the first manager reply,
                      in business hours (capped at 72 bh; over-cap = excluded).
-    - Only designers whose first "For review:" falls within [start_ts, end_ts]
+    - Only designers whose first review/feedback falls within [start_ts, end_ts]
       are counted in this run's metrics.
     """
     if not thread:
@@ -284,55 +285,57 @@ def process_deliverable_thread(thread, users, managers, month_data, start_ts, en
 
     mgr_ids = set(managers.keys())
 
-    # ── Step 1: find each team member's first "For review:" index ───────────
-    first_review_idx = {}  # uid → message index in thread
+    # ── Step 1: find each team member's first "For review:" OR "For feedback:" ─
+    first_deliv_idx = {}  # uid → message index of their deliverable in thread
     for i, msg in enumerate(thread):
         uid = msg.get("user", "")
-        if uid and uid not in mgr_ids and is_review(msg):
-            if uid not in first_review_idx:
-                first_review_idx[uid] = i
+        if uid and uid not in mgr_ids and is_cycle_msg(msg):
+            if uid not in first_deliv_idx:
+                first_deliv_idx[uid] = i
 
-    if not first_review_idx:
-        return  # No team member posted "For review:" — not a deliverable thread
+    if not first_deliv_idx:
+        return  # No team member posted a review/feedback — not a deliverable thread
 
     # ── Step 2: keep only designers whose deliverable is within the date window ─
-    first_review_idx = {
-        uid: idx for uid, idx in first_review_idx.items()
+    first_deliv_idx = {
+        uid: idx for uid, idx in first_deliv_idx.items()
         if start_ts <= float(thread[idx]["ts"]) <= end_ts
     }
-    if not first_review_idx:
+    if not first_deliv_idx:
         return
 
-    # ── Step 3: ordered entry list (chronological by first "For review:") ───
-    entry_order = sorted(first_review_idx.keys(), key=lambda uid: first_review_idx[uid])
+    # ── Step 3: ordered entry list (chronological by deliverable message) ────
+    entry_order = sorted(first_deliv_idx.keys(), key=lambda uid: first_deliv_idx[uid])
 
     # ── Step 4: collect each designer's cycle messages ───────────────────────
     # Cycles = all their "For review:" / "For feedback:" except their deliverable
-    designer_cycles = {uid: [] for uid in first_review_idx}
+    designer_cycles = {uid: [] for uid in first_deliv_idx}
     for i, msg in enumerate(thread):
         uid = msg.get("user", "")
-        if uid in first_review_idx and is_cycle_msg(msg) and i != first_review_idx[uid]:
+        if uid in first_deliv_idx and is_cycle_msg(msg) and i != first_deliv_idx[uid]:
             designer_cycles[uid].append(msg)
 
     # ── Step 5: compute reply attribution per message ────────────────────────
+    # Deliverable and cycle messages (from any designer) are never counted as replies.
+    # Regular messages are attributed to all designers who have entered by that point.
     reply_attribution = []  # parallel to thread; each entry = list of designer UIDs
 
     for i, msg in enumerate(thread):
         uid = msg.get("user", "")
 
         # Designer's deliverable message — not a reply for anyone
-        if uid in first_review_idx and first_review_idx[uid] == i:
+        if uid in first_deliv_idx and first_deliv_idx[uid] == i:
             reply_attribution.append([])
             continue
 
-        # Designer's cycle message — not a reply for anyone
-        if uid in first_review_idx and is_cycle_msg(msg):
+        # Any designer's cycle message — not a reply for anyone
+        if uid in first_deliv_idx and is_cycle_msg(msg):
             reply_attribution.append([])
             continue
 
         # Regular reply — who gets credit?
-        # "entered" = designers whose first "For review:" came before this message
-        entered = [d for d in entry_order if first_review_idx[d] < i]
+        # "entered" = designers whose deliverable came before this message
+        entered = [d for d in entry_order if first_deliv_idx[d] < i]
 
         if not entered:
             reply_attribution.append(None)   # pre-entry placeholder
@@ -347,7 +350,7 @@ def process_deliverable_thread(thread, users, managers, month_data, start_ts, en
     ]
 
     # ── Step 6: count replies per designer ───────────────────────────────────
-    designer_reply_count = {uid: 0 for uid in first_review_idx}
+    designer_reply_count = {uid: 0 for uid in first_deliv_idx}
     for attribution in reply_attribution:
         for uid in attribution:
             if uid in designer_reply_count:
@@ -356,8 +359,8 @@ def process_deliverable_thread(thread, users, managers, month_data, start_ts, en
     # ── Step 7: compute response times for each designer's cycles ────────────
     mgr_id_list = list(mgr_ids)
 
-    for uid in first_review_idx:
-        deliv_idx = first_review_idx[uid]
+    for uid in first_deliv_idx:
+        deliv_idx = first_deliv_idx[uid]
         deliv_msg = thread[deliv_idx]
         month = ts_month(deliv_msg["ts"])
         pinfo = users.get(uid, {})
@@ -409,16 +412,16 @@ def process_slack(client, channel_id, users, managers, start_dt, end_dt):
 
     # ── Find candidate and confirmed deliverable threads ─────────────────────
     confirmed_ts, candidate_ts = collect_candidate_thread_ts(all_msgs)
-    print(f"  Confirmed deliverable threads (visible 'For review:'): {len(confirmed_ts)}")
-    print(f"  Candidate threads to scan (roots with replies, no visible 'For review:'): {len(candidate_ts)}")
+    print(f"  Confirmed deliverable threads (visible review/feedback): {len(confirmed_ts)}")
+    print(f"  Candidate threads to scan (roots with replies, no visible review/feedback): {len(candidate_ts)}")
 
-    # ── Fetch candidate threads; promote those containing a hidden "For review:" ─
+    # ── Fetch candidate threads; promote those containing "For review:" or "For feedback:" ─
     thread_cache = {}
     for rts in candidate_ts:
         thread = fetch_thread(client, channel_id, rts)
         thread_cache[rts] = thread
         for msg in thread[1:]:   # skip root — already checked in history
-            if is_review(msg):
+            if is_cycle_msg(msg):
                 confirmed_ts.add(rts)
                 break
 
@@ -432,47 +435,6 @@ def process_slack(client, channel_id, users, managers, start_dt, end_dt):
 
     total_ds = sum(len(v) for v in month_data.values())
     print(f"  Total deliverable entries found: {total_ds}")
-
-    # ── DIAGNOSTIC: print every deliverable so we can spot gaps in the log ───
-    print("\n  DIAGNOSTIC — all deliverable entries by month:")
-    for month in sorted(month_data.keys()):
-        entries = month_data[month]
-        print(f"  {month}: {len(entries)} entries")
-        for d in entries:
-            root_dt = datetime.fromtimestamp(float(d['root_ts']), tz=timezone.utc).strftime("%Y-%m-%d")
-            deliv_dt = datetime.fromtimestamp(
-                float(d['root_ts']), tz=timezone.utc).strftime("%Y-%m-%d")
-            # Show thread root date and poster — helps cross-check with Slack
-            print(f"    [{root_dt}] {d['poster_name']}  "
-                  f"(thread_ts={d['root_ts']}, cycles={d['cycle_count']}, replies={d['reply_count']})")
-
-    # ── DIAGNOSTIC: scan history for ALL 'For review:' messages to catch anything missed ─
-    print(f"\n  DIAGNOSTIC — confirmed_ts size: {len(confirmed_ts)}")
-    print("\n  DIAGNOSTIC — every 'For review:' message visible in channel history:")
-    review_msgs = [m for m in all_msgs if is_review(m)]
-    print(f"  Found {len(review_msgs)} 'For review:' messages in history:")
-
-    # Build set of root_ts values from deliverables so we can flag missing ones
-    found_root_ts = set()
-    for entries in month_data.values():
-        for d in entries:
-            found_root_ts.add(d["root_ts"])
-
-    for m in sorted(review_msgs, key=lambda x: float(x.get("ts", 0))):
-        uid   = m.get("user", "")
-        uname = users.get(uid, {}).get("display_name", uid)
-        ts    = m.get("ts", "")
-        dt    = datetime.fromtimestamp(float(ts), tz=timezone.utc).strftime("%Y-%m-%d %H:%M")
-        tts   = m.get("thread_ts") or ts
-        root  = is_root(m)
-        sub   = m.get("subtype") or "—"
-        txt   = get_full_text(m)[:80]
-        in_confirmed = tts in confirmed_ts
-        produced_d   = tts in found_root_ts
-        flag = "" if produced_d else " ◄ NO DELIVERABLE"
-        if not in_confirmed: flag += " [NOT IN confirmed_ts!]"
-        print(f"    [{dt}] {uname:<20} root={root} confirmed={in_confirmed} deliverable={produced_d}{flag}")
-        print(f"           thread_ts={tts}  \"{txt}\"")
 
     return month_data
 
@@ -554,10 +516,10 @@ METRIC_INFO = {
         "definition": "Total number of creative pieces submitted for review by the team in a given month.",
         "formula": "Count of qualifying Slack threads posted that month.",
         "rules": [
-            "A thread qualifies as a deliverable thread if any message in it \u2014 root or reply \u2014 contains \u201cFor review:\u201d",
-            "Each team member who posts \u201cFor review:\u201d in that thread gets credited with 1 deliverable",
-            "The deliverable date is the timestamp of their first \u201cFor review:\u201d message",
-            "If two designers both post \u201cFor review:\u201d in the same thread, each gets their own separate deliverable",
+            "A thread qualifies as a deliverable thread if any message in it \u2014 root or reply \u2014 contains \u201cFor review:\u201d or \u201cFor feedback:\u201d",
+            "Each team member who posts \u201cFor review:\u201d or \u201cFor feedback:\u201d in that thread gets credited with 1 deliverable",
+            "The deliverable date is the timestamp of their first such message (whichever comes first)",
+            "If two designers both post in the same thread, each gets their own separate deliverable",
             "Messages from managers (Joe, Gabe, Alexa) are never counted as deliverables",
         ],
     },
