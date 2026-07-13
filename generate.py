@@ -117,7 +117,7 @@ def find_managers(users, manager_names):
 # ═══════════════════════════════════════════════════════════════════════════════
 
 def _slack_call_with_retry(fn, label):
-    """Call a Slack SDK function with up to 5 retries on rate-limit errors."""
+    """Call a Slack SDK function with up to 5 retries on rate-limit or transient errors."""
     for attempt in range(5):
         try:
             return fn()
@@ -128,8 +128,13 @@ def _slack_call_with_retry(fn, label):
                 time.sleep(wait)
             else:
                 print(f"  Slack error ({label}): {e}")
-                return None   # non-rate-limit error — caller handles None
-    print(f"  Gave up on {label} after 5 rate-limit retries")
+                return None   # non-rate-limit API error — skip this call
+        except Exception as e:
+            # Catch timeouts, connection resets, and other transient network errors
+            wait = 10 * (2 ** attempt)   # 10s, 20s, 40s, 80s, 160s
+            print(f"  Network error ({label}): {type(e).__name__}: {e} — waiting {wait}s (attempt {attempt+1}/5)")
+            time.sleep(wait)
+    print(f"  Gave up on {label} after 5 retries")
     return None
 
 
