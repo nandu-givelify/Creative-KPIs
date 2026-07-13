@@ -1,5 +1,5 @@
 {
-  "last_updated": "2026-07-13T15:55:27.152445+00:00",
+  "last_updated": "2026-07-13T16:21:52.930441+00:00",
   "metrics": {
     "2026-03": {
       "num_ds": 63,
@@ -323,8 +323,8 @@
           "Saba Talat": 1.89,
           "Nata": 1.6,
           "Anastasia": 1.33,
-          "Spencer Arney": 1.0,
           "Krystyna": 1.0,
+          "Spencer Arney": 1.0,
           "Andrew Kallemeyn": 1.0,
           "Dan Howard": 0.89,
           "Jacob Blaze": 0.8,
@@ -393,13 +393,13 @@
         "cycles_per_d": {
           "Anastasia": 1.75,
           "Dan Howard": 1.69,
-          "Jacob Blaze": 1.64,
           "Saba Talat": 1.64,
+          "Jacob Blaze": 1.64,
           "Carlos Miras": 1.5,
           "Alex": 1.43,
           "Nandu": 1.33,
-          "Olexii Lysenko": 1.0,
           "Spencer Arney": 1.0,
+          "Olexii Lysenko": 1.0,
           "Evan Brown": 0.57,
           "Nata": 0.46,
           "Krystyna": 0.2
