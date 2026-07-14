@@ -7,6 +7,15 @@ on:
   schedule:
     - cron: '1 0 * * 1'   # 12:01am UTC every Monday
   workflow_dispatch:
+    inputs:
+      start_date:
+        description: 'Backfill start date (YYYY-MM-DD). Leave empty for normal rolling window.'
+        required: false
+        default: ''
+      end_date:
+        description: 'Backfill end date (YYYY-MM-DD). Leave empty for normal rolling window.'
+        required: false
+        default: ''
 
 jobs:
   update:
@@ -29,6 +38,8 @@ jobs:
       - name: Generate dashboard
         env:
           SLACK_TOKEN: ${{ secrets.SLACK_TOKEN }}
+          START_DATE: ${{ github.event.inputs.start_date }}
+          END_DATE: ${{ github.event.inputs.end_date }}
         run: python generate.py
 
       - name: Commit and push

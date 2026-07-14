@@ -58,16 +58,26 @@ MONTH_KEYS = ["01","02","03","04","05","06","07","08","09","10","11","12"]
 # ═══════════════════════════════════════════════════════════════════════════════
 
 def get_date_range():
-    """Return (start, end) anchored to the 1st of the month 3 months ago.
+    """Return (start, end) for the Slack fetch.
 
-    Always starts on the 1st so we capture complete calendar months and
-    never overwrite a month's data with a partial fetch.
+    Normal mode: rolling window anchored to the 1st of the month 3 months ago.
+    Backfill mode: reads START_DATE / END_DATE environment variables (YYYY-MM-DD),
+                   set via workflow_dispatch inputs in GitHub Actions.
 
-    Examples:
-      Run on April 30  → start = Jan  1, end = April 30  (covers Jan–Apr fully)
-      Run on May  15   → start = Feb  1, end = May  15   (covers Feb–May; Jan preserved in data.json)
-      Run on Jan   5   → start = Oct  1 (prev year), end = Jan 5
+    Examples (normal):
+      Run on July 13  → start = April  1, end = July 13
+      Run on Jan   5  → start = Oct    1 (prev year), end = Jan 5
     """
+    start_env = os.environ.get("START_DATE", "").strip()
+    end_env   = os.environ.get("END_DATE",   "").strip()
+
+    if start_env and end_env:
+        start = datetime.strptime(start_env, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+        end   = datetime.strptime(end_env,   "%Y-%m-%d").replace(
+                    hour=23, minute=59, second=59, tzinfo=timezone.utc)
+        print(f"  (Backfill mode: using START_DATE={start_env}  END_DATE={end_env})")
+        return start, end
+
     today = datetime.now(tz=timezone.utc)
     m, y = today.month - 3, today.year
     if m <= 0:
