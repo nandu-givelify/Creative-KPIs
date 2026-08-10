@@ -1,11 +1,12 @@
 {
-  "last_updated": "2026-08-10T15:43:30.526590+00:00",
+  "last_updated": "2026-08-10T16:24:45.423317+00:00",
   "metrics": {
     "2026-03": {
       "num_ds": 82,
       "ds_per_person": 6.31,
       "cycles_per_d": 1.84,
       "replies_per_d": 8.5,
+      "task_days_per_d": 7.0,
       "response_per_d": 4.0,
       "drill": {
         "num_ds": {
@@ -63,10 +64,25 @@
           "Spencer Arney": 8.5,
           "Evan Brown": 6.5,
           "Anastasia": 6.5,
-          "Saba Talat": 6.0,
           "Andrew Kallemeyn": 6.0,
+          "Saba Talat": 6.0,
           "Krystyna": 3.5,
           "Nandu": 3.14
+        },
+        "task_days_per_d": {
+          "Olexii Lysenko": 22.9,
+          "Alex": 18.7,
+          "Anastasia": 13.9,
+          "Dan Howard": 13.4,
+          "Spencer Arney": 8.6,
+          "Jacob Blaze": 8.0,
+          "Saba Talat": 7.9,
+          "Nata": 4.3,
+          "Evan Brown": 3.6,
+          "Andrew Kallemeyn": 3.4,
+          "Carlos Miras": 3.3,
+          "Krystyna": 2.5,
+          "Nandu": 2.2
         },
         "response_per_d": {
           "Alexa": 2.1,
@@ -80,6 +96,7 @@
       "ds_per_person": 6.56,
       "cycles_per_d": 1.71,
       "replies_per_d": 9.44,
+      "task_days_per_d": 9.7,
       "response_per_d": 4.2,
       "drill": {
         "num_ds": {
@@ -117,8 +134,8 @@
           "Carlos Miras": 2.57,
           "Dan Howard": 2.0,
           "Alex": 1.8,
-          "Spencer Arney": 1.5,
           "Nata": 1.5,
+          "Spencer Arney": 1.5,
           "Evan Brown": 1.0,
           "Saba Talat": 0.5,
           "Nandu": 0.0
@@ -134,6 +151,17 @@
           "Spencer Arney": 3.75,
           "Nandu": 1.8
         },
+        "task_days_per_d": {
+          "Krystyna": 33.8,
+          "Saba Talat": 20.4,
+          "Alex": 20.0,
+          "Evan Brown": 17.3,
+          "Dan Howard": 9.1,
+          "Spencer Arney": 8.0,
+          "Carlos Miras": 5.3,
+          "Nandu": 5.1,
+          "Nata": 2.3
+        },
         "response_per_d": {
           "Alexa": 1.1,
           "Joe": 6.8,
@@ -146,6 +174,7 @@
       "ds_per_person": 5.15,
       "cycles_per_d": 1.9,
       "replies_per_d": 9.16,
+      "task_days_per_d": 13.1,
       "response_per_d": 5.0,
       "drill": {
         "num_ds": {
@@ -210,6 +239,21 @@
           "Dan Howard": 3.0,
           "Krystyna": 3.0
         },
+        "task_days_per_d": {
+          "Anastasia": 83.2,
+          "Andrew Kallemeyn": 63.0,
+          "Evan Brown": 25.7,
+          "Alex": 22.7,
+          "Nata": 20.0,
+          "Nandu": 9.2,
+          "Olexii Lysenko": 8.9,
+          "Spencer Arney": 7.6,
+          "Dan Howard": 6.4,
+          "Carlos Miras": 5.2,
+          "Saba Talat": 4.5,
+          "Noah Albrecht (CST)": 2.3,
+          "Krystyna": 1.6
+        },
         "response_per_d": {
           "Joe": 3.0,
           "Alexa": 5.1,
@@ -222,6 +266,7 @@
       "ds_per_person": 9.08,
       "cycles_per_d": 1.92,
       "replies_per_d": 8.34,
+      "task_days_per_d": 9.0,
       "response_per_d": 3.6,
       "drill": {
         "num_ds": {
@@ -284,6 +329,21 @@
           "Nandu": 3.11,
           "Olexii Lysenko": 2.8
         },
+        "task_days_per_d": {
+          "Andrew Kallemeyn": 95.9,
+          "Anastasia": 35.2,
+          "Alex": 16.6,
+          "Evan Brown": 14.5,
+          "Spencer Arney": 11.3,
+          "Nata": 10.3,
+          "Jacob Blaze": 8.7,
+          "Nandu": 8.3,
+          "Saba Talat": 7.3,
+          "Krystyna": 5.8,
+          "Olexii Lysenko": 5.7,
+          "Dan Howard": 2.4,
+          "Carlos Miras": 1.8
+        },
         "response_per_d": {
           "Alexa": 3.0,
           "Joe": 4.0,
@@ -295,7 +355,7 @@
       "num_ds": 86,
       "ds_per_person": 6.62,
       "cycles_per_d": 1.26,
-      "replies_per_d": 8.05,
+      "replies_per_d": 8.2,
       "task_days_per_d": 10.1,
       "response_per_d": 3.9,
       "drill": {
@@ -336,18 +396,18 @@
           "Saba Talat": 1.89,
           "Nata": 1.6,
           "Anastasia": 1.33,
-          "Krystyna": 1.0,
-          "Andrew Kallemeyn": 1.0,
           "Spencer Arney": 1.0,
+          "Andrew Kallemeyn": 1.0,
+          "Krystyna": 1.0,
           "Dan Howard": 0.89,
           "Jacob Blaze": 0.8,
           "Nandu": 0.62,
           "Evan Brown": 0.44
         },
         "replies_per_d": {
-          "Andrew Kallemeyn": 44.5,
+          "Andrew Kallemeyn": 45.5,
+          "Spencer Arney": 16.25,
           "Olexii Lysenko": 13.5,
-          "Spencer Arney": 13.5,
           "Krystyna": 11.25,
           "Carlos Miras": 10.5,
           "Jacob Blaze": 9.3,
@@ -643,6 +703,7 @@
       "ds_per_person": 7.38,
       "cycles_per_d": 1.53,
       "replies_per_d": 7.2,
+      "task_days_per_d": 11.2,
       "response_per_d": 4.6,
       "drill": {
         "num_ds": {
@@ -684,6 +745,16 @@
           "Krystyna": 4.75,
           "Nandu": 3.11,
           "Olexii Lysenko": 2.8
+        },
+        "task_days_per_d": {
+          "Andrew Kallemeyn": 95.9,
+          "Alex": 16.6,
+          "Evan Brown": 14.5,
+          "Spencer Arney": 11.3,
+          "Nandu": 8.3,
+          "Saba Talat": 7.3,
+          "Krystyna": 5.8,
+          "Olexii Lysenko": 5.7
         },
         "response_per_d": {
           "Alexa": 3.5,
@@ -757,7 +828,7 @@
       "num_ds": 41,
       "ds_per_person": 5.12,
       "cycles_per_d": 1.32,
-      "replies_per_d": 9.44,
+      "replies_per_d": 9.76,
       "task_days_per_d": 12.7,
       "response_per_d": 5.4,
       "drill": {
@@ -785,16 +856,16 @@
           "Olexii Lysenko": 6.0,
           "Alex": 2.0,
           "Saba Talat": 1.89,
-          "Krystyna": 1.0,
-          "Andrew Kallemeyn": 1.0,
           "Spencer Arney": 1.0,
+          "Andrew Kallemeyn": 1.0,
+          "Krystyna": 1.0,
           "Nandu": 0.62,
           "Evan Brown": 0.44
         },
         "replies_per_d": {
-          "Andrew Kallemeyn": 44.5,
+          "Andrew Kallemeyn": 45.5,
+          "Spencer Arney": 16.25,
           "Olexii Lysenko": 13.5,
-          "Spencer Arney": 13.5,
           "Krystyna": 11.25,
           "Saba Talat": 7.67,
           "Alex": 7.33,
@@ -886,6 +957,7 @@
       "ds_per_person": 4.88,
       "cycles_per_d": 1.21,
       "replies_per_d": 6.46,
+      "task_days_per_d": 7.3,
       "response_per_d": 5.8,
       "drill": {
         "num_ds": {
@@ -923,10 +995,20 @@
           "Alex": 9.8,
           "Spencer Arney": 8.5,
           "Evan Brown": 6.5,
-          "Saba Talat": 6.0,
           "Andrew Kallemeyn": 6.0,
+          "Saba Talat": 6.0,
           "Krystyna": 3.5,
           "Nandu": 3.14
+        },
+        "task_days_per_d": {
+          "Olexii Lysenko": 22.9,
+          "Alex": 18.7,
+          "Spencer Arney": 8.6,
+          "Saba Talat": 7.9,
+          "Evan Brown": 3.6,
+          "Andrew Kallemeyn": 3.4,
+          "Krystyna": 2.5,
+          "Nandu": 2.2
         },
         "response_per_d": {
           "Gabe": 4.8,
@@ -939,6 +1021,7 @@
       "ds_per_person": 4.33,
       "cycles_per_d": 1.23,
       "replies_per_d": 10.73,
+      "task_days_per_d": 15.2,
       "response_per_d": 9.1,
       "drill": {
         "num_ds": {
@@ -977,9 +1060,17 @@
           "Spencer Arney": 3.75,
           "Nandu": 1.8
         },
+        "task_days_per_d": {
+          "Krystyna": 33.8,
+          "Saba Talat": 20.4,
+          "Alex": 20.0,
+          "Evan Brown": 17.3,
+          "Spencer Arney": 8.0,
+          "Nandu": 5.1
+        },
         "response_per_d": {
           "Gabe": 7.6,
-          "Joe": 13.4
+          "Joe": 13.5
         }
       }
     },
@@ -988,6 +1079,7 @@
       "ds_per_person": 4.0,
       "cycles_per_d": 1.69,
       "replies_per_d": 10.0,
+      "task_days_per_d": 14.9,
       "response_per_d": 5.2,
       "drill": {
         "num_ds": {
@@ -1029,6 +1121,16 @@
           "Spencer Arney": 7.0,
           "Saba Talat": 4.2,
           "Krystyna": 3.0
+        },
+        "task_days_per_d": {
+          "Andrew Kallemeyn": 63.0,
+          "Evan Brown": 25.7,
+          "Alex": 22.7,
+          "Nandu": 9.2,
+          "Olexii Lysenko": 8.9,
+          "Spencer Arney": 7.6,
+          "Saba Talat": 4.5,
+          "Krystyna": 1.6
         },
         "response_per_d": {
           "Joe": 4.4,
@@ -1100,6 +1202,7 @@
       "ds_per_person": 11.8,
       "cycles_per_d": 2.31,
       "replies_per_d": 9.47,
+      "task_days_per_d": 6.8,
       "response_per_d": 3.0,
       "drill": {
         "num_ds": {
@@ -1129,6 +1232,13 @@
           "Nata": 9.53,
           "Dan Howard": 7.5,
           "Carlos Miras": 4.22
+        },
+        "task_days_per_d": {
+          "Anastasia": 35.2,
+          "Nata": 10.3,
+          "Jacob Blaze": 8.7,
+          "Dan Howard": 2.4,
+          "Carlos Miras": 1.8
         },
         "response_per_d": {
           "Alexa": 2.9,
@@ -1289,6 +1399,7 @@
       "ds_per_person": 8.6,
       "cycles_per_d": 2.42,
       "replies_per_d": 10.35,
+      "task_days_per_d": 6.8,
       "response_per_d": 3.2,
       "drill": {
         "num_ds": {
@@ -1319,6 +1430,13 @@
           "Carlos Miras": 9.7,
           "Anastasia": 6.5
         },
+        "task_days_per_d": {
+          "Anastasia": 13.9,
+          "Dan Howard": 13.4,
+          "Jacob Blaze": 8.0,
+          "Nata": 4.3,
+          "Carlos Miras": 3.3
+        },
         "response_per_d": {
           "Alexa": 2.1,
           "Joe": 4.6,
@@ -1331,6 +1449,7 @@
       "ds_per_person": 11.0,
       "cycles_per_d": 2.09,
       "replies_per_d": 8.42,
+      "task_days_per_d": 5.4,
       "response_per_d": 2.0,
       "drill": {
         "num_ds": {
@@ -1357,6 +1476,11 @@
           "Dan Howard": 6.89,
           "Nata": 6.7
         },
+        "task_days_per_d": {
+          "Dan Howard": 9.1,
+          "Carlos Miras": 5.3,
+          "Nata": 2.3
+        },
         "response_per_d": {
           "Alexa": 1.1,
           "Joe": 4.2
@@ -1368,6 +1492,7 @@
       "ds_per_person": 8.0,
       "cycles_per_d": 2.28,
       "replies_per_d": 8.41,
+      "task_days_per_d": 12.2,
       "response_per_d": 4.9,
       "drill": {
         "num_ds": {
@@ -1395,6 +1520,12 @@
           "Carlos Miras": 14.6,
           "Nata": 6.89,
           "Dan Howard": 3.0
+        },
+        "task_days_per_d": {
+          "Anastasia": 83.2,
+          "Nata": 20.0,
+          "Dan Howard": 6.4,
+          "Carlos Miras": 5.2
         },
         "response_per_d": {
           "Joe": 2.0,
