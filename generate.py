@@ -39,11 +39,12 @@ MARKETING_DESIGNERS = [
 TEAM_MEMBERS = PRODUCT_DESIGNERS + MARKETING_DESIGNERS
 
 TARGETS = {
-    "num_ds":         48,
-    "ds_per_person":  4,
-    "cycles_per_d":   None,   # TBD — update here when decided
-    "replies_per_d":  None,
-    "response_per_d": None,
+    "num_ds":          48,
+    "ds_per_person":   4,
+    "cycles_per_d":    None,   # TBD
+    "replies_per_d":   None,
+    "task_days_per_d": None,   # TBD
+    "response_per_d":  None,
 }
 
 BH_START = 8   # Business hours start (24h)
@@ -410,6 +411,10 @@ def process_deliverable_thread(thread, users, managers, month_data, start_ts, en
                 "responding_manager_id":  best_mgr if resp_time is not None else None,
             })
 
+        # Calendar days from this designer's deliverable to the last message in the thread
+        last_thread_ts = max(float(m["ts"]) for m in thread)
+        task_days = round((last_thread_ts - float(deliv_msg["ts"])) / 86400, 1)
+
         month_data.setdefault(month, []).append({
             "root_ts":     thread[0]["ts"],
             "month":       month,
@@ -417,6 +422,7 @@ def process_deliverable_thread(thread, users, managers, month_data, start_ts, en
             "poster_name": pname,
             "cycle_count": len(designer_cycles[uid]),
             "reply_count": designer_reply_count[uid],
+            "task_days":   task_days,
             "cycles":      cycle_data,
         })
 
@@ -483,15 +489,17 @@ def compute_metrics(month_data, managers, roster=None):
                              "replies_per_d":0,"response_per_d":None,"drill":{}}
             continue
 
-        pd, pc, pr = {}, {}, {}
+        pd, pc, pr, ptd = {}, {}, {}, {}
         for d in deliverables:
             p = d["poster_name"]
-            pd[p] = pd.get(p, 0) + 1
-            pc[p] = pc.get(p, 0) + d["cycle_count"]
-            pr[p] = pr.get(p, 0) + d["reply_count"]
+            pd[p]  = pd.get(p, 0)  + 1
+            pc[p]  = pc.get(p, 0)  + d["cycle_count"]
+            pr[p]  = pr.get(p, 0)  + d["reply_count"]
+            ptd[p] = ptd.get(p, 0) + d.get("task_days", 0)
 
-        tc = sum(d["cycle_count"] for d in deliverables)
-        tr = sum(d["reply_count"] for d in deliverables)
+        tc = sum(d["cycle_count"]        for d in deliverables)
+        tr = sum(d["reply_count"]        for d in deliverables)
+        tt = sum(d.get("task_days", 0)   for d in deliverables)
 
         mgr_times = {}
         for d in deliverables:
@@ -517,17 +525,19 @@ def compute_metrics(month_data, managers, roster=None):
         active_posters = len(pd)
 
         result[month] = {
-            "num_ds":         n,
-            "ds_per_person":  round(n / active_posters, 2) if active_posters else 0,
-            "cycles_per_d":   round(tc/n, 2),
-            "replies_per_d":  round(tr/n, 2),
-            "response_per_d": avg_resp,
+            "num_ds":          n,
+            "ds_per_person":   round(n / active_posters, 2) if active_posters else 0,
+            "cycles_per_d":    round(tc/n, 2),
+            "replies_per_d":   round(tr/n, 2),
+            "task_days_per_d": round(tt/n, 1),
+            "response_per_d":  avg_resp,
             "drill": {
-                "num_ds":         sd(full_team_ds),
-                "ds_per_person":  sd(full_team_ds),
-                "cycles_per_d":   sd({k: round(pc[k]/pd[k], 2) for k in pd}),
-                "replies_per_d":  sd({k: round(pr[k]/pd[k], 2) for k in pd}),
-                "response_per_d": sa(mgr_avgs),
+                "num_ds":          sd(full_team_ds),
+                "ds_per_person":   sd(full_team_ds),
+                "cycles_per_d":    sd({k: round(pc[k]/pd[k],  2) for k in pd}),
+                "replies_per_d":   sd({k: round(pr[k]/pd[k],  2) for k in pd}),
+                "task_days_per_d": sd({k: round(ptd[k]/pd[k], 1) for k in pd}),
+                "response_per_d":  sa(mgr_avgs),
             }
         }
     return result
@@ -537,11 +547,12 @@ def compute_metrics(month_data, managers, roster=None):
 # ═══════════════════════════════════════════════════════════════════════════════
 
 METRIC_DEFS = [
-    {"key":"num_ds",        "label":"# Deliverables",          "section":"deliverables"},
-    {"key":"ds_per_person", "label":"Deliverables / Person",   "section":"deliverables"},
-    {"key":"cycles_per_d",  "label":"Cycles / Deliverable",    "section":"deliverables"},
-    {"key":"replies_per_d", "label":"Replies / Deliverable",   "section":"deliverables"},
-    {"key":"response_per_d","label":"Avg. Response Time",      "section":"response"},
+    {"key":"num_ds",          "label":"# Deliverables",            "section":"deliverables"},
+    {"key":"ds_per_person",   "label":"Deliverables / Person",     "section":"deliverables"},
+    {"key":"cycles_per_d",    "label":"Cycles / Deliverable",      "section":"deliverables"},
+    {"key":"replies_per_d",   "label":"Replies / Deliverable",     "section":"deliverables"},
+    {"key":"task_days_per_d", "label":"Avg. Days to Complete",     "section":"deliverables"},
+    {"key":"response_per_d",  "label":"Avg. Response Time",        "section":"response"},
 ]
 
 # Info panel content — shown when a metric title is clicked
@@ -589,6 +600,18 @@ METRIC_INFO = {
             "Click any monthly value to see replies per person",
         ],
     },
+    "task_days_per_d": {
+        "label": "Avg. Days to Complete",
+        "definition": "On average, how many calendar days elapsed from when a designer first submitted a deliverable to the last message in that thread. Lower is better \u2014 it means work moved through faster.",
+        "formula": "Average of (last thread message date \u2212 designer\u2019s first \u201cFor review:\u201d or \u201cFor feedback:\u201d date) across all deliverables",
+        "rules": [
+            "Start date: the timestamp of the designer\u2019s first \u201cFor review:\u201d or \u201cFor feedback:\u201d message in the thread",
+            "End date: the timestamp of the very last message in that thread (from anyone)",
+            "Measured in calendar days, not business days",
+            "If a thread has no replies after the deliverable, that deliverable counts as 0 days",
+            "Click any monthly value to see the average per person",
+        ],
+    },
     "response_per_d": {
         "label": "Avg. Response Time",
         "definition": "How quickly a manager first responds to a review or feedback cycle, measured in business hours. Lower is better.",
@@ -605,8 +628,9 @@ METRIC_INFO = {
 
 def fmt(val, key):
     if val is None: return None
-    if key == "num_ds":         return str(int(val))
-    if key == "response_per_d": return f"{val}h"
+    if key == "num_ds":          return str(int(val))
+    if key == "response_per_d":  return f"{val}h"
+    if key == "task_days_per_d": return f"{val}d"
     return str(val)
 
 def build_rows(metrics, section, year):
@@ -624,7 +648,7 @@ def build_rows(metrics, section, year):
             val   = md.get(key)
             drill = md.get("drill", {}).get(key, {})
             disp  = fmt(val, key)
-            suffix = "h" if key == "response_per_d" else ""
+            suffix = "h" if key == "response_per_d" else "d" if key == "task_days_per_d" else ""
 
             if disp is None or not md:
                 cells += '<td class="mc"><span class="empty">—</span></td>'
