@@ -61,13 +61,13 @@ MONTH_KEYS = ["01","02","03","04","05","06","07","08","09","10","11","12"]
 def get_date_range():
     """Return (start, end) for the Slack fetch.
 
-    Normal mode: rolling window anchored to the 1st of the month 3 months ago.
+    Normal mode: Jan 1 of the current year through today (full YTD view).
     Backfill mode: reads START_DATE / END_DATE environment variables (YYYY-MM-DD),
                    set via workflow_dispatch inputs in GitHub Actions.
 
     Examples (normal):
-      Run on July 13  → start = April  1, end = July 13
-      Run on Jan   5  → start = Oct    1 (prev year), end = Jan 5
+      Run on July 13  → start = Jan 1,  end = July 13
+      Run on Jan   5  → start = Jan 1,  end = Jan 5
     """
     start_env = os.environ.get("START_DATE", "").strip()
     end_env   = os.environ.get("END_DATE",   "").strip()
@@ -80,11 +80,7 @@ def get_date_range():
         return start, end
 
     today = datetime.now(tz=timezone.utc)
-    m, y = today.month - 3, today.year
-    if m <= 0:
-        m += 12
-        y -= 1
-    start = datetime(y, m, 1, 0, 0, 0, tzinfo=timezone.utc)  # always 1st of the month
+    start = datetime(today.year, 1, 1, 0, 0, 0, tzinfo=timezone.utc)  # Jan 1 of current year
     end = today
     return start, end
 
