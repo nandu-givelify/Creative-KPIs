@@ -191,6 +191,22 @@ def fetch_thread(client, channel_id, thread_ts):
 #  BUSINESS HOURS
 # ═══════════════════════════════════════════════════════════════════════════════
 
+def business_days_between(start_ts, end_ts):
+    """Count Mon–Fri days between two timestamps (UTC dates, weekends excluded)."""
+    s = datetime.fromtimestamp(float(start_ts), tz=timezone.utc).date()
+    e = datetime.fromtimestamp(float(end_ts),   tz=timezone.utc).date()
+    if e <= s:
+        return 0.0
+    total_days = (e - s).days
+    full_weeks, remainder = divmod(total_days, 7)
+    bdays = full_weeks * 5
+    start_dow = s.weekday()   # Mon=0 … Sun=6
+    for i in range(remainder):
+        if (start_dow + i) % 7 < 5:
+            bdays += 1
+    return float(bdays)
+
+
 def business_hours_between(start_ts, end_ts, tz_str):
     try:    tz = ZoneInfo(tz_str)
     except: tz = ZoneInfo("America/New_York")
@@ -411,9 +427,10 @@ def process_deliverable_thread(thread, users, managers, month_data, start_ts, en
                 "responding_manager_id":  best_mgr if resp_time is not None else None,
             })
 
-        # Calendar days from this designer's deliverable to the last message in the thread
+        # Business days (Mon–Fri, weekends excluded) from this designer's deliverable
+        # to the last message in the thread
         last_thread_ts = max(float(m["ts"]) for m in thread)
-        task_days = round((last_thread_ts - float(deliv_msg["ts"])) / 86400, 1)
+        task_days = business_days_between(float(deliv_msg["ts"]), last_thread_ts)
 
         month_data.setdefault(month, []).append({
             "root_ts":     thread[0]["ts"],
@@ -602,12 +619,12 @@ METRIC_INFO = {
     },
     "task_days_per_d": {
         "label": "Avg. Days to Complete",
-        "definition": "On average, how many calendar days elapsed from when a designer first submitted a deliverable to the last message in that thread. Lower is better \u2014 it means work moved through faster.",
-        "formula": "Average of (last thread message date \u2212 designer\u2019s first \u201cFor review:\u201d or \u201cFor feedback:\u201d date) across all deliverables",
+        "definition": "On average, how many business days elapsed from when a designer first submitted a deliverable to the last message in that thread. Lower is better \u2014 it means work moved through faster.",
+        "formula": "Average of (last thread message date \u2212 designer\u2019s first \u201cFor review:\u201d or \u201cFor feedback:\u201d date), weekends excluded, across all deliverables",
         "rules": [
             "Start date: the timestamp of the designer\u2019s first \u201cFor review:\u201d or \u201cFor feedback:\u201d message in the thread",
             "End date: the timestamp of the very last message in that thread (from anyone)",
-            "Measured in calendar days, not business days",
+            "Measured in business days \u2014 Saturdays and Sundays are excluded",
             "If a thread has no replies after the deliverable, that deliverable counts as 0 days",
             "Click any monthly value to see the average per person",
         ],
