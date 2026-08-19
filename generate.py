@@ -214,29 +214,94 @@ def make_slack_url(thread_ts):
     return f"https://{SLACK_WORKSPACE}.slack.com/archives/{CHANNEL_ID}/p{ts_clean}"
 
 
-LONGER_GAP_THRESHOLD = 5  # business days between any two consecutive messages
+# ── US federal holidays (for gap calculation) ────────────────────────────────
+import calendar as _cal
+
+def _us_federal_holidays(year):
+    """Return a set of date objects for US federal holidays in the given year."""
+    from datetime import date as _date
+
+    def nth_weekday(y, mo, wd, n):
+        d = _date(y, mo, 1)
+        d += timedelta(days=(wd - d.weekday()) % 7)
+        return d + timedelta(weeks=n - 1)
+
+    def last_weekday(y, mo, wd):
+        last = _date(y, mo, _cal.monthrange(y, mo)[1])
+        return last - timedelta(days=(last.weekday() - wd) % 7)
+
+    def observe(d):
+        if d.weekday() == 6: return d + timedelta(days=1)
+        if d.weekday() == 5: return d - timedelta(days=1)
+        return d
+
+    from datetime import date as D
+    h = set()
+    h.add(observe(D(year, 1,  1)))   # New Year's Day
+    h.add(observe(D(year, 6, 19)))   # Juneteenth
+    h.add(observe(D(year, 7,  4)))   # Independence Day
+    h.add(observe(D(year, 11, 11)))  # Veterans Day
+    h.add(observe(D(year, 12, 25)))  # Christmas
+    h.add(nth_weekday(year, 1, 0, 3))   # MLK Day       — 3rd Mon Jan
+    h.add(nth_weekday(year, 2, 0, 3))   # Presidents    — 3rd Mon Feb
+    h.add(last_weekday(year, 5, 0))     # Memorial Day  — last Mon May
+    h.add(nth_weekday(year, 9, 0, 1))   # Labor Day     — 1st Mon Sep
+    h.add(nth_weekday(year, 10, 0, 2))  # Columbus Day  — 2nd Mon Oct
+    h.add(nth_weekday(year, 11, 3, 4))  # Thanksgiving  — 4th Thu Nov
+    return h
+
+_HOLIDAY_CACHE = {}
+def _get_holidays(year):
+    if year not in _HOLIDAY_CACHE:
+        _HOLIDAY_CACHE[year] = _us_federal_holidays(year)
+    return _HOLIDAY_CACHE[year]
+
+def business_days_gap(start_ts, end_ts):
+    """Business days between two timestamps, excluding weekends AND US federal holidays."""
+    from datetime import date as _date
+    s = datetime.fromtimestamp(float(start_ts), tz=timezone.utc).date()
+    e = datetime.fromtimestamp(float(end_ts),   tz=timezone.utc).date()
+    if e <= s: return 0.0
+    count, cur = 0.0, s
+    while cur < e:
+        if cur.weekday() < 5 and cur not in _get_holidays(cur.year):
+            count += 1
+        cur += timedelta(days=1)
+    return count
+
+
+LONGER_GAP_THRESHOLD  = 5   # business days (excl. weekends + US holidays)
+HIGH_CYCLES_THRESHOLD = 7   # additional review/feedback rounds after first submission
 
 def compute_max_gap_bdays(thread):
-    """Largest business-day gap between any two consecutive messages in a thread."""
+    """Largest holiday-aware business-day gap between consecutive messages in a thread."""
     timestamps = sorted(float(m["ts"]) for m in thread)
     if len(timestamps) < 2:
         return None
     max_gap = 0.0
     for i in range(1, len(timestamps)):
-        gap = business_days_between(timestamps[i-1], timestamps[i])
+        gap = business_days_gap(timestamps[i-1], timestamps[i])
         if gap > max_gap:
             max_gap = gap
     return max_gap if max_gap > 0 else None
 
 
 def compute_signal(cycle_count, manager_wait, designer_wait, reply_count, max_gap=None):
-    """Return a short diagnostic label for a deliverable based on its patterns."""
-    if cycle_count >= 3:                                           return "High cycles"
-    if max_gap is not None and max_gap >= LONGER_GAP_THRESHOLD:   return "Longer Gap"
-    if manager_wait is not None and manager_wait > 2:              return "Slow feedback"
-    if designer_wait is not None and designer_wait > 2:            return "Slow pickup"
-    if reply_count >= 8 and cycle_count <= 1:                      return "Long discussion"
-    return "On track"
+    """Return the single most prominent signal, chosen by highest underlying value."""
+    candidates = []
+    if cycle_count >= HIGH_CYCLES_THRESHOLD:
+        candidates.append(("High cycles", cycle_count))
+    if max_gap is not None and max_gap >= LONGER_GAP_THRESHOLD:
+        candidates.append(("Longer Gap", max_gap))
+    if manager_wait is not None and manager_wait > 2:
+        candidates.append(("Slow feedback", manager_wait))
+    if designer_wait is not None and designer_wait > 2:
+        candidates.append(("Slow pickup", designer_wait))
+    if reply_count >= 8 and cycle_count <= 1:
+        candidates.append(("Long discussion", reply_count))
+    if not candidates:
+        return "On track"
+    return max(candidates, key=lambda x: x[1])[0]
 
 
 def business_hours_between(start_ts, end_ts, tz_str):
@@ -297,18 +362,28 @@ def is_feedback(msg):  return msg_has(msg, "for feedback:")
 def is_cycle_msg(msg): return is_review(msg) or is_feedback(msg)
 
 def extract_deliverable_type(msg):
-    """Extract the label after 'For review:' or 'For feedback:' — e.g. 'UI', 'Discovery'."""
+    """Extract the label after 'For review:' / 'For feedback:', with fallbacks."""
     text = get_full_text(msg)
+    found_trigger = None
     for trigger in ["for review:", "for feedback:"]:
         idx = text.lower().find(trigger)
         if idx != -1:
+            found_trigger = "Review" if "review" in trigger else "Feedback"
             after = text[idx + len(trigger):].strip()
-            first_part = after.split('\n')[0].strip()
-            # Grab first 3 words max (enough for "UI Redesign", "Fab5 Marketing Banner", etc.)
-            words = first_part.split()[:3]
-            label = " ".join(words)
-            return label[:35] if label else ""
-    return ""
+            # Take first non-empty line
+            for line in after.split('\n'):
+                line = line.strip()
+                if line:
+                    words = line.split()[:4]
+                    label = " ".join(words)
+                    return label[:40] if label else None
+            break
+    # Fallback 1: use the trigger name itself
+    if found_trigger:
+        return found_trigger
+    # Fallback 2: first 40 chars of the message
+    snippet = text[:40].strip()
+    return snippet if snippet else "—"
 
 def is_root(m):
     return m.get("thread_ts", m.get("ts")) == m.get("ts")
@@ -867,16 +942,15 @@ th,td{{padding:18px 10px;border-bottom:1px solid #f0f0f0;vertical-align:middle}}
 .mv.click{{cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-decoration-color:#ddd;transition:color .15s,text-decoration-color .15s}}
 .mv.click:hover{{color:#0057d9;text-decoration-color:#0057d9}}
 .empty{{color:#e0e0e0;font-size:.8rem}}
-.ov{{display:none;position:fixed;inset:0;background:rgba(0,0,0,.1);z-index:100}}
-.ov.on{{display:block}}
-.pnl{{position:fixed;top:0;right:-440px;width:420px;height:100vh;background:#fff;box-shadow:-4px 0 28px rgba(0,0,0,.09);z-index:101;transition:right .27s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column}}
-.pnl.open{{right:0}}
-.ph{{padding:28px 28px 20px;border-bottom:1px solid #f2f2f2;display:flex;justify-content:space-between;align-items:flex-start}}
+.ov{{display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:100;align-items:center;justify-content:center}}
+.ov.on{{display:flex}}
+.pnl{{width:680px;max-width:94vw;max-height:88vh;background:#fff;border-radius:14px;box-shadow:0 12px 60px rgba(0,0,0,.22);display:flex;flex-direction:column;overflow:hidden}}
+.ph{{padding:24px 28px 18px;border-bottom:1px solid #f2f2f2;display:flex;justify-content:space-between;align-items:flex-start;flex-shrink:0}}
 .pt{{font-size:1.05rem;font-weight:600;color:#111}}
 .ps{{font-size:.73rem;color:#aaa;margin-top:4px}}
 .px{{background:none;border:none;cursor:pointer;color:#bbb;font-size:1.15rem;padding:0;margin-left:10px;line-height:1;flex-shrink:0}}
 .px:hover{{color:#333}}
-.pb{{flex:1;overflow-y:auto;padding:24px 28px 32px}}
+.pb{{flex:1;overflow-y:auto;padding:22px 28px 28px}}
 .dr{{display:flex;justify-content:space-between;align-items:center;padding:13px 0;border-bottom:1px solid #f8f8f8}}
 .dr:last-child{{border:none}}
 .dn{{font-size:.88rem;color:#444}}
@@ -915,6 +989,7 @@ th,td{{padding:18px 10px;border-bottom:1px solid #f0f0f0;vertical-align:middle}}
 .th-table .td-link a{{color:#0057d9;text-decoration:none;font-size:.8rem}}
 .th-table .td-type a{{color:#111;text-decoration:none;font-weight:500}}
 .th-table .td-type a:hover{{color:#0057d9;text-decoration:underline}}
+.th-row-click:hover td{{background:#f7f9ff}}
 .leg{{margin-top:28px;padding-top:18px;border-top:1px solid #f0f0f0}}
 .leg-title{{font-size:.68rem;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:#bbb;margin-bottom:10px}}
 .leg-row{{display:flex;gap:8px;align-items:flex-start;margin-bottom:7px;font-size:.78rem;color:#555;line-height:1.45}}
@@ -1124,47 +1199,45 @@ function showDrill(el) {{
           .sort((a,b) => b.task_days - a.task_days)
           .map(t => {{
             const typeLabel = t.deliverable_type || '—';
-            const typeCell  = t.slack_url
-              ? `<a href="${{t.slack_url}}" target="_blank" title="${{typeLabel}}">${{typeLabel}}</a>`
-              : `<span title="${{typeLabel}}">${{typeLabel}}</span>`;
-            const mgr = t.manager_wait_bdays != null ? `${{Math.round(t.manager_wait_bdays)}}d` : '—';
-            const des = t.designer_wait_bdays != null ? `${{Math.round(t.designer_wait_bdays)}}d` : '—';
-            const gap = t.max_gap_bdays     != null ? `${{Math.round(t.max_gap_bdays)}}d`     : '—';
-            return `<tr>
-              <td class="td-type">${{typeCell}}</td>
+            const mgr  = t.manager_wait_bdays != null ? `${{Math.round(t.manager_wait_bdays)}}d` : '—';
+            const gap  = t.max_gap_bdays      != null ? `${{Math.round(t.max_gap_bdays)}}d`      : '—';
+            const days = `${{Math.round(t.task_days)}}d`;
+            const rowClick = t.slack_url ? `onclick="window.open('${{t.slack_url}}','_blank')" style="cursor:pointer"` : '';
+            return `<tr ${{rowClick}} class="th-row-click">
+              <td class="td-type" title="${{typeLabel}}">${{typeLabel}}</td>
               <td><span class="${{sigClass(t.signal)}}">${{t.signal}}</span></td>
               <td class="td-num">${{t.cycle_count}}</td>
               <td class="td-num">${{mgr}}</td>
-              <td class="td-num">${{des}}</td>
               <td class="td-num">${{gap}}</td>
+              <td class="td-num">${{days}}</td>
             </tr>`;
           }}).join('');
         return `<div class="des-block">
           <div class="des-hdr">${{name}}<span class="des-sub">${{n}} deliverable${{n!==1?'s':''}} · AVG ${{avg}}D</span></div>
           <table class="th-table">
             <thead><tr>
-              <th>Type</th><th>Signal</th>
+              <th>Deliverable</th><th>Signal</th>
               <th style="text-align:center">Cycles</th>
               <th style="text-align:center">Mgr</th>
-              <th style="text-align:center">Des</th>
               <th style="text-align:center">Gap</th>
+              <th style="text-align:center">Days</th>
             </tr></thead>
             <tbody>${{tableRows}}</tbody>
           </table>
         </div>`;
       }}).join('') + `<div class="leg">
-      <div class="leg-title">Signals</div>
-      <div class="leg-row"><span class="sig sig-hc">High cycles</span>3+ revision rounds</div>
-      <div class="leg-row"><span class="sig sig-lg">Longer Gap</span>5+ business days between any two messages</div>
-      <div class="leg-row"><span class="sig sig-sf">Slow feedback</span>Manager took &gt;2 days to respond after designer action</div>
-      <div class="leg-row"><span class="sig sig-sp">Slow pickup</span>Designer took &gt;2 days to act after manager feedback</div>
-      <div class="leg-row"><span class="sig sig-ld">Long discussion</span>8+ replies with ≤1 revision cycle</div>
+      <div class="leg-title">Signals — highest value wins when multiple apply</div>
+      <div class="leg-row"><span class="sig sig-hc">High cycles</span>7+ additional revision rounds</div>
+      <div class="leg-row"><span class="sig sig-lg">Longer Gap</span>5+ working days (excl. weekends &amp; US holidays) between any two messages</div>
+      <div class="leg-row"><span class="sig sig-sf">Slow feedback</span>Manager avg &gt;2 days to respond after designer action</div>
+      <div class="leg-row"><span class="sig sig-sp">Slow pickup</span>Designer avg &gt;2 days to act after manager feedback</div>
+      <div class="leg-row"><span class="sig sig-ld">Long discussion</span>8+ replies with ≤1 cycle (alignment/scope chat)</div>
       <div class="leg-row"><span class="sig sig-ot">On track</span>No issues detected</div>
       <div class="leg-title" style="margin-top:14px">Columns</div>
-      <div class="leg-row"><strong>Cycles</strong> — Number of additional "For review" / "For feedback" rounds after the first</div>
+      <div class="leg-row"><strong>Cycles</strong> — Additional "For review" / "For feedback" rounds after first submission</div>
       <div class="leg-row"><strong>Mgr</strong> — Avg business days for manager to respond after each designer action</div>
-      <div class="leg-row"><strong>Des</strong> — Avg business days for designer to pick up after manager feedback</div>
-      <div class="leg-row"><strong>Gap</strong> — Longest stretch (business days) between any two consecutive messages in the thread</div>
+      <div class="leg-row"><strong>Gap</strong> — Longest quiet stretch between any two consecutive messages (working days only)</div>
+      <div class="leg-row"><strong>Days</strong> — Total business days from first submission to last message in thread</div>
     </div>`;
     return;
   }}
