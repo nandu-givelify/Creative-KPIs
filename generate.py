@@ -214,12 +214,28 @@ def make_slack_url(thread_ts):
     return f"https://{SLACK_WORKSPACE}.slack.com/archives/{CHANNEL_ID}/p{ts_clean}"
 
 
-def compute_signal(cycle_count, manager_wait, designer_wait, reply_count):
+LONGER_GAP_THRESHOLD = 5  # business days between any two consecutive messages
+
+def compute_max_gap_bdays(thread):
+    """Largest business-day gap between any two consecutive messages in a thread."""
+    timestamps = sorted(float(m["ts"]) for m in thread)
+    if len(timestamps) < 2:
+        return None
+    max_gap = 0.0
+    for i in range(1, len(timestamps)):
+        gap = business_days_between(timestamps[i-1], timestamps[i])
+        if gap > max_gap:
+            max_gap = gap
+    return max_gap if max_gap > 0 else None
+
+
+def compute_signal(cycle_count, manager_wait, designer_wait, reply_count, max_gap=None):
     """Return a short diagnostic label for a deliverable based on its patterns."""
-    if cycle_count >= 3:                        return "High cycles"
-    if manager_wait is not None and manager_wait > 2: return "Slow feedback"
-    if designer_wait is not None and designer_wait > 2: return "Slow pickup"
-    if reply_count >= 8 and cycle_count <= 1:   return "Long discussion"
+    if cycle_count >= 3:                                           return "High cycles"
+    if max_gap is not None and max_gap >= LONGER_GAP_THRESHOLD:   return "Longer Gap"
+    if manager_wait is not None and manager_wait > 2:              return "Slow feedback"
+    if designer_wait is not None and designer_wait > 2:            return "Slow pickup"
+    if reply_count >= 8 and cycle_count <= 1:                      return "Long discussion"
     return "On track"
 
 
@@ -489,10 +505,11 @@ def process_deliverable_thread(thread, users, managers, month_data, start_ts, en
 
         avg_mgr_wait = round(sum(mgr_wait_list) / len(mgr_wait_list), 1) if mgr_wait_list else None
         avg_des_wait = round(sum(des_wait_list) / len(des_wait_list), 1) if des_wait_list else None
+        max_gap      = compute_max_gap_bdays(thread)
 
-        signal   = compute_signal(len(designer_cycles[uid]), avg_mgr_wait, avg_des_wait,
-                                  designer_reply_count[uid])
-        slack_url = make_slack_url(thread[0]["ts"])
+        signal    = compute_signal(len(designer_cycles[uid]), avg_mgr_wait, avg_des_wait,
+                                   designer_reply_count[uid], max_gap)
+        slack_url  = make_slack_url(thread[0]["ts"])
         deliv_type = extract_deliverable_type(deliv_msg)
 
         month_data.setdefault(month, []).append({
@@ -506,6 +523,7 @@ def process_deliverable_thread(thread, users, managers, month_data, start_ts, en
             "task_days":           task_days,
             "manager_wait_bdays":  avg_mgr_wait,
             "designer_wait_bdays": avg_des_wait,
+            "max_gap_bdays":       max_gap,
             "signal":              signal,
             "slack_url":           slack_url,
             "cycles":              cycle_data,
@@ -636,6 +654,7 @@ def compute_metrics(month_data, managers, roster=None):
                 "cycle_count":         d["cycle_count"],
                 "manager_wait_bdays":  d.get("manager_wait_bdays"),
                 "designer_wait_bdays": d.get("designer_wait_bdays"),
+                "max_gap_bdays":       d.get("max_gap_bdays"),
                 "signal":              d.get("signal", "On track"),
                 "slack_url":           d.get("slack_url", ""),
             })
@@ -873,6 +892,7 @@ th,td{{padding:18px 10px;border-bottom:1px solid #f0f0f0;vertical-align:middle}}
 .info-rules li::before{{content:"–";position:absolute;left:0;color:#bbb}}
 .sig{{display:inline-block;font-size:.68rem;font-weight:600;letter-spacing:.4px;padding:2px 8px;border-radius:4px;white-space:nowrap}}
 .sig-hc{{background:#fff0f0;color:#c0392b}}
+.sig-lg{{background:#f3e8ff;color:#7c3aed}}
 .sig-sf{{background:#fff8e1;color:#b45309}}
 .sig-sp{{background:#fff8e1;color:#b45309}}
 .sig-ld{{background:#f0f4ff;color:#3a56b0}}
@@ -893,6 +913,12 @@ th,td{{padding:18px 10px;border-bottom:1px solid #f0f0f0;vertical-align:middle}}
 .th-table .td-num{{text-align:center;color:#555}}
 .th-table .td-link{{text-align:right}}
 .th-table .td-link a{{color:#0057d9;text-decoration:none;font-size:.8rem}}
+.th-table .td-type a{{color:#111;text-decoration:none;font-weight:500}}
+.th-table .td-type a:hover{{color:#0057d9;text-decoration:underline}}
+.leg{{margin-top:28px;padding-top:18px;border-top:1px solid #f0f0f0}}
+.leg-title{{font-size:.68rem;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:#bbb;margin-bottom:10px}}
+.leg-row{{display:flex;gap:8px;align-items:flex-start;margin-bottom:7px;font-size:.78rem;color:#555;line-height:1.45}}
+.leg-row .sig{{flex-shrink:0;margin-top:1px}}
 .ic-grid{{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;margin-bottom:52px}}
 .ic{{background:#fafafa;border:1px solid #f0f0f0;border-radius:10px;padding:20px 22px}}
 .ic-month{{font-size:.72rem;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:#aaa;margin-bottom:10px}}
@@ -1027,6 +1053,7 @@ function showInfo(key) {{
 
 function sigClass(s) {{
   if (s === 'High cycles')     return 'sig sig-hc';
+  if (s === 'Longer Gap')      return 'sig sig-lg';
   if (s === 'Slow feedback')   return 'sig sig-sf';
   if (s === 'Slow pickup')     return 'sig sig-sp';
   if (s === 'Long discussion') return 'sig sig-ld';
@@ -1097,31 +1124,48 @@ function showDrill(el) {{
           .sort((a,b) => b.task_days - a.task_days)
           .map(t => {{
             const typeLabel = t.deliverable_type || '—';
+            const typeCell  = t.slack_url
+              ? `<a href="${{t.slack_url}}" target="_blank" title="${{typeLabel}}">${{typeLabel}}</a>`
+              : `<span title="${{typeLabel}}">${{typeLabel}}</span>`;
             const mgr = t.manager_wait_bdays != null ? `${{Math.round(t.manager_wait_bdays)}}d` : '—';
             const des = t.designer_wait_bdays != null ? `${{Math.round(t.designer_wait_bdays)}}d` : '—';
-            const link = t.slack_url
-              ? `<a href="${{t.slack_url}}" target="_blank">→</a>`
-              : '';
+            const gap = t.max_gap_bdays     != null ? `${{Math.round(t.max_gap_bdays)}}d`     : '—';
             return `<tr>
-              <td class="td-type" title="${{typeLabel}}">${{typeLabel}}</td>
+              <td class="td-type">${{typeCell}}</td>
               <td><span class="${{sigClass(t.signal)}}">${{t.signal}}</span></td>
               <td class="td-num">${{t.cycle_count}}</td>
               <td class="td-num">${{mgr}}</td>
               <td class="td-num">${{des}}</td>
-              <td class="td-link">${{link}}</td>
+              <td class="td-num">${{gap}}</td>
             </tr>`;
           }}).join('');
         return `<div class="des-block">
           <div class="des-hdr">${{name}}<span class="des-sub">${{n}} deliverable${{n!==1?'s':''}} · AVG ${{avg}}D</span></div>
           <table class="th-table">
             <thead><tr>
-              <th>Type</th><th>Signal</th><th style="text-align:center">Cycles</th>
-              <th style="text-align:center">Mgr</th><th style="text-align:center">Des</th><th></th>
+              <th>Type</th><th>Signal</th>
+              <th style="text-align:center">Cycles</th>
+              <th style="text-align:center">Mgr</th>
+              <th style="text-align:center">Des</th>
+              <th style="text-align:center">Gap</th>
             </tr></thead>
             <tbody>${{tableRows}}</tbody>
           </table>
         </div>`;
-      }}).join('');
+      }}).join('') + `<div class="leg">
+      <div class="leg-title">Signals</div>
+      <div class="leg-row"><span class="sig sig-hc">High cycles</span>3+ revision rounds</div>
+      <div class="leg-row"><span class="sig sig-lg">Longer Gap</span>5+ business days between any two messages</div>
+      <div class="leg-row"><span class="sig sig-sf">Slow feedback</span>Manager took &gt;2 days to respond after designer action</div>
+      <div class="leg-row"><span class="sig sig-sp">Slow pickup</span>Designer took &gt;2 days to act after manager feedback</div>
+      <div class="leg-row"><span class="sig sig-ld">Long discussion</span>8+ replies with ≤1 revision cycle</div>
+      <div class="leg-row"><span class="sig sig-ot">On track</span>No issues detected</div>
+      <div class="leg-title" style="margin-top:14px">Columns</div>
+      <div class="leg-row"><strong>Cycles</strong> — Number of additional "For review" / "For feedback" rounds after the first</div>
+      <div class="leg-row"><strong>Mgr</strong> — Avg business days for manager to respond after each designer action</div>
+      <div class="leg-row"><strong>Des</strong> — Avg business days for designer to pick up after manager feedback</div>
+      <div class="leg-row"><strong>Gap</strong> — Longest stretch (business days) between any two consecutive messages in the thread</div>
+    </div>`;
     return;
   }}
 
