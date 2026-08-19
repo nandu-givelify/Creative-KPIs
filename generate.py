@@ -280,6 +280,20 @@ def is_review(msg):    return msg_has(msg, "for review:")
 def is_feedback(msg):  return msg_has(msg, "for feedback:")
 def is_cycle_msg(msg): return is_review(msg) or is_feedback(msg)
 
+def extract_deliverable_type(msg):
+    """Extract the label after 'For review:' or 'For feedback:' — e.g. 'UI', 'Discovery'."""
+    text = get_full_text(msg)
+    for trigger in ["for review:", "for feedback:"]:
+        idx = text.lower().find(trigger)
+        if idx != -1:
+            after = text[idx + len(trigger):].strip()
+            first_part = after.split('\n')[0].strip()
+            # Grab first 3 words max (enough for "UI Redesign", "Fab5 Marketing Banner", etc.)
+            words = first_part.split()[:3]
+            label = " ".join(words)
+            return label[:35] if label else ""
+    return ""
+
 def is_root(m):
     return m.get("thread_ts", m.get("ts")) == m.get("ts")
 
@@ -479,12 +493,14 @@ def process_deliverable_thread(thread, users, managers, month_data, start_ts, en
         signal   = compute_signal(len(designer_cycles[uid]), avg_mgr_wait, avg_des_wait,
                                   designer_reply_count[uid])
         slack_url = make_slack_url(thread[0]["ts"])
+        deliv_type = extract_deliverable_type(deliv_msg)
 
         month_data.setdefault(month, []).append({
             "root_ts":             thread[0]["ts"],
             "month":               month,
             "poster_id":           uid,
             "poster_name":         pname,
+            "deliverable_type":    deliv_type,
             "cycle_count":         len(designer_cycles[uid]),
             "reply_count":         designer_reply_count[uid],
             "task_days":           task_days,
@@ -615,6 +631,7 @@ def compute_metrics(month_data, managers, roster=None):
         for d in deliverables:
             p = d["poster_name"]
             thread_details.setdefault(p, []).append({
+                "deliverable_type":    d.get("deliverable_type", ""),
                 "task_days":           d.get("task_days", 0),
                 "cycle_count":         d["cycle_count"],
                 "manager_wait_bdays":  d.get("manager_wait_bdays"),
@@ -628,11 +645,15 @@ def compute_metrics(month_data, managers, roster=None):
         flagged     = [s for s in all_signals if s != "On track"]
         most_common = max(set(flagged), key=flagged.count) if flagged else None
         slowest     = max(deliverables, key=lambda d: d.get("task_days", 0))
+        # Signal breakdown: count of each signal label (excluding "On track")
+        signal_counts = {}
+        for s in all_signals:
+            signal_counts[s] = signal_counts.get(s, 0) + 1
         monthly_insight = {
             "total":              n,
             "flagged_count":      len(flagged),
             "most_common_signal": most_common,
-            "slowest_designer":   slowest["poster_name"],
+            "signal_breakdown":   signal_counts,
             "slowest_days":       slowest.get("task_days", 0),
             "slowest_url":        slowest.get("slack_url", ""),
         }
@@ -861,8 +882,17 @@ th,td{{padding:18px 10px;border-bottom:1px solid #f0f0f0;vertical-align:middle}}
 .th-meta{{font-size:.8rem;color:#666;margin-top:4px;display:flex;gap:12px;flex-wrap:wrap;align-items:center}}
 .th-link{{font-size:.78rem;color:#0057d9;text-decoration:none;margin-left:auto;flex-shrink:0}}
 .th-link:hover{{text-decoration:underline}}
-.des-block{{margin-bottom:18px}}
-.des-hdr{{font-size:.78rem;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:#999;margin-bottom:6px;display:flex;justify-content:space-between}}
+.des-block{{margin-bottom:24px}}
+.des-hdr{{font-size:.82rem;font-weight:700;color:#111;margin-bottom:8px}}
+.des-sub{{font-size:.72rem;color:#aaa;font-weight:400;margin-left:6px}}
+.th-table{{width:100%;border-collapse:collapse;font-size:.82rem}}
+.th-table th{{font-size:.68rem;font-weight:600;letter-spacing:.8px;text-transform:uppercase;color:#bbb;padding:4px 8px 4px 0;border-bottom:1px solid #f0f0f0;text-align:left}}
+.th-table td{{padding:8px 8px 8px 0;border-bottom:1px solid #f8f8f8;color:#333;vertical-align:middle}}
+.th-table tr:last-child td{{border:none}}
+.th-table .td-type{{font-weight:500;color:#111;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}}
+.th-table .td-num{{text-align:center;color:#555}}
+.th-table .td-link{{text-align:right}}
+.th-table .td-link a{{color:#0057d9;text-decoration:none;font-size:.8rem}}
 .ic-grid{{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;margin-bottom:52px}}
 .ic{{background:#fafafa;border:1px solid #f0f0f0;border-radius:10px;padding:20px 22px}}
 .ic-month{{font-size:.72rem;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:#aaa;margin-bottom:10px}}
@@ -1008,22 +1038,28 @@ function renderInsights(data, containerId) {{
   if (!el) return;
   const months = Object.keys(data).sort().reverse().slice(0, 6);
   if (!months.length) {{ el.innerHTML = '<div class="nd">No data yet</div>'; return; }}
+  const SIG_ORDER = ['High cycles','Slow feedback','Slow pickup','Long discussion','On track'];
   el.innerHTML = months.map(ym => {{
     const d = data[ym];
     if (!d) return '';
     const [y, m] = ym.split('-');
     const mName = {{"01":"Jan","02":"Feb","03":"Mar","04":"Apr","05":"May","06":"Jun","07":"Jul","08":"Aug","09":"Sep","10":"Oct","11":"Nov","12":"Dec"}}[m] + ' ' + y;
-    const flagLine = d.flagged_count
-      ? `${{d.flagged_count}} of ${{d.total}} flagged · <strong>${{d.most_common_signal}}</strong>`
+    // Signal breakdown lines — sorted by SIG_ORDER, all signals shown
+    const breakdown = d.signal_breakdown || {{}};
+    const bLines = SIG_ORDER
+      .filter(s => breakdown[s])
+      .map(s => `<div class="ic-detail">${{breakdown[s]}} — ${{s}}</div>`)
+      .join('');
+    const onTrack = breakdown['On track'] || 0;
+    const flagged = d.total - onTrack;
+    const summaryLine = flagged > 0
+      ? `${{flagged}} of ${{d.total}} flagged`
       : `All ${{d.total}} on track`;
-    const slowLine = d.slowest_days > 0
-      ? `Slowest: ${{d.slowest_designer}} (${{d.slowest_days}}d)${{d.slowest_url ? ` <a class="ic-link" href="${{d.slowest_url}}" target="_blank">→ Slack</a>` : ''}}`
-      : '';
     return `<div class="ic">
       <div class="ic-month">${{mName}}</div>
       <div class="ic-stat">${{d.total}} deliverable${{d.total!==1?'s':''}}</div>
-      <div class="ic-detail">${{flagLine}}</div>
-      ${{slowLine ? `<div class="ic-detail" style="margin-top:6px">${{slowLine}}</div>` : ''}}
+      <div class="ic-detail" style="margin-bottom:8px;color:#888">${{summaryLine}}</div>
+      ${{bLines}}
     </div>`;
   }}).join('');
 }}
@@ -1055,28 +1091,35 @@ function showDrill(el) {{
         return avgB - avgA;
       }})
       .map(([name, threads]) => {{
-        const avg = (threads.reduce((s,t)=>s+t.task_days,0)/threads.length).toFixed(1);
-        const rows = threads
+        const avg = Math.round(threads.reduce((s,t)=>s+t.task_days,0)/threads.length);
+        const n   = threads.length;
+        const tableRows = threads
           .sort((a,b) => b.task_days - a.task_days)
           .map(t => {{
-            const phases = [];
-            if (t.manager_wait_bdays != null) phases.push(`Mgr: ${{t.manager_wait_bdays}}d`);
-            if (t.designer_wait_bdays != null) phases.push(`Des: ${{t.designer_wait_bdays}}d`);
-            return `<div class="th-row">
-              <div style="display:flex;justify-content:space-between;align-items:center">
-                <span style="font-size:.88rem;font-weight:600;color:#111">${{t.task_days}}d</span>
-                <span class="${{sigClass(t.signal)}}">${{t.signal}}</span>
-              </div>
-              <div class="th-meta">
-                <span>${{t.cycle_count}} cycle${{t.cycle_count!==1?'s':''}}</span>
-                ${{phases.map(p=>`<span>${{p}}</span>`).join('')}}
-                ${{t.slack_url ? `<a class="th-link" href="${{t.slack_url}}" target="_blank">→ Slack</a>` : ''}}
-              </div>
-            </div>`;
+            const typeLabel = t.deliverable_type || '—';
+            const mgr = t.manager_wait_bdays != null ? `${{Math.round(t.manager_wait_bdays)}}d` : '—';
+            const des = t.designer_wait_bdays != null ? `${{Math.round(t.designer_wait_bdays)}}d` : '—';
+            const link = t.slack_url
+              ? `<a href="${{t.slack_url}}" target="_blank">→</a>`
+              : '';
+            return `<tr>
+              <td class="td-type" title="${{typeLabel}}">${{typeLabel}}</td>
+              <td><span class="${{sigClass(t.signal)}}">${{t.signal}}</span></td>
+              <td class="td-num">${{t.cycle_count}}</td>
+              <td class="td-num">${{mgr}}</td>
+              <td class="td-num">${{des}}</td>
+              <td class="td-link">${{link}}</td>
+            </tr>`;
           }}).join('');
         return `<div class="des-block">
-          <div class="des-hdr"><span>${{name}}</span><span>avg ${{avg}}d</span></div>
-          ${{rows}}
+          <div class="des-hdr">${{name}}<span class="des-sub">${{n}} deliverable${{n!==1?'s':''}} · AVG ${{avg}}D</span></div>
+          <table class="th-table">
+            <thead><tr>
+              <th>Type</th><th>Signal</th><th style="text-align:center">Cycles</th>
+              <th style="text-align:center">Mgr</th><th style="text-align:center">Des</th><th></th>
+            </tr></thead>
+            <tbody>${{tableRows}}</tbody>
+          </table>
         </div>`;
       }}).join('');
     return;
