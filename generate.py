@@ -362,7 +362,7 @@ def is_feedback(msg):  return msg_has(msg, "for feedback:")
 def is_cycle_msg(msg): return is_review(msg) or is_feedback(msg)
 
 def extract_deliverable_type(msg):
-    """Extract the label after 'For review:' / 'For feedback:', with fallbacks."""
+    """Extract the label after 'For review:' / 'For feedback:', always returns non-empty string."""
     text = get_full_text(msg)
     found_trigger = None
     for trigger in ["for review:", "for feedback:"]:
@@ -370,20 +370,18 @@ def extract_deliverable_type(msg):
         if idx != -1:
             found_trigger = "Review" if "review" in trigger else "Feedback"
             after = text[idx + len(trigger):].strip()
-            # Take first non-empty line
+            # Take first non-empty line, first 4 words
             for line in after.split('\n'):
                 line = line.strip()
                 if line:
-                    words = line.split()[:4]
-                    label = " ".join(words)
-                    return label[:40] if label else None
-            break
-    # Fallback 1: use the trigger name itself
-    if found_trigger:
-        return found_trigger
-    # Fallback 2: first 40 chars of the message
-    snippet = text[:40].strip()
-    return snippet if snippet else "—"
+                    label = " ".join(line.split()[:4]).strip()
+                    if label:
+                        return label[:40]
+            # Nothing after the colon — use the trigger word
+            return found_trigger
+    # No trigger found — use first 40 chars of message, or generic fallback
+    snippet = " ".join(text.split()[:5]).strip()
+    return snippet[:40] if snippet else "—"
 
 def is_root(m):
     return m.get("thread_ts", m.get("ts")) == m.get("ts")
@@ -1074,13 +1072,14 @@ th,td{{padding:18px 10px;border-bottom:1px solid #f0f0f0;vertical-align:middle}}
 
 <div class="ft">Last updated: {upd}</div>
 
-<div class="ov" id="ov" onclick="close_()"></div>
-<div class="pnl" id="pnl">
-  <div class="ph">
-    <div><div class="pt" id="pt"></div><div class="ps" id="ps"></div></div>
-    <button class="px" onclick="close_()">✕</button>
+<div class="ov" id="ov" onclick="close_()">
+  <div class="pnl" id="pnl" onclick="event.stopPropagation()">
+    <div class="ph">
+      <div><div class="pt" id="pt"></div><div class="ps" id="ps"></div></div>
+      <button class="px" onclick="close_()">✕</button>
+    </div>
+    <div class="pb" id="pb"></div>
   </div>
-  <div class="pb" id="pb"></div>
 </div>
 
 <script>
@@ -1123,7 +1122,6 @@ function showInfo(key) {{
       <ul class="info-rules">${{rules}}</ul>
     </div>`;
   document.getElementById('ov').classList.add('on');
-  document.getElementById('pnl').classList.add('open');
 }}
 
 function sigClass(s) {{
@@ -1177,7 +1175,6 @@ function showDrill(el) {{
   document.getElementById('pt').textContent = el.dataset.metric;
   document.getElementById('ps').textContent = month + ' ' + year;
   document.getElementById('ov').classList.add('on');
-  document.getElementById('pnl').classList.add('open');
 
   if (metricKey === 'task_days_per_d') {{
     const byDesigner = THREAD_DETAILS[ym] || {{}};
@@ -1252,7 +1249,6 @@ function showDrill(el) {{
 
 function close_() {{
   document.getElementById('ov').classList.remove('on');
-  document.getElementById('pnl').classList.remove('open');
 }}
 renderInsights(INSIGHTS_COMBINED, 'ins-combined');
 document.addEventListener('keydown', e => {{ if (e.key === 'Escape') close_(); }});
