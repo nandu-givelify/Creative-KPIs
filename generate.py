@@ -24,6 +24,7 @@ SLACK_TOKEN  = os.environ.get("SLACK_TOKEN")
 if not SLACK_TOKEN:
     raise ValueError("SLACK_TOKEN environment variable is not set. Add it as a GitHub Actions secret.")
 CHANNEL_ID    = "C042J20J3M5"
+SLACK_WORKSPACE = "givelify"   # used for constructing Slack thread URLs
 MANAGER_NAMES = ["Joe", "Gabe", "Alexa"]
 
 # Designer groups — used for the Separated view and drill-down rosters.
@@ -205,6 +206,21 @@ def business_days_between(start_ts, end_ts):
         if (start_dow + i) % 7 < 5:
             bdays += 1
     return float(bdays)
+
+
+def make_slack_url(thread_ts):
+    """Construct a direct Slack link for a thread."""
+    ts_clean = thread_ts.replace(".", "")
+    return f"https://{SLACK_WORKSPACE}.slack.com/archives/{CHANNEL_ID}/p{ts_clean}"
+
+
+def compute_signal(cycle_count, manager_wait, designer_wait, reply_count):
+    """Return a short diagnostic label for a deliverable based on its patterns."""
+    if cycle_count >= 3:                        return "High cycles"
+    if manager_wait is not None and manager_wait > 2: return "Slow feedback"
+    if designer_wait is not None and designer_wait > 2: return "Slow pickup"
+    if reply_count >= 8 and cycle_count <= 1:   return "Long discussion"
+    return "On track"
 
 
 def business_hours_between(start_ts, end_ts, tz_str):
@@ -432,15 +448,51 @@ def process_deliverable_thread(thread, users, managers, month_data, start_ts, en
         last_thread_ts = max(float(m["ts"]) for m in thread)
         task_days = business_days_between(float(deliv_msg["ts"]), last_thread_ts)
 
+        # ── Phase times ──────────────────────────────────────────────────────
+        # Phase 1 (manager wait): how long until a manager replied after each
+        #   designer action (deliverable + each cycle).
+        # Phase 2 (designer pickup): how long the designer took to post their
+        #   next cycle after receiving manager feedback.
+        all_mgr_ts  = sorted(float(m["ts"]) for m in thread if m.get("user") in mgr_ids)
+        all_cyc_ts  = sorted(float(c["ts"]) for c in designer_cycles[uid])
+        deliv_ts_f  = float(deliv_msg["ts"])
+
+        mgr_wait_list, des_wait_list = [], []
+
+        # After deliverable
+        nm = next((ts for ts in all_mgr_ts if ts > deliv_ts_f), None)
+        if nm:
+            mgr_wait_list.append(business_days_between(deliv_ts_f, nm))
+
+        # After each cycle
+        for cyc_ts in all_cyc_ts:
+            nm = next((ts for ts in all_mgr_ts if ts > cyc_ts), None)
+            if nm:
+                mgr_wait_list.append(business_days_between(cyc_ts, nm))
+            pm = max((ts for ts in all_mgr_ts if ts < cyc_ts), default=None)
+            if pm:
+                des_wait_list.append(business_days_between(pm, cyc_ts))
+
+        avg_mgr_wait = round(sum(mgr_wait_list) / len(mgr_wait_list), 1) if mgr_wait_list else None
+        avg_des_wait = round(sum(des_wait_list) / len(des_wait_list), 1) if des_wait_list else None
+
+        signal   = compute_signal(len(designer_cycles[uid]), avg_mgr_wait, avg_des_wait,
+                                  designer_reply_count[uid])
+        slack_url = make_slack_url(thread[0]["ts"])
+
         month_data.setdefault(month, []).append({
-            "root_ts":     thread[0]["ts"],
-            "month":       month,
-            "poster_id":   uid,
-            "poster_name": pname,
-            "cycle_count": len(designer_cycles[uid]),
-            "reply_count": designer_reply_count[uid],
-            "task_days":   task_days,
-            "cycles":      cycle_data,
+            "root_ts":             thread[0]["ts"],
+            "month":               month,
+            "poster_id":           uid,
+            "poster_name":         pname,
+            "cycle_count":         len(designer_cycles[uid]),
+            "reply_count":         designer_reply_count[uid],
+            "task_days":           task_days,
+            "manager_wait_bdays":  avg_mgr_wait,
+            "designer_wait_bdays": avg_des_wait,
+            "signal":              signal,
+            "slack_url":           slack_url,
+            "cycles":              cycle_data,
         })
 
 
@@ -557,6 +609,36 @@ def compute_metrics(month_data, managers, roster=None):
                 "response_per_d":  sa(mgr_avgs),
             }
         }
+
+        # ── Thread details (for per-thread drill-down) ────────────────────────
+        thread_details = {}
+        for d in deliverables:
+            p = d["poster_name"]
+            thread_details.setdefault(p, []).append({
+                "task_days":           d.get("task_days", 0),
+                "cycle_count":         d["cycle_count"],
+                "manager_wait_bdays":  d.get("manager_wait_bdays"),
+                "designer_wait_bdays": d.get("designer_wait_bdays"),
+                "signal":              d.get("signal", "On track"),
+                "slack_url":           d.get("slack_url", ""),
+            })
+
+        # ── Monthly insight ───────────────────────────────────────────────────
+        all_signals = [d.get("signal", "On track") for d in deliverables]
+        flagged     = [s for s in all_signals if s != "On track"]
+        most_common = max(set(flagged), key=flagged.count) if flagged else None
+        slowest     = max(deliverables, key=lambda d: d.get("task_days", 0))
+        monthly_insight = {
+            "total":              n,
+            "flagged_count":      len(flagged),
+            "most_common_signal": most_common,
+            "slowest_designer":   slowest["poster_name"],
+            "slowest_days":       slowest.get("task_days", 0),
+            "slowest_url":        slowest.get("slack_url", ""),
+        }
+
+        result[month]["thread_details"]  = thread_details
+        result[month]["monthly_insight"] = monthly_insight
     return result
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -673,6 +755,7 @@ def build_rows(metrics, section, year):
                 dj = json.dumps(drill).replace('"','&quot;')
                 cells += (
                     f'<td class="mc"><span class="mv click"'
+                    f' data-metric-key="{key}"'
                     f' data-month="{MONTHS[i]}" data-year="{year}"'
                     f' data-metric="{label}" data-suffix="{suffix}"'
                     f' data-drill="{dj}" onclick="showDrill(this)">'
@@ -704,6 +787,16 @@ def generate_html(metrics_combined, metrics_product, metrics_marketing, year=202
 
     upd     = datetime.now(tz=timezone.utc).strftime("%B %d, %Y")
     info_js = json.dumps(METRIC_INFO)
+
+    # JS data blobs for thread breakdown and insights
+    thread_details_js  = json.dumps({ym: v.get("thread_details", {})
+                                      for ym, v in metrics_combined.items()})
+    insights_combined_js  = json.dumps({ym: v.get("monthly_insight")
+                                         for ym, v in metrics_combined.items() if v.get("monthly_insight")})
+    insights_product_js   = json.dumps({ym: v.get("monthly_insight")
+                                         for ym, v in metrics_product.items() if v.get("monthly_insight")})
+    insights_marketing_js = json.dumps({ym: v.get("monthly_insight")
+                                         for ym, v in metrics_marketing.items() if v.get("monthly_insight")})
 
     return f"""<!DOCTYPE html>
 <html lang="en">
@@ -757,6 +850,27 @@ th,td{{padding:18px 10px;border-bottom:1px solid #f0f0f0;vertical-align:middle}}
 .info-rules li{{font-size:.85rem;color:#444;line-height:1.55;padding:5px 0 5px 16px;border-bottom:1px solid #f5f5f5;position:relative}}
 .info-rules li:last-child{{border:none}}
 .info-rules li::before{{content:"–";position:absolute;left:0;color:#bbb}}
+.sig{{display:inline-block;font-size:.68rem;font-weight:600;letter-spacing:.4px;padding:2px 8px;border-radius:4px;white-space:nowrap}}
+.sig-hc{{background:#fff0f0;color:#c0392b}}
+.sig-sf{{background:#fff8e1;color:#b45309}}
+.sig-sp{{background:#fff8e1;color:#b45309}}
+.sig-ld{{background:#f0f4ff;color:#3a56b0}}
+.sig-ot{{background:#f0faf0;color:#1a7a3a}}
+.th-row{{padding:12px 0;border-bottom:1px solid #f5f5f5}}
+.th-row:last-child{{border:none}}
+.th-meta{{font-size:.8rem;color:#666;margin-top:4px;display:flex;gap:12px;flex-wrap:wrap;align-items:center}}
+.th-link{{font-size:.78rem;color:#0057d9;text-decoration:none;margin-left:auto;flex-shrink:0}}
+.th-link:hover{{text-decoration:underline}}
+.des-block{{margin-bottom:18px}}
+.des-hdr{{font-size:.78rem;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:#999;margin-bottom:6px;display:flex;justify-content:space-between}}
+.ic-grid{{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;margin-bottom:52px}}
+.ic{{background:#fafafa;border:1px solid #f0f0f0;border-radius:10px;padding:20px 22px}}
+.ic-month{{font-size:.72rem;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:#aaa;margin-bottom:10px}}
+.ic-stat{{font-size:1.1rem;font-weight:500;color:#111;margin-bottom:4px}}
+.ic-detail{{font-size:.8rem;color:#666;margin-bottom:4px}}
+.ic-link{{font-size:.78rem;color:#0057d9;text-decoration:none}}
+.ic-link:hover{{text-decoration:underline}}
+.grp-ins{{margin-top:40px}}
 .ft{{margin-top:48px;font-size:.68rem;color:#ccc}}
 </style>
 </head>
@@ -783,6 +897,9 @@ th,td{{padding:18px 10px;border-bottom:1px solid #f0f0f0;vertical-align:middle}}
     <thead><tr><th class="ml"></th>{mh}</tr></thead>
     <tbody>{rr_c}</tbody>
   </table>
+
+  <div class="sl" style="margin-top:8px">Monthly Insights</div>
+  <div class="ic-grid" id="ins-combined"></div>
 </div>
 
 <!-- ═══ SEPARATED VIEW ═══ -->
@@ -802,6 +919,9 @@ th,td{{padding:18px 10px;border-bottom:1px solid #f0f0f0;vertical-align:middle}}
     <tbody>{rr_p}</tbody>
   </table>
 
+  <div class="sl" style="margin-top:8px">Product Insights</div>
+  <div class="ic-grid" id="ins-product"></div>
+
   <div class="grp-hdr">Marketing Deliverables</div>
 
   <div class="sl">Deliverables</div>
@@ -815,6 +935,9 @@ th,td{{padding:18px 10px;border-bottom:1px solid #f0f0f0;vertical-align:middle}}
     <thead><tr><th class="ml"></th>{mh}</tr></thead>
     <tbody>{rr_m}</tbody>
   </table>
+
+  <div class="sl" style="margin-top:8px">Marketing Insights</div>
+  <div class="ic-grid" id="ins-marketing"></div>
 
 </div>
 
@@ -831,12 +954,22 @@ th,td{{padding:18px 10px;border-bottom:1px solid #f0f0f0;vertical-align:middle}}
 
 <script>
 const METRIC_INFO = {info_js};
+const THREAD_DETAILS    = {thread_details_js};
+const INSIGHTS_COMBINED = {insights_combined_js};
+const INSIGHTS_PRODUCT  = {insights_product_js};
+const INSIGHTS_MARKETING= {insights_marketing_js};
+const MONTH_KEYS_MAP    = {{"JAN":"01","FEB":"02","MAR":"03","APR":"04","MAY":"05","JUN":"06","JUL":"07","AUG":"08","SEP":"09","OCT":"10","NOV":"11","DEC":"12"}};
 
 function showView(v) {{
   document.getElementById('view-combined').style.display  = v === 'combined'  ? '' : 'none';
   document.getElementById('view-separated').style.display = v === 'separated' ? '' : 'none';
   document.getElementById('btn-combined').classList.toggle('active',  v === 'combined');
   document.getElementById('btn-separated').classList.toggle('active', v === 'separated');
+  if (v === 'combined')  {{ renderInsights(INSIGHTS_COMBINED,  'ins-combined');  }}
+  if (v === 'separated') {{
+    renderInsights(INSIGHTS_PRODUCT,   'ins-product');
+    renderInsights(INSIGHTS_MARKETING, 'ins-marketing');
+  }}
 }}
 
 function showInfo(key) {{
@@ -862,24 +995,106 @@ function showInfo(key) {{
   document.getElementById('pnl').classList.add('open');
 }}
 
+function sigClass(s) {{
+  if (s === 'High cycles')     return 'sig sig-hc';
+  if (s === 'Slow feedback')   return 'sig sig-sf';
+  if (s === 'Slow pickup')     return 'sig sig-sp';
+  if (s === 'Long discussion') return 'sig sig-ld';
+  return 'sig sig-ot';
+}}
+
+function renderInsights(data, containerId) {{
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  const months = Object.keys(data).sort().reverse().slice(0, 6);
+  if (!months.length) {{ el.innerHTML = '<div class="nd">No data yet</div>'; return; }}
+  el.innerHTML = months.map(ym => {{
+    const d = data[ym];
+    if (!d) return '';
+    const [y, m] = ym.split('-');
+    const mName = {{"01":"Jan","02":"Feb","03":"Mar","04":"Apr","05":"May","06":"Jun","07":"Jul","08":"Aug","09":"Sep","10":"Oct","11":"Nov","12":"Dec"}}[m] + ' ' + y;
+    const flagLine = d.flagged_count
+      ? `${{d.flagged_count}} of ${{d.total}} flagged · <strong>${{d.most_common_signal}}</strong>`
+      : `All ${{d.total}} on track`;
+    const slowLine = d.slowest_days > 0
+      ? `Slowest: ${{d.slowest_designer}} (${{d.slowest_days}}d)${{d.slowest_url ? ` <a class="ic-link" href="${{d.slowest_url}}" target="_blank">→ Slack</a>` : ''}}`
+      : '';
+    return `<div class="ic">
+      <div class="ic-month">${{mName}}</div>
+      <div class="ic-stat">${{d.total}} deliverable${{d.total!==1?'s':''}}</div>
+      <div class="ic-detail">${{flagLine}}</div>
+      ${{slowLine ? `<div class="ic-detail" style="margin-top:6px">${{slowLine}}</div>` : ''}}
+    </div>`;
+  }}).join('');
+}}
+
 function showDrill(el) {{
+  const metricKey = el.dataset.metricKey || '';
   const s = el.dataset.suffix || '';
+  const month = el.dataset.month;
+  const year  = el.dataset.year;
+  const mk    = MONTH_KEYS_MAP[month] || '';
+  const ym    = year + '-' + mk;
+
+  document.getElementById('pt').textContent = el.dataset.metric;
+  document.getElementById('ps').textContent = month + ' ' + year;
+  document.getElementById('ov').classList.add('on');
+  document.getElementById('pnl').classList.add('open');
+
+  if (metricKey === 'task_days_per_d') {{
+    const byDesigner = THREAD_DETAILS[ym] || {{}};
+    const entries = Object.entries(byDesigner);
+    if (!entries.length) {{
+      document.getElementById('pb').innerHTML = '<div class="nd">No thread data</div>';
+      return;
+    }}
+    document.getElementById('pb').innerHTML = entries
+      .sort((a,b) => {{
+        const avgA = a[1].reduce((s,t)=>s+t.task_days,0)/a[1].length;
+        const avgB = b[1].reduce((s,t)=>s+t.task_days,0)/b[1].length;
+        return avgB - avgA;
+      }})
+      .map(([name, threads]) => {{
+        const avg = (threads.reduce((s,t)=>s+t.task_days,0)/threads.length).toFixed(1);
+        const rows = threads
+          .sort((a,b) => b.task_days - a.task_days)
+          .map(t => {{
+            const phases = [];
+            if (t.manager_wait_bdays != null) phases.push(`Mgr: ${{t.manager_wait_bdays}}d`);
+            if (t.designer_wait_bdays != null) phases.push(`Des: ${{t.designer_wait_bdays}}d`);
+            return `<div class="th-row">
+              <div style="display:flex;justify-content:space-between;align-items:center">
+                <span style="font-size:.88rem;font-weight:600;color:#111">${{t.task_days}}d</span>
+                <span class="${{sigClass(t.signal)}}">${{t.signal}}</span>
+              </div>
+              <div class="th-meta">
+                <span>${{t.cycle_count}} cycle${{t.cycle_count!==1?'s':''}}</span>
+                ${{phases.map(p=>`<span>${{p}}</span>`).join('')}}
+                ${{t.slack_url ? `<a class="th-link" href="${{t.slack_url}}" target="_blank">→ Slack</a>` : ''}}
+              </div>
+            </div>`;
+          }}).join('');
+        return `<div class="des-block">
+          <div class="des-hdr"><span>${{name}}</span><span>avg ${{avg}}d</span></div>
+          ${{rows}}
+        </div>`;
+      }}).join('');
+    return;
+  }}
+
   let d = {{}};
   try {{ d = JSON.parse(el.dataset.drill); }} catch(e) {{}}
-  document.getElementById('pt').textContent = el.dataset.metric;
-  document.getElementById('ps').textContent = el.dataset.month + ' ' + el.dataset.year;
   const entries = Object.entries(d);
   document.getElementById('pb').innerHTML = entries.length
     ? entries.map(([n,v]) => `<div class="dr"><span class="dn">${{n}}</span><span class="dv">${{v}}${{s}}</span></div>`).join('')
     : '<div class="nd">No breakdown available</div>';
-  document.getElementById('ov').classList.add('on');
-  document.getElementById('pnl').classList.add('open');
 }}
 
 function close_() {{
   document.getElementById('ov').classList.remove('on');
   document.getElementById('pnl').classList.remove('open');
 }}
+renderInsights(INSIGHTS_COMBINED, 'ins-combined');
 document.addEventListener('keydown', e => {{ if (e.key === 'Escape') close_(); }});
 </script>
 </body>
