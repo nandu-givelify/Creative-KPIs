@@ -452,22 +452,41 @@ def generate_signal_summary(thread, signal, deliverable_type, users, mgr_ids):
 
     url  = GEMINI_URL.format(key=GEMINI_API_KEY)
     body = {"contents": [{"parts": [{"text": prompt}]}],
-            "generationConfig": {"maxOutputTokens": 60, "temperature": 0.3}}
+            "generationConfig": {"maxOutputTokens": 80, "temperature": 0.3}}
 
     for attempt in range(3):
         try:
-            r = requests.post(url, json=body, timeout=20)
+            r = requests.post(url, json=body, timeout=30)
             if r.status_code == 429:
                 wait = 30 * (attempt + 1)
                 print(f"  Gemini rate-limited — waiting {wait}s")
                 time.sleep(wait)
                 continue
-            r.raise_for_status()
-            text = r.json()["candidates"][0]["content"]["parts"][0]["text"]
-            return text.strip().strip('"\'')[:200]
+            if r.status_code != 200:
+                print(f"  Gemini HTTP {r.status_code}: {r.text[:300]}")
+                time.sleep(5)
+                continue
+            data = r.json()
+            candidates = data.get("candidates", [])
+            if not candidates:
+                # Safety filter or empty response
+                feedback = data.get("promptFeedback", {})
+                print(f"  Gemini no candidates — promptFeedback: {feedback}")
+                return None
+            content = candidates[0].get("content", {})
+            parts   = content.get("parts", [])
+            if not parts:
+                finish = candidates[0].get("finishReason", "unknown")
+                print(f"  Gemini empty parts — finishReason: {finish}")
+                return None
+            text = parts[0].get("text", "").strip().strip('"\'')
+            if text:
+                return text[:200]
+            return None
         except Exception as e:
-            print(f"  Gemini error (attempt {attempt+1}): {e}")
+            print(f"  Gemini error (attempt {attempt+1}): {type(e).__name__}: {e}")
             time.sleep(5)
+    print("  Gemini gave up after 3 attempts")
     return None
 
 
@@ -645,7 +664,9 @@ def process_deliverable_thread(thread, users, managers, month_data, start_ts, en
         summary_key = f"{thread[0]['ts']}:{uid}"
         ai_summary  = None
         if ai_summaries is not None:
-            ai_summary = ai_summaries.get(summary_key)
+            cached = ai_summaries.get(summary_key, "MISSING")
+            ai_summary = cached if cached != "MISSING" and cached is not None else None
+            # Retry if not cached yet OR previously cached as None (failed last time)
             if ai_summary is None and signal != "On track":
                 print(f"    Gemini: summarising [{signal}] for {pname}…")
                 ai_summary = generate_signal_summary(thread, signal, deliv_type, users, mgr_ids)
