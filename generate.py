@@ -424,7 +424,7 @@ def collect_candidate_thread_ts(all_msgs):
 
 
 GEMINI_URL = ("https://generativelanguage.googleapis.com/v1beta/"
-              "models/gemini-1.5-flash:generateContent?key={key}")
+              "models/gemini-2.0-flash:generateContent?key={key}")
 
 def generate_signal_summary(thread, signal, deliverable_type, users, mgr_ids):
     """Call Gemini Flash to get a one-line root-cause explanation for a flagged thread."""
@@ -482,6 +482,8 @@ def generate_signal_summary(thread, signal, deliverable_type, users, mgr_ids):
             text = parts[0].get("text", "").strip().strip('"\'')
             if text:
                 return text[:200]
+            # Log raw response to diagnose empty text
+            print(f"  Gemini empty text — raw: {r.text[:400]}")
             return None
         except Exception as e:
             print(f"  Gemini error (attempt {attempt+1}): {type(e).__name__}: {e}")
