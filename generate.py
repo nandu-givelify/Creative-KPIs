@@ -328,10 +328,12 @@ def normalize(text):
     """Strip Slack markdown markers, URLs, and fix spacing around colons."""
     text = text or ''
     text = re.sub(r'[*_]', '', text)
-    # Slack URL with display text: <http://url|display> → keep display text
+    # Slack URL with display text anywhere: <http://url|display> → keep display text
     text = re.sub(r'<https?://[^|>]+\|([^>]+)>', r'\1', text)
-    # Slack bare URL: <http://url> → remove entirely
+    # Slack bare URL anywhere: <http://url> → remove
     text = re.sub(r'<https?://[^>]+>', '', text)
+    # Plain-text URLs anywhere (http:// or https:// not in brackets) → remove
+    text = re.sub(r'https?://\S+', '', text)
     # "For review :" → "For review:"   (some mobile clients add a space)
     text = re.sub(r'(?i)(for\s+review|for\s+feedback)\s+:', r'\1:', text)
     return text
