@@ -295,8 +295,7 @@ def compute_signal(cycle_count, manager_wait, designer_wait, reply_count, max_ga
         candidates.append(("Longer Gap", max_gap))
     if manager_wait is not None and manager_wait > 2:
         candidates.append(("Slow feedback", manager_wait))
-    if designer_wait is not None and designer_wait > 2:
-        candidates.append(("Slow pickup", designer_wait))
+    # "Slow pickup" removed — Longer Gap already captures thread inactivity regardless of who stalled
     if reply_count >= 8 and cycle_count <= 1:
         candidates.append(("Long discussion", reply_count))
     if not candidates:
@@ -326,8 +325,13 @@ def business_hours_between(start_ts, end_ts, tz_str):
 # ═══════════════════════════════════════════════════════════════════════════════
 
 def normalize(text):
-    """Strip Slack markdown markers and fix spacing around colons."""
-    text = re.sub(r'[*_]', '', text or '')
+    """Strip Slack markdown markers, URLs, and fix spacing around colons."""
+    text = text or ''
+    text = re.sub(r'[*_]', '', text)
+    # Slack URL with display text: <http://url|display> → keep display text
+    text = re.sub(r'<https?://[^|>]+\|([^>]+)>', r'\1', text)
+    # Slack bare URL: <http://url> → remove entirely
+    text = re.sub(r'<https?://[^>]+>', '', text)
     # "For review :" → "For review:"   (some mobile clients add a space)
     text = re.sub(r'(?i)(for\s+review|for\s+feedback)\s+:', r'\1:', text)
     return text
@@ -725,8 +729,8 @@ def compute_metrics(month_data, managers, roster=None):
                 "deliverable_type":    d.get("deliverable_type", ""),
                 "task_days":           d.get("task_days", 0),
                 "cycle_count":         d["cycle_count"],
+                "reply_count":         d.get("reply_count", 0),
                 "manager_wait_bdays":  d.get("manager_wait_bdays"),
-                "designer_wait_bdays": d.get("designer_wait_bdays"),
                 "max_gap_bdays":       d.get("max_gap_bdays"),
                 "signal":              d.get("signal", "On track"),
                 "slack_url":           d.get("slack_url", ""),
@@ -963,12 +967,14 @@ th,td{{padding:18px 10px;border-bottom:1px solid #f0f0f0;vertical-align:middle}}
 .info-rules li:last-child{{border:none}}
 .info-rules li::before{{content:"–";position:absolute;left:0;color:#bbb}}
 .sig{{display:inline-block;font-size:.68rem;font-weight:600;letter-spacing:.4px;padding:2px 8px;border-radius:4px;white-space:nowrap}}
-.sig-hc{{background:#fff0f0;color:#c0392b}}
-.sig-lg{{background:#f3e8ff;color:#7c3aed}}
-.sig-sf{{background:#fff8e1;color:#b45309}}
-.sig-sp{{background:#fff8e1;color:#b45309}}
-.sig-ld{{background:#f0f4ff;color:#3a56b0}}
+.sig-err{{background:#fff0f0;color:#c0392b}}
 .sig-ot{{background:#f0faf0;color:#1a7a3a}}
+.cell-alert{{color:#c0392b!important;font-weight:700}}
+.pf{{padding:10px 28px 10px;border-bottom:1px solid #f2f2f2;flex-shrink:0;display:none;gap:8px;align-items:center}}
+.pf.on{{display:flex}}
+.pf-lbl{{font-size:.72rem;color:#aaa;margin-right:4px}}
+.gf-btn{{background:none;border:1px solid #e0e0e0;border-radius:5px;cursor:pointer;font-size:.74rem;font-weight:500;color:#888;padding:4px 12px;transition:all .15s}}
+.gf-btn.active{{background:#111;border-color:#111;color:#fff}}
 .th-row{{padding:12px 0;border-bottom:1px solid #f5f5f5}}
 .th-row:last-child{{border:none}}
 .th-meta{{font-size:.8rem;color:#666;margin-top:4px;display:flex;gap:12px;flex-wrap:wrap;align-items:center}}
@@ -981,7 +987,8 @@ th,td{{padding:18px 10px;border-bottom:1px solid #f0f0f0;vertical-align:middle}}
 .th-table th{{font-size:.68rem;font-weight:600;letter-spacing:.8px;text-transform:uppercase;color:#bbb;padding:4px 8px 4px 0;border-bottom:1px solid #f0f0f0;text-align:left}}
 .th-table td{{padding:8px 8px 8px 0;border-bottom:1px solid #f8f8f8;color:#333;vertical-align:middle}}
 .th-table tr:last-child td{{border:none}}
-.th-table .td-type{{font-weight:500;color:#111;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}}
+.th-table .td-type{{font-weight:500;color:#111;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}}
+.th-table .td-name{{font-weight:500;color:#555;white-space:nowrap}}
 .th-table .td-num{{text-align:center;color:#555}}
 .th-table .td-link{{text-align:right}}
 .th-table .td-link a{{color:#0057d9;text-decoration:none;font-size:.8rem}}
@@ -1078,6 +1085,12 @@ th,td{{padding:18px 10px;border-bottom:1px solid #f0f0f0;vertical-align:middle}}
       <div><div class="pt" id="pt"></div><div class="ps" id="ps"></div></div>
       <button class="px" onclick="close_()">✕</button>
     </div>
+    <div class="pf" id="pf">
+      <span class="pf-lbl">Group by</span>
+      <button class="gf-btn active" data-mode="none"     onclick="setGroupBy('none')">None</button>
+      <button class="gf-btn"        data-mode="designer" onclick="setGroupBy('designer')">Designer</button>
+      <button class="gf-btn"        data-mode="signal"   onclick="setGroupBy('signal')">Signal</button>
+    </div>
     <div class="pb" id="pb"></div>
   </div>
 </div>
@@ -1107,6 +1120,7 @@ function showInfo(key) {{
   if (!info) return;
   document.getElementById('pt').textContent = info.label;
   document.getElementById('ps').textContent = 'Definition & Rules';
+  document.getElementById('pf').classList.remove('on');
   const rules = info.rules.map(r => `<li>${{r}}</li>`).join('');
   document.getElementById('pb').innerHTML = `
     <div class="info-section">
@@ -1125,12 +1139,7 @@ function showInfo(key) {{
 }}
 
 function sigClass(s) {{
-  if (s === 'High cycles')     return 'sig sig-hc';
-  if (s === 'Longer Gap')      return 'sig sig-lg';
-  if (s === 'Slow feedback')   return 'sig sig-sf';
-  if (s === 'Slow pickup')     return 'sig sig-sp';
-  if (s === 'Long discussion') return 'sig sig-ld';
-  return 'sig sig-ot';
+  return s === 'On track' ? 'sig sig-ot' : 'sig sig-err';
 }}
 
 function renderInsights(data, containerId) {{
@@ -1138,7 +1147,7 @@ function renderInsights(data, containerId) {{
   if (!el) return;
   const months = Object.keys(data).sort().reverse().slice(0, 6);
   if (!months.length) {{ el.innerHTML = '<div class="nd">No data yet</div>'; return; }}
-  const SIG_ORDER = ['High cycles','Slow feedback','Slow pickup','Long discussion','On track'];
+  const SIG_ORDER = ['High cycles','Longer Gap','Slow feedback','Long discussion','On track'];
   el.innerHTML = months.map(ym => {{
     const d = data[ym];
     if (!d) return '';
@@ -1164,81 +1173,133 @@ function renderInsights(data, containerId) {{
   }}).join('');
 }}
 
+// ── Drill-down state ────────────────────────────────────────────────────────
+let _drillEntries = {{}};
+let _groupBy = 'none';
+
+function setGroupBy(mode) {{
+  _groupBy = mode;
+  document.querySelectorAll('.gf-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.mode === mode));
+  renderDrillContent();
+}}
+
+function drillRow(t, showDesigner) {{
+  const lbl  = t.deliverable_type || '—';
+  const mgr  = t.manager_wait_bdays != null ? Math.round(t.manager_wait_bdays)+'d' : '—';
+  const gap  = t.max_gap_bdays     != null ? Math.round(t.max_gap_bdays)+'d'     : '—';
+  const days = Math.round(t.task_days)+'d';
+  const rc   = t.click_url ? `onclick="window.open('${{t.click_url}}','_blank')" style="cursor:pointer"` : '';
+  const sig  = t.signal;
+  const isCyc = sig==='High cycles', isRep = sig==='Long discussion',
+        isMgr = sig==='Slow feedback', isGap = sig==='Longer Gap';
+  const desCel = showDesigner ? `<td class="td-name">${{t.designer}}</td>` : '';
+  return `<tr ${{rc}} class="th-row-click">
+    ${{desCel}}
+    <td class="td-type" title="${{lbl}}">${{lbl}}</td>
+    <td><span class="${{sigClass(sig)}}">${{sig}}</span></td>
+    <td class="td-num ${{isCyc?'cell-alert':''}}">${{t.cycle_count}}</td>
+    <td class="td-num ${{isRep?'cell-alert':''}}">${{t.reply_count??'—'}}</td>
+    <td class="td-num ${{isMgr?'cell-alert':''}}">${{mgr}}</td>
+    <td class="td-num ${{isGap?'cell-alert':''}}">${{gap}}</td>
+    <td class="td-num">${{days}}</td>
+  </tr>`;
+}}
+
+function drillHead(showDesigner) {{
+  const dc = showDesigner ? '<th>Designer</th>' : '';
+  return `<thead><tr>${{dc}}<th>Deliverable</th><th>Signal</th>
+    <th style="text-align:center">Cycles</th><th style="text-align:center">Replies</th>
+    <th style="text-align:center">Mgr</th><th style="text-align:center">Gap</th>
+    <th style="text-align:center">Days</th></tr></thead>`;
+}}
+
+function drillLegend() {{
+  return `<div class="leg">
+    <div class="leg-title">Signals — highest raw value wins when multiple apply</div>
+    <div class="leg-row"><span class="sig sig-err">High cycles</span>7+ revision rounds after first submission</div>
+    <div class="leg-row"><span class="sig sig-err">Longer Gap</span>Longest gap ≥5 working days (excl. weekends &amp; US holidays)</div>
+    <div class="leg-row"><span class="sig sig-err">Slow feedback</span>Manager avg &gt;2 days to respond</div>
+    <div class="leg-row"><span class="sig sig-err">Long discussion</span>8+ replies with ≤1 cycle</div>
+    <div class="leg-row"><span class="sig sig-ot">On track</span>No issues detected</div>
+    <div class="leg-title" style="margin-top:14px">Columns</div>
+    <div class="leg-row"><strong>Cycles</strong> — Extra "For review" / "For feedback" rounds after first</div>
+    <div class="leg-row"><strong>Replies</strong> — Discussion messages attributed to this deliverable</div>
+    <div class="leg-row"><strong>Mgr</strong> — Avg business days for manager to respond (avg across rounds)</div>
+    <div class="leg-row"><strong>Gap</strong> — Longest silent stretch between any two consecutive messages</div>
+    <div class="leg-row"><strong>Days</strong> — Total business days from first submission to last message</div>
+  </div>`;
+}}
+
+function renderDrillContent() {{
+  const entries = _drillEntries;
+  const flat = [];
+  for (const [name, threads] of Object.entries(entries))
+    for (const t of threads) flat.push({{...t, designer: name, click_url: t.slack_url}});
+
+  let html = '';
+  if (_groupBy === 'none') {{
+    flat.sort((a,b) => b.task_days - a.task_days);
+    html = `<table class="th-table">${{drillHead(true)}}<tbody>${{flat.map(t=>drillRow(t,true)).join('')}}</tbody></table>`;
+
+  }} else if (_groupBy === 'designer') {{
+    const byDes = {{}};
+    for (const t of flat) {{ byDes[t.designer]=byDes[t.designer]||[]; byDes[t.designer].push(t); }}
+    html = Object.entries(byDes)
+      .sort((a,b)=>{{
+        const f=x=>x.reduce((s,t)=>s+t.task_days,0)/x.length;
+        return f(b[1])-f(a[1]);
+      }})
+      .map(([name,threads])=>{{
+        const avg=Math.round(threads.reduce((s,t)=>s+t.task_days,0)/threads.length), n=threads.length;
+        threads.sort((a,b)=>b.task_days-a.task_days);
+        return `<div class="des-block">
+          <div class="des-hdr">${{name}}<span class="des-sub">${{n}} deliverable${{n!==1?'s':''}} · AVG ${{avg}}D</span></div>
+          <table class="th-table">${{drillHead(false)}}<tbody>${{threads.map(t=>drillRow(t,false)).join('')}}</tbody></table>
+        </div>`;
+      }}).join('');
+
+  }} else if (_groupBy === 'signal') {{
+    const SIG_ORDER = ['High cycles','Longer Gap','Slow feedback','Long discussion','On track'];
+    const bySig = {{}};
+    for (const t of flat) {{ bySig[t.signal]=bySig[t.signal]||[]; bySig[t.signal].push(t); }}
+    html = SIG_ORDER.filter(s=>bySig[s]).map(sig=>{{
+      const threads=bySig[sig]; threads.sort((a,b)=>b.task_days-a.task_days);
+      return `<div class="des-block">
+        <div class="des-hdr"><span class="${{sigClass(sig)}}">${{sig}}</span><span class="des-sub">${{threads.length}} deliverable${{threads.length!==1?'s':''}}</span></div>
+        <table class="th-table">${{drillHead(true)}}<tbody>${{threads.map(t=>drillRow(t,true)).join('')}}</tbody></table>
+      </div>`;
+    }}).join('');
+  }}
+  document.getElementById('pb').innerHTML = html + drillLegend();
+}}
+
 function showDrill(el) {{
   const metricKey = el.dataset.metricKey || '';
-  const s = el.dataset.suffix || '';
-  const month = el.dataset.month;
-  const year  = el.dataset.year;
-  const mk    = MONTH_KEYS_MAP[month] || '';
-  const ym    = year + '-' + mk;
+  const s   = el.dataset.suffix || '';
+  const mon = el.dataset.month;
+  const yr  = el.dataset.year;
+  const ym  = yr + '-' + (MONTH_KEYS_MAP[mon]||'');
 
   document.getElementById('pt').textContent = el.dataset.metric;
-  document.getElementById('ps').textContent = month + ' ' + year;
+  document.getElementById('ps').textContent = mon + ' ' + yr;
   document.getElementById('ov').classList.add('on');
 
   if (metricKey === 'task_days_per_d') {{
-    const byDesigner = THREAD_DETAILS[ym] || {{}};
-    const entries = Object.entries(byDesigner);
-    if (!entries.length) {{
+    _drillEntries = THREAD_DETAILS[ym] || {{}};
+    _groupBy = 'none';
+    document.querySelectorAll('.gf-btn').forEach(b =>
+      b.classList.toggle('active', b.dataset.mode === 'none'));
+    document.getElementById('pf').classList.add('on');
+    if (!Object.keys(_drillEntries).length) {{
       document.getElementById('pb').innerHTML = '<div class="nd">No thread data</div>';
       return;
     }}
-    document.getElementById('pb').innerHTML = entries
-      .sort((a,b) => {{
-        const avgA = a[1].reduce((s,t)=>s+t.task_days,0)/a[1].length;
-        const avgB = b[1].reduce((s,t)=>s+t.task_days,0)/b[1].length;
-        return avgB - avgA;
-      }})
-      .map(([name, threads]) => {{
-        const avg = Math.round(threads.reduce((s,t)=>s+t.task_days,0)/threads.length);
-        const n   = threads.length;
-        const tableRows = threads
-          .sort((a,b) => b.task_days - a.task_days)
-          .map(t => {{
-            const typeLabel = t.deliverable_type || '—';
-            const mgr  = t.manager_wait_bdays != null ? `${{Math.round(t.manager_wait_bdays)}}d` : '—';
-            const gap  = t.max_gap_bdays      != null ? `${{Math.round(t.max_gap_bdays)}}d`      : '—';
-            const days = `${{Math.round(t.task_days)}}d`;
-            const rowClick = t.slack_url ? `onclick="window.open('${{t.slack_url}}','_blank')" style="cursor:pointer"` : '';
-            return `<tr ${{rowClick}} class="th-row-click">
-              <td class="td-type" title="${{typeLabel}}">${{typeLabel}}</td>
-              <td><span class="${{sigClass(t.signal)}}">${{t.signal}}</span></td>
-              <td class="td-num">${{t.cycle_count}}</td>
-              <td class="td-num">${{mgr}}</td>
-              <td class="td-num">${{gap}}</td>
-              <td class="td-num">${{days}}</td>
-            </tr>`;
-          }}).join('');
-        return `<div class="des-block">
-          <div class="des-hdr">${{name}}<span class="des-sub">${{n}} deliverable${{n!==1?'s':''}} · AVG ${{avg}}D</span></div>
-          <table class="th-table">
-            <thead><tr>
-              <th>Deliverable</th><th>Signal</th>
-              <th style="text-align:center">Cycles</th>
-              <th style="text-align:center">Mgr</th>
-              <th style="text-align:center">Gap</th>
-              <th style="text-align:center">Days</th>
-            </tr></thead>
-            <tbody>${{tableRows}}</tbody>
-          </table>
-        </div>`;
-      }}).join('') + `<div class="leg">
-      <div class="leg-title">Signals — highest value wins when multiple apply</div>
-      <div class="leg-row"><span class="sig sig-hc">High cycles</span>7+ additional revision rounds</div>
-      <div class="leg-row"><span class="sig sig-lg">Longer Gap</span>5+ working days (excl. weekends &amp; US holidays) between any two messages</div>
-      <div class="leg-row"><span class="sig sig-sf">Slow feedback</span>Manager avg &gt;2 days to respond after designer action</div>
-      <div class="leg-row"><span class="sig sig-sp">Slow pickup</span>Designer avg &gt;2 days to act after manager feedback</div>
-      <div class="leg-row"><span class="sig sig-ld">Long discussion</span>8+ replies with ≤1 cycle (alignment/scope chat)</div>
-      <div class="leg-row"><span class="sig sig-ot">On track</span>No issues detected</div>
-      <div class="leg-title" style="margin-top:14px">Columns</div>
-      <div class="leg-row"><strong>Cycles</strong> — Additional "For review" / "For feedback" rounds after first submission</div>
-      <div class="leg-row"><strong>Mgr</strong> — Avg business days for manager to respond after each designer action</div>
-      <div class="leg-row"><strong>Gap</strong> — Longest quiet stretch between any two consecutive messages (working days only)</div>
-      <div class="leg-row"><strong>Days</strong> — Total business days from first submission to last message in thread</div>
-    </div>`;
+    renderDrillContent();
     return;
   }}
 
+  document.getElementById('pf').classList.remove('on');
   let d = {{}};
   try {{ d = JSON.parse(el.dataset.drill); }} catch(e) {{}}
   const entries = Object.entries(d);
@@ -1249,6 +1310,7 @@ function showDrill(el) {{
 
 function close_() {{
   document.getElementById('ov').classList.remove('on');
+  document.getElementById('pf').classList.remove('on');
 }}
 renderInsights(INSIGHTS_COMBINED, 'ins-combined');
 document.addEventListener('keydown', e => {{ if (e.key === 'Escape') close_(); }});
