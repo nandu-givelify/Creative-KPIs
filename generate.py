@@ -23,6 +23,7 @@ from slack_sdk.errors import SlackApiError
 SLACK_TOKEN  = os.environ.get("SLACK_TOKEN")
 if not SLACK_TOKEN:
     raise ValueError("SLACK_TOKEN environment variable is not set. Add it as a GitHub Actions secret.")
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")  # optional — enables AI signal summaries
 CHANNEL_ID    = "C042J20J3M5"
 SLACK_WORKSPACE = "givelify"   # used for constructing Slack thread URLs
 MANAGER_NAMES = ["Joe", "Gabe", "Alexa"]
@@ -422,7 +423,56 @@ def collect_candidate_thread_ts(all_msgs):
     return confirmed_ts, candidate_ts
 
 
-def process_deliverable_thread(thread, users, managers, month_data, start_ts, end_ts):
+GEMINI_URL = ("https://generativelanguage.googleapis.com/v1beta/"
+              "models/gemini-1.5-flash:generateContent?key={key}")
+
+def generate_signal_summary(thread, signal, deliverable_type, users, mgr_ids):
+    """Call Gemini Flash to get a one-line root-cause explanation for a flagged thread."""
+    if not GEMINI_API_KEY or signal == "On track":
+        return None
+
+    lines = []
+    for m in thread[:25]:
+        uid  = m.get("user", "")
+        name = users.get(uid, {}).get("display_name", "?")
+        text = get_full_text(m).strip()
+        if text:
+            role = "Manager" if uid in mgr_ids else "Designer"
+            lines.append(f"[{role}: {name}] {text[:180]}")
+
+    transcript = "\n".join(lines)
+    prompt = (
+        f'Analyze this Slack design review thread.\n'
+        f'Deliverable: "{deliverable_type}"\n'
+        f'Signal: {signal}\n\n'
+        f'Thread:\n{transcript}\n\n'
+        f'Reply with ONE sentence (max 15 words) explaining the likely root cause '
+        f'for "{signal}". Be specific to what is visible. No filler words.'
+    )
+
+    url  = GEMINI_URL.format(key=GEMINI_API_KEY)
+    body = {"contents": [{"parts": [{"text": prompt}]}],
+            "generationConfig": {"maxOutputTokens": 60, "temperature": 0.3}}
+
+    for attempt in range(3):
+        try:
+            r = requests.post(url, json=body, timeout=20)
+            if r.status_code == 429:
+                wait = 30 * (attempt + 1)
+                print(f"  Gemini rate-limited — waiting {wait}s")
+                time.sleep(wait)
+                continue
+            r.raise_for_status()
+            text = r.json()["candidates"][0]["content"]["parts"][0]["text"]
+            return text.strip().strip('"\'')[:200]
+        except Exception as e:
+            print(f"  Gemini error (attempt {attempt+1}): {e}")
+            time.sleep(5)
+    return None
+
+
+def process_deliverable_thread(thread, users, managers, month_data, start_ts, end_ts,
+                               ai_summaries=None):
     """
     Analyze one confirmed deliverable thread and append per-designer entries to month_data.
 
@@ -591,6 +641,17 @@ def process_deliverable_thread(thread, users, managers, month_data, start_ts, en
         slack_url  = make_slack_url(thread[0]["ts"])
         deliv_type = extract_deliverable_type(deliv_msg)
 
+        # AI summary — check cache first, then call Gemini for flagged threads
+        summary_key = f"{thread[0]['ts']}:{uid}"
+        ai_summary  = None
+        if ai_summaries is not None:
+            ai_summary = ai_summaries.get(summary_key)
+            if ai_summary is None and signal != "On track":
+                print(f"    Gemini: summarising [{signal}] for {pname}…")
+                ai_summary = generate_signal_summary(thread, signal, deliv_type, users, mgr_ids)
+                ai_summaries[summary_key] = ai_summary  # cache (even if None)
+                time.sleep(1)  # stay within Gemini free-tier RPM
+
         month_data.setdefault(month, []).append({
             "root_ts":             thread[0]["ts"],
             "month":               month,
@@ -605,11 +666,12 @@ def process_deliverable_thread(thread, users, managers, month_data, start_ts, en
             "max_gap_bdays":       max_gap,
             "signal":              signal,
             "slack_url":           slack_url,
+            "ai_summary":          ai_summary,
             "cycles":              cycle_data,
         })
 
 
-def process_slack(client, channel_id, users, managers, start_dt, end_dt):
+def process_slack(client, channel_id, users, managers, start_dt, end_dt, ai_summaries=None):
     start_ts = start_dt.timestamp()
     end_ts   = end_dt.timestamp()
 
@@ -638,7 +700,8 @@ def process_slack(client, channel_id, users, managers, start_dt, end_dt):
     month_data = {}
     for rts in confirmed_ts:
         thread = thread_cache.get(rts) or fetch_thread(client, channel_id, rts)
-        process_deliverable_thread(thread, users, managers, month_data, start_ts, end_ts)
+        process_deliverable_thread(thread, users, managers, month_data, start_ts, end_ts,
+                                   ai_summaries=ai_summaries)
 
     total_ds = sum(len(v) for v in month_data.values())
     print(f"  Total deliverable entries found: {total_ds}")
@@ -736,6 +799,7 @@ def compute_metrics(month_data, managers, roster=None):
                 "max_gap_bdays":       d.get("max_gap_bdays"),
                 "signal":              d.get("signal", "On track"),
                 "slack_url":           d.get("slack_url", ""),
+                "ai_summary":          d.get("ai_summary"),
             })
 
         # ── Monthly insight ───────────────────────────────────────────────────
@@ -997,6 +1061,7 @@ th,td{{padding:18px 10px;border-bottom:1px solid #f0f0f0;vertical-align:middle}}
 .th-table .td-type a{{color:#111;text-decoration:none;font-weight:500}}
 .th-table .td-type a:hover{{color:#0057d9;text-decoration:underline}}
 .th-row-click:hover td{{background:#f7f9ff}}
+.ai-why{{font-size:.72rem;color:#888;font-style:italic;margin-top:3px;line-height:1.4}}
 .leg{{margin-top:28px;padding-top:18px;border-top:1px solid #f0f0f0}}
 .leg-title{{font-size:.68rem;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:#bbb;margin-bottom:10px}}
 .leg-row{{display:flex;gap:8px;align-items:flex-start;margin-bottom:7px;font-size:.78rem;color:#555;line-height:1.45}}
@@ -1196,10 +1261,13 @@ function drillRow(t, showDesigner) {{
   const isCyc = sig==='High cycles', isRep = sig==='Long discussion',
         isMgr = sig==='Slow feedback', isGap = sig==='Longer Gap';
   const desCel = showDesigner ? `<td class="td-name">${{t.designer}}</td>` : '';
+  const sigCell = t.ai_summary
+    ? `<span class="${{sigClass(sig)}}">${{sig}}</span><div class="ai-why">${{t.ai_summary}}</div>`
+    : `<span class="${{sigClass(sig)}}">${{sig}}</span>`;
   return `<tr ${{rc}} class="th-row-click">
     ${{desCel}}
     <td class="td-type" title="${{lbl}}">${{lbl}}</td>
-    <td><span class="${{sigClass(sig)}}">${{sig}}</span></td>
+    <td>${{sigCell}}</td>
     <td class="td-num ${{isCyc?'cell-alert':''}}">${{t.cycle_count}}</td>
     <td class="td-num ${{isRep?'cell-alert':''}}">${{t.reply_count??'—'}}</td>
     <td class="td-num ${{isMgr?'cell-alert':''}}">${{mgr}}</td>
@@ -1343,21 +1411,29 @@ def main():
     start_dt, end_dt = get_date_range()
 
     print("\n[3/5] Loading existing data.json...")
-    existing_c, existing_p, existing_m = {}, {}, {}
+    existing_c, existing_p, existing_m, ai_summaries = {}, {}, {}, {}
     if os.path.exists("data.json"):
         try:
             saved = json.load(open("data.json"))
-            existing_c = saved.get("metrics",           {})
-            existing_p = saved.get("metrics_product",   {})
-            existing_m = saved.get("metrics_marketing", {})
+            existing_c   = saved.get("metrics",           {})
+            existing_p   = saved.get("metrics_product",   {})
+            existing_m   = saved.get("metrics_marketing", {})
+            ai_summaries = saved.get("ai_summaries",      {})
             print(f"  Found combined data for: {sorted(existing_c.keys())}")
+            print(f"  Cached AI summaries: {len(ai_summaries)}")
         except Exception:
             print("  Could not parse data.json — starting fresh")
     else:
         print("  No data.json found — starting fresh")
 
+    if GEMINI_API_KEY:
+        print("  Gemini AI summaries: enabled")
+    else:
+        print("  Gemini AI summaries: disabled (set GEMINI_API_KEY secret to enable)")
+
     print("\n[4/5] Fetching and processing Slack data...")
-    month_data = process_slack(client, CHANNEL_ID, users, managers, start_dt, end_dt)
+    month_data = process_slack(client, CHANNEL_ID, users, managers, start_dt, end_dt,
+                               ai_summaries=ai_summaries)
 
     new_c = compute_metrics(month_data, managers)
     new_p = compute_metrics(month_data, managers, roster=PRODUCT_DESIGNERS)
@@ -1384,6 +1460,7 @@ def main():
             "metrics_product":   merged_p,
             "metrics_marketing": merged_m,
             "targets":           TARGETS,
+            "ai_summaries":      ai_summaries,
         }, f, indent=2)
     print("  ✓ data.json")
 
