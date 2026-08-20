@@ -426,8 +426,11 @@ def collect_candidate_thread_ts(all_msgs):
 GEMINI_URL = ("https://generativelanguage.googleapis.com/v1beta/"
               "models/gemini-2.0-flash:generateContent?key={key}")
 
+_gemini_call_count = 0
+
 def generate_signal_summary(thread, signal, deliverable_type, users, mgr_ids):
     """Call Gemini Flash to get a one-line root-cause explanation for a flagged thread."""
+    global _gemini_call_count
     if not GEMINI_API_KEY or signal == "On track":
         return None
 
@@ -467,9 +470,12 @@ def generate_signal_summary(thread, signal, deliverable_type, users, mgr_ids):
                 time.sleep(5)
                 continue
             data = r.json()
+            _gemini_call_count += 1
+            # Print full response for first 3 calls to verify structure
+            if _gemini_call_count <= 3:
+                print(f"  Gemini DEBUG call #{_gemini_call_count} raw: {r.text[:600]}")
             candidates = data.get("candidates", [])
             if not candidates:
-                # Safety filter or empty response
                 feedback = data.get("promptFeedback", {})
                 print(f"  Gemini no candidates — promptFeedback: {feedback}")
                 return None
@@ -479,11 +485,11 @@ def generate_signal_summary(thread, signal, deliverable_type, users, mgr_ids):
                 finish = candidates[0].get("finishReason", "unknown")
                 print(f"  Gemini empty parts — finishReason: {finish}")
                 return None
-            text = parts[0].get("text", "").strip().strip('"\'')
+            raw_text = parts[0].get("text", "")
+            text = raw_text.strip().strip('"\'')
             if text:
                 return text[:200]
-            # Log raw response to diagnose empty text
-            print(f"  Gemini empty text — raw: {r.text[:400]}")
+            print(f"  Gemini empty text after strip — raw_text repr: {repr(raw_text[:100])}")
             return None
         except Exception as e:
             print(f"  Gemini error (attempt {attempt+1}): {type(e).__name__}: {e}")
