@@ -424,7 +424,7 @@ def collect_candidate_thread_ts(all_msgs):
 
 
 GEMINI_URL = ("https://generativelanguage.googleapis.com/v1beta/"
-              "models/gemini-3.6-flash:generateContent?key={key}")
+              "models/gemini-3.1-flash-lite:generateContent?key={key}")
 
 _gemini_call_count = 0
 
@@ -455,11 +455,7 @@ def generate_signal_summary(thread, signal, deliverable_type, users, mgr_ids):
 
     url  = GEMINI_URL.format(key=GEMINI_API_KEY)
     body = {"contents": [{"parts": [{"text": prompt}]}],
-            "generationConfig": {
-                "maxOutputTokens": 300,
-                "temperature": 0.3,
-                "thinkingConfig": {"thinkingBudget": 0}  # disable thinking tokens
-            }}
+            "generationConfig": {"maxOutputTokens": 300, "temperature": 0.3}}
 
     for attempt in range(3):
         try:
@@ -673,7 +669,7 @@ def process_deliverable_thread(thread, users, managers, month_data, start_ts, en
         deliv_type = extract_deliverable_type(deliv_msg)
 
         # AI summary — check cache first, then call Gemini for flagged threads
-        summary_key = f"{thread[0]['ts']}:{uid}"
+        summary_key = f"{thread[0]['ts']}:{uid}:{thread[-1]['ts']}"
         ai_summary  = None
         if ai_summaries is not None:
             cached = ai_summaries.get(summary_key, "MISSING")
