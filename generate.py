@@ -293,10 +293,10 @@ def compute_signal(cycle_count, manager_wait, designer_wait, reply_count, max_ga
     if cycle_count >= HIGH_CYCLES_THRESHOLD:
         candidates.append(("High cycles", cycle_count))
     if max_gap is not None and max_gap >= LONGER_GAP_THRESHOLD:
-        candidates.append(("Longer Gap", max_gap))
+        candidates.append(("Long gap", max_gap))
     if manager_wait is not None and manager_wait > 2:
         candidates.append(("Slow feedback", manager_wait))
-    # "Slow pickup" removed — Longer Gap already captures thread inactivity regardless of who stalled
+    # "Slow pickup" removed — Long gap already captures thread inactivity regardless of who stalled
     if reply_count >= 8 and cycle_count <= 1:
         candidates.append(("Long discussion", reply_count))
     if not candidates:
@@ -455,7 +455,11 @@ def generate_signal_summary(thread, signal, deliverable_type, users, mgr_ids):
 
     url  = GEMINI_URL.format(key=GEMINI_API_KEY)
     body = {"contents": [{"parts": [{"text": prompt}]}],
-            "generationConfig": {"maxOutputTokens": 80, "temperature": 0.3}}
+            "generationConfig": {
+                "maxOutputTokens": 300,
+                "temperature": 0.3,
+                "thinkingConfig": {"thinkingBudget": 0}  # disable thinking tokens
+            }}
 
     for attempt in range(3):
         try:
@@ -679,7 +683,7 @@ def process_deliverable_thread(thread, users, managers, month_data, start_ts, en
                 print(f"    Gemini: summarising [{signal}] for {pname}…")
                 ai_summary = generate_signal_summary(thread, signal, deliv_type, users, mgr_ids)
                 ai_summaries[summary_key] = ai_summary  # cache (even if None)
-                time.sleep(1)  # stay within Gemini free-tier RPM
+                time.sleep(5)  # 5s between calls to stay within 15 RPM free-tier limit
 
         month_data.setdefault(month, []).append({
             "root_ts":             thread[0]["ts"],
@@ -1039,10 +1043,11 @@ th,td{{padding:18px 10px;border-bottom:1px solid #f0f0f0;vertical-align:middle}}
 .mv.click{{cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-decoration-color:#ddd;transition:color .15s,text-decoration-color .15s}}
 .mv.click:hover{{color:#0057d9;text-decoration-color:#0057d9}}
 .empty{{color:#e0e0e0;font-size:.8rem}}
-.ov{{display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:100;align-items:center;justify-content:center}}
-.ov.on{{display:flex}}
-.pnl{{width:680px;max-width:94vw;max-height:88vh;background:#fff;border-radius:14px;box-shadow:0 12px 60px rgba(0,0,0,.22);display:flex;flex-direction:column;overflow:hidden}}
-.ph{{padding:24px 28px 18px;border-bottom:1px solid #f2f2f2;display:flex;justify-content:space-between;align-items:flex-start;flex-shrink:0}}
+.ov{{display:none;position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:100}}
+.ov.on{{display:flex;align-items:flex-end;justify-content:center;padding-bottom:0}}
+.pnl{{width:max-content;min-width:520px;max-width:92vw;max-height:35vh;background:#fff;border-radius:16px 16px 0 0;box-shadow:0 -6px 40px rgba(0,0,0,.15);display:flex;flex-direction:column;overflow:hidden;transform:translateY(100%);transition:transform .25s ease}}
+.ov.on .pnl{{transform:translateY(0)}}
+.ph{{padding:16px 24px 12px;border-bottom:1px solid #f2f2f2;display:flex;justify-content:space-between;align-items:flex-start;flex-shrink:0}}
 .pt{{font-size:1.05rem;font-weight:600;color:#111}}
 .ps{{font-size:.73rem;color:#aaa;margin-top:4px}}
 .px{{background:none;border:none;cursor:pointer;color:#bbb;font-size:1.15rem;padding:0;margin-left:10px;line-height:1;flex-shrink:0}}
@@ -1091,6 +1096,10 @@ th,td{{padding:18px 10px;border-bottom:1px solid #f0f0f0;vertical-align:middle}}
 .th-table .td-type a:hover{{color:#0057d9;text-decoration:underline}}
 .th-row-click:hover td{{background:#f7f9ff}}
 .ai-why{{font-size:.72rem;color:#888;font-style:italic;margin-top:3px;line-height:1.4}}
+.td-ai{{max-width:260px;min-width:120px}}
+.th-ai{{text-align:left!important}}
+.ai-why-col{{font-size:.72rem;color:#888;font-style:italic;line-height:1.4;display:block}}
+.ai-empty{{color:#ddd}}
 .leg{{margin-top:28px;padding-top:18px;border-top:1px solid #f0f0f0}}
 .leg-title{{font-size:.68rem;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:#bbb;margin-bottom:10px}}
 .leg-row{{display:flex;gap:8px;align-items:flex-start;margin-bottom:7px;font-size:.78rem;color:#555;line-height:1.45}}
@@ -1130,8 +1139,6 @@ th,td{{padding:18px 10px;border-bottom:1px solid #f0f0f0;vertical-align:middle}}
     <tbody>{rr_c}</tbody>
   </table>
 
-  <div class="sl" style="margin-top:8px">Monthly Insights</div>
-  <div class="ic-grid" id="ins-combined"></div>
 </div>
 
 <!-- ═══ SEPARATED VIEW ═══ -->
@@ -1151,8 +1158,6 @@ th,td{{padding:18px 10px;border-bottom:1px solid #f0f0f0;vertical-align:middle}}
     <tbody>{rr_p}</tbody>
   </table>
 
-  <div class="sl" style="margin-top:8px">Product Insights</div>
-  <div class="ic-grid" id="ins-product"></div>
 
   <div class="grp-hdr">Marketing Deliverables</div>
 
@@ -1168,8 +1173,6 @@ th,td{{padding:18px 10px;border-bottom:1px solid #f0f0f0;vertical-align:middle}}
     <tbody>{rr_m}</tbody>
   </table>
 
-  <div class="sl" style="margin-top:8px">Marketing Insights</div>
-  <div class="ic-grid" id="ins-marketing"></div>
 
 </div>
 
@@ -1198,17 +1201,14 @@ const INSIGHTS_COMBINED = {insights_combined_js};
 const INSIGHTS_PRODUCT  = {insights_product_js};
 const INSIGHTS_MARKETING= {insights_marketing_js};
 const MONTH_KEYS_MAP    = {{"JAN":"01","FEB":"02","MAR":"03","APR":"04","MAY":"05","JUN":"06","JUL":"07","AUG":"08","SEP":"09","OCT":"10","NOV":"11","DEC":"12"}};
+let _activeView = 'combined';
 
 function showView(v) {{
+  _activeView = v;
   document.getElementById('view-combined').style.display  = v === 'combined'  ? '' : 'none';
   document.getElementById('view-separated').style.display = v === 'separated' ? '' : 'none';
   document.getElementById('btn-combined').classList.toggle('active',  v === 'combined');
   document.getElementById('btn-separated').classList.toggle('active', v === 'separated');
-  if (v === 'combined')  {{ renderInsights(INSIGHTS_COMBINED,  'ins-combined');  }}
-  if (v === 'separated') {{
-    renderInsights(INSIGHTS_PRODUCT,   'ins-product');
-    renderInsights(INSIGHTS_MARKETING, 'ins-marketing');
-  }}
 }}
 
 function showInfo(key) {{
@@ -1243,7 +1243,7 @@ function renderInsights(data, containerId) {{
   if (!el) return;
   const months = Object.keys(data).sort().reverse().slice(0, 6);
   if (!months.length) {{ el.innerHTML = '<div class="nd">No data yet</div>'; return; }}
-  const SIG_ORDER = ['High cycles','Longer Gap','Slow feedback','Long discussion','On track'];
+  const SIG_ORDER = ['High cycles','Long gap','Slow feedback','Long discussion','On track'];
   el.innerHTML = months.map(ym => {{
     const d = data[ym];
     if (!d) return '';
@@ -1288,20 +1288,19 @@ function drillRow(t, showDesigner) {{
   const rc   = t.click_url ? `onclick="window.open('${{t.click_url}}','_blank')" style="cursor:pointer"` : '';
   const sig  = t.signal;
   const isCyc = sig==='High cycles', isRep = sig==='Long discussion',
-        isMgr = sig==='Slow feedback', isGap = sig==='Longer Gap';
+        isMgr = sig==='Slow feedback', isGap = sig==='Long gap';
   const desCel = showDesigner ? `<td class="td-name">${{t.designer}}</td>` : '';
-  const sigCell = t.ai_summary
-    ? `<span class="${{sigClass(sig)}}">${{sig}}</span><div class="ai-why">${{t.ai_summary}}</div>`
-    : `<span class="${{sigClass(sig)}}">${{sig}}</span>`;
+  const aiCell = t.ai_summary ? `<span class="ai-why-col">${{t.ai_summary}}</span>` : '<span class="ai-why-col ai-empty">—</span>';
   return `<tr ${{rc}} class="th-row-click">
     ${{desCel}}
     <td class="td-type" title="${{lbl}}">${{lbl}}</td>
-    <td>${{sigCell}}</td>
+    <td><span class="${{sigClass(sig)}}">${{sig}}</span></td>
     <td class="td-num ${{isCyc?'cell-alert':''}}">${{t.cycle_count}}</td>
     <td class="td-num ${{isRep?'cell-alert':''}}">${{t.reply_count??'—'}}</td>
     <td class="td-num ${{isMgr?'cell-alert':''}}">${{mgr}}</td>
     <td class="td-num ${{isGap?'cell-alert':''}}">${{gap}}</td>
     <td class="td-num">${{days}}</td>
+    <td class="td-ai">${{aiCell}}</td>
   </tr>`;
 }}
 
@@ -1310,14 +1309,14 @@ function drillHead(showDesigner) {{
   return `<thead><tr>${{dc}}<th>Deliverable</th><th>Signal</th>
     <th style="text-align:center">Cycles</th><th style="text-align:center">Replies</th>
     <th style="text-align:center">Mgr</th><th style="text-align:center">Gap</th>
-    <th style="text-align:center">Days</th></tr></thead>`;
+    <th style="text-align:center">Days</th><th class="th-ai">AI Summary</th></tr></thead>`;
 }}
 
 function drillLegend() {{
   return `<div class="leg">
     <div class="leg-title">Signals — highest raw value wins when multiple apply</div>
     <div class="leg-row"><span class="sig sig-err">High cycles</span>7+ revision rounds after first submission</div>
-    <div class="leg-row"><span class="sig sig-err">Longer Gap</span>Longest gap ≥5 working days (excl. weekends &amp; US holidays)</div>
+    <div class="leg-row"><span class="sig sig-err">Long gap</span>Longest gap ≥5 working days (excl. weekends &amp; US holidays)</div>
     <div class="leg-row"><span class="sig sig-err">Slow feedback</span>Manager avg &gt;2 days to respond</div>
     <div class="leg-row"><span class="sig sig-err">Long discussion</span>8+ replies with ≤1 cycle</div>
     <div class="leg-row"><span class="sig sig-ot">On track</span>No issues detected</div>
@@ -1327,6 +1326,7 @@ function drillLegend() {{
     <div class="leg-row"><strong>Mgr</strong> — Avg business days for manager to respond (avg across rounds)</div>
     <div class="leg-row"><strong>Gap</strong> — Longest silent stretch between any two consecutive messages</div>
     <div class="leg-row"><strong>Days</strong> — Total business days from first submission to last message</div>
+    <div class="leg-row"><strong>AI Summary</strong> — One-line root cause from Gemini based on thread content</div>
   </div>`;
 }}
 
@@ -1359,7 +1359,7 @@ function renderDrillContent() {{
       }}).join('');
 
   }} else if (_groupBy === 'signal') {{
-    const SIG_ORDER = ['High cycles','Longer Gap','Slow feedback','Long discussion','On track'];
+    const SIG_ORDER = ['High cycles','Long gap','Slow feedback','Long discussion','On track'];
     const bySig = {{}};
     for (const t of flat) {{ bySig[t.signal]=bySig[t.signal]||[]; bySig[t.signal].push(t); }}
     html = SIG_ORDER.filter(s=>bySig[s]).map(sig=>{{
@@ -1398,6 +1398,40 @@ function showDrill(el) {{
     return;
   }}
 
+  if (metricKey === 'num_ds') {{
+    document.getElementById('pf').classList.remove('on');
+    const threads = THREAD_DETAILS[ym] || {{}};
+    const SIG_ORDER = ['High cycles','Long gap','Slow feedback','Long discussion','On track'];
+    // Build per-designer signal counts
+    const designers = Object.entries(threads).map(([name, ts]) => {{
+      const counts = {{}};
+      SIG_ORDER.forEach(s => counts[s] = 0);
+      ts.forEach(t => {{ if (counts[t.signal] !== undefined) counts[t.signal]++; else counts[t.signal] = 1; }});
+      return {{ name, total: ts.length, counts }};
+    }});
+    designers.sort((a,b) => b.total - a.total);
+    // Total row
+    const totals = {{}};
+    SIG_ORDER.forEach(s => totals[s] = designers.reduce((n,d) => n + (d.counts[s]||0), 0));
+    const grandTotal = designers.reduce((n,d) => n + d.total, 0);
+    const sigCols = SIG_ORDER.filter(s => totals[s] > 0);
+    const thCols = sigCols.map(s => `<th style="text-align:center;white-space:nowrap"><span class="sig ${{s==='On track'?'sig-ot':'sig-err'}}">${{s}}</span></th>`).join('');
+    const totalCells = sigCols.map(s => `<td style="text-align:center;font-weight:600">${{totals[s]||0}}</td>`).join('');
+    const desCells = designers.map(d => {{
+      const cells = sigCols.map(s => `<td style="text-align:center;color:${{s!=='On track'&&d.counts[s]>0?'#c0392b':'#888'}}">${{d.counts[s]||0}}</td>`).join('');
+      return `<tr><td class="td-name">${{d.name}}</td><td style="text-align:center;font-weight:600">${{d.total}}</td>${{cells}}</tr>`;
+    }}).join('');
+    document.getElementById('pb').innerHTML = `
+      <table class="th-table">
+        <thead><tr><th>Name</th><th style="text-align:center">Deliverables</th>${{thCols}}</tr></thead>
+        <tbody>
+          <tr style="background:#f9f9f9;font-weight:600"><td>Total</td><td style="text-align:center">${{grandTotal}}</td>${{totalCells}}</tr>
+          ${{desCells}}
+        </tbody>
+      </table>`;
+    return;
+  }}
+
   document.getElementById('pf').classList.remove('on');
   let d = {{}};
   try {{ d = JSON.parse(el.dataset.drill); }} catch(e) {{}}
@@ -1411,7 +1445,6 @@ function close_() {{
   document.getElementById('ov').classList.remove('on');
   document.getElementById('pf').classList.remove('on');
 }}
-renderInsights(INSIGHTS_COMBINED, 'ins-combined');
 document.addEventListener('keydown', e => {{ if (e.key === 'Escape') close_(); }});
 </script>
 </body>
