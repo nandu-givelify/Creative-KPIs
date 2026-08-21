@@ -424,7 +424,7 @@ def collect_candidate_thread_ts(all_msgs):
 
 
 GEMINI_URL = ("https://generativelanguage.googleapis.com/v1beta/"
-              "models/gemini-2.0-flash:generateContent?key={key}")
+              "models/gemini-3.6-flash:generateContent?key={key}")
 
 _gemini_call_count = 0
 
