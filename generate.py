@@ -1418,7 +1418,7 @@ function showDrill(el) {{
     const thCols = sigCols.map(s => `<th style="text-align:center;white-space:nowrap"><span class="sig ${{s==='On track'?'sig-ot':'sig-err'}}">${{s}}</span></th>`).join('');
     const totalCells = sigCols.map(s => `<td style="text-align:center;font-weight:600">${{totals[s]||0}}</td>`).join('');
     const desCells = designers.map(d => {{
-      const cells = sigCols.map(s => `<td style="text-align:center;color:${{s!=='On track'&&d.counts[s]>0?'#c0392b':'#888'}}">${{d.counts[s]||0}}</td>`).join('');
+      const cells = sigCols.map(s => `<td style="text-align:center;color:${{s!=='On track'&&d.counts[s]>0?'#c0392b':'#888'}}">${{d.counts[s]||''}}</td>`).join('');
       return `<tr><td class="td-name">${{d.name}}</td><td style="text-align:center;font-weight:600">${{d.total}}</td>${{cells}}</tr>`;
     }}).join('');
     document.getElementById('pb').innerHTML = `
