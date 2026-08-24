@@ -709,16 +709,13 @@ def process_deliverable_thread(thread, users, managers, month_data, start_ts, en
         ai_reasons   = None
         if ai_summaries is not None:
             cached = ai_summaries.get(summary_key, "MISSING")
-            if cached == "MISSING" or cached is None:
-                cached = None  # not yet cached or previously failed
-            elif isinstance(cached, str):
-                # Legacy string-only cache — treat as summary, no reasons
-                ai_summary = cached or None
-                cached = {"summary": ai_summary, "reasons": None}
+            if cached == "MISSING" or cached is None or isinstance(cached, str):
+                # Not cached, previously failed, or old string-only format → re-run
+                cached = None
             if cached is not None:
                 ai_summary = cached.get("summary")
                 ai_reasons = cached.get("reasons")
-            # Retry if not cached yet OR previously cached as None (failed last time)
+            # Run if not cached yet, previously failed, or old string entry (no reasons)
             if cached is None and signal != "On track":
                 print(f"    Gemini: summarising [{signal}] for {pname}…")
                 result = generate_signal_summary(thread, signal, deliv_type, users, mgr_ids)
