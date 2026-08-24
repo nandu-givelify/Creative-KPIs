@@ -291,12 +291,12 @@ def compute_signal(cycle_count, manager_wait, designer_wait, reply_count, max_ga
     """Return the single most prominent signal, chosen by highest underlying value."""
     candidates = []
     if cycle_count >= HIGH_CYCLES_THRESHOLD:
-        candidates.append(("High cycles", cycle_count))
+        candidates.append(("High rework", cycle_count))
     if max_gap is not None and max_gap >= LONGER_GAP_THRESHOLD:
-        candidates.append(("Long gap", max_gap))
+        candidates.append(("Slow pickup", max_gap))
     if manager_wait is not None and manager_wait > 2:
         candidates.append(("Slow feedback", manager_wait))
-    # "Slow pickup" removed — Long gap already captures thread inactivity regardless of who stalled
+    # "Slow pickup" removed — Slow pickup already captures thread inactivity regardless of who stalled
     if reply_count >= 8 and cycle_count <= 1:
         candidates.append(("Long discussion", reply_count))
     if not candidates:
@@ -1069,8 +1069,9 @@ th,td{{padding:18px 10px;border-bottom:1px solid #f0f0f0;vertical-align:middle}}
 .pf{{padding:10px 28px 10px;border-bottom:1px solid #f2f2f2;flex-shrink:0;display:none;gap:8px;align-items:center}}
 .pf.on{{display:flex}}
 .pf-lbl{{font-size:.72rem;color:#aaa;margin-right:4px}}
-.gf-btn{{background:none;border:1px solid #e0e0e0;border-radius:5px;cursor:pointer;font-size:.74rem;font-weight:500;color:#888;padding:4px 12px;transition:all .15s}}
-.gf-btn.active{{background:#111;border-color:#111;color:#fff}}
+.pf{{display:none;align-items:center;gap:6px}}
+.pf.on{{display:flex}}
+.gf-sel{{font-size:.74rem;border:1px solid #e0e0e0;border-radius:5px;padding:4px 8px;color:#444;background:#fff;cursor:pointer;outline:none}}
 .th-row{{padding:12px 0;border-bottom:1px solid #f5f5f5}}
 .th-row:last-child{{border:none}}
 .th-meta{{font-size:.8rem;color:#666;margin-top:4px;display:flex;gap:12px;flex-wrap:wrap;align-items:center}}
@@ -1178,13 +1179,17 @@ th,td{{padding:18px 10px;border-bottom:1px solid #f0f0f0;vertical-align:middle}}
   <div class="pnl" id="pnl" onclick="event.stopPropagation()">
     <div class="ph">
       <div><div class="pt" id="pt"></div><div class="ps" id="ps"></div></div>
-      <button class="px" onclick="close_()">✕</button>
-    </div>
-    <div class="pf" id="pf">
-      <span class="pf-lbl">Group by</span>
-      <button class="gf-btn active" data-mode="none"     onclick="setGroupBy('none')">None</button>
-      <button class="gf-btn"        data-mode="designer" onclick="setGroupBy('designer')">Designer</button>
-      <button class="gf-btn"        data-mode="signal"   onclick="setGroupBy('signal')">Signal</button>
+      <div style="display:flex;align-items:center;gap:10px;flex-shrink:0">
+        <div class="pf" id="pf" style="display:none">
+          <span class="pf-lbl">Group by</span>
+          <select class="gf-sel" id="gf-sel" onchange="setGroupBy(this.value)">
+            <option value="signal">Signal</option>
+            <option value="designer">Designer</option>
+            <option value="none">Days to Complete</option>
+          </select>
+        </div>
+        <button class="px" onclick="close_()">✕</button>
+      </div>
     </div>
     <div class="pb" id="pb"></div>
   </div>
@@ -1212,7 +1217,7 @@ function showInfo(key) {{
   if (!info) return;
   document.getElementById('pt').textContent = info.label;
   document.getElementById('ps').textContent = 'Definition & Rules';
-  document.getElementById('pf').classList.remove('on');
+  document.getElementById('pf').style.display = 'none';
   const rules = info.rules.map(r => `<li>${{r}}</li>`).join('');
   document.getElementById('pb').innerHTML = `
     <div class="info-section">
@@ -1239,7 +1244,7 @@ function renderInsights(data, containerId) {{
   if (!el) return;
   const months = Object.keys(data).sort().reverse().slice(0, 6);
   if (!months.length) {{ el.innerHTML = '<div class="nd">No data yet</div>'; return; }}
-  const SIG_ORDER = ['High cycles','Long gap','Slow feedback','Long discussion','On track'];
+  const SIG_ORDER = ['High rework','Slow pickup','Long discussion','Slow feedback','On track'];
   el.innerHTML = months.map(ym => {{
     const d = data[ym];
     if (!d) return '';
@@ -1267,12 +1272,10 @@ function renderInsights(data, containerId) {{
 
 // ── Drill-down state ────────────────────────────────────────────────────────
 let _drillEntries = {{}};
-let _groupBy = 'none';
+let _groupBy = 'signal';
 
 function setGroupBy(mode) {{
   _groupBy = mode;
-  document.querySelectorAll('.gf-btn').forEach(b =>
-    b.classList.toggle('active', b.dataset.mode === mode));
   renderDrillContent();
   document.getElementById('pb').scrollTop = 0;
 }}
@@ -1284,8 +1287,8 @@ function drillRow(t, showDesigner) {{
   const days = Math.round(t.task_days)+'d';
   const rc   = t.click_url ? `onclick="window.open('${{t.click_url}}','_blank')" style="cursor:pointer"` : '';
   const sig  = t.signal;
-  const isCyc = sig==='High cycles', isRep = sig==='Long discussion',
-        isMgr = sig==='Slow feedback', isGap = sig==='Long gap';
+  const isCyc = sig==='High rework', isGap = sig==='Slow pickup',
+        isRep = sig==='Long discussion', isMgr = sig==='Slow feedback';
   const desCel = showDesigner ? `<td class="td-name">${{t.designer}}</td>` : '';
   const aiCell = t.ai_summary ? `<span class="ai-why-col">${{t.ai_summary}}</span>` : '<span class="ai-why-col ai-empty">—</span>';
   return `<tr ${{rc}} class="th-row-click">
@@ -1312,8 +1315,8 @@ function drillHead(showDesigner) {{
 function drillLegend() {{
   return `<div class="leg">
     <div class="leg-title">Signals — highest raw value wins when multiple apply</div>
-    <div class="leg-row"><span class="sig sig-err">High cycles</span>7+ revision rounds after first submission</div>
-    <div class="leg-row"><span class="sig sig-err">Long gap</span>Longest gap ≥5 working days (excl. weekends &amp; US holidays)</div>
+    <div class="leg-row"><span class="sig sig-err">High rework</span>7+ revision rounds after first submission</div>
+    <div class="leg-row"><span class="sig sig-err">Slow pickup</span>Longest gap ≥5 working days (excl. weekends &amp; US holidays)</div>
     <div class="leg-row"><span class="sig sig-err">Slow feedback</span>Manager avg &gt;2 days to respond</div>
     <div class="leg-row"><span class="sig sig-err">Long discussion</span>8+ replies with ≤1 cycle</div>
     <div class="leg-row"><span class="sig sig-ot">On track</span>No issues detected</div>
@@ -1356,7 +1359,7 @@ function renderDrillContent() {{
       }}).join('');
 
   }} else if (_groupBy === 'signal') {{
-    const SIG_ORDER = ['High cycles','Long gap','Slow feedback','Long discussion','On track'];
+    const SIG_ORDER = ['High rework','Slow pickup','Long discussion','Slow feedback','On track'];
     const bySig = {{}};
     for (const t of flat) {{ bySig[t.signal]=bySig[t.signal]||[]; bySig[t.signal].push(t); }}
     html = SIG_ORDER.filter(s=>bySig[s]).map(sig=>{{
@@ -1383,10 +1386,10 @@ function showDrill(el) {{
 
   if (metricKey === 'task_days_per_d') {{
     _drillEntries = THREAD_DETAILS[ym] || {{}};
-    _groupBy = 'none';
-    document.querySelectorAll('.gf-btn').forEach(b =>
-      b.classList.toggle('active', b.dataset.mode === 'none'));
-    document.getElementById('pf').classList.add('on');
+    _groupBy = 'signal';
+    const sel = document.getElementById('gf-sel');
+    if (sel) sel.value = 'signal';
+    document.getElementById('pf').style.display = 'flex';
     if (!Object.keys(_drillEntries).length) {{
       document.getElementById('pb').innerHTML = '<div class="nd">No thread data</div>';
       return;
@@ -1396,9 +1399,9 @@ function showDrill(el) {{
   }}
 
   if (metricKey === 'num_ds') {{
-    document.getElementById('pf').classList.remove('on');
+    document.getElementById('pf').style.display = 'none';
     const threads = THREAD_DETAILS[ym] || {{}};
-    const SIG_ORDER = ['High cycles','Long gap','Slow feedback','Long discussion','On track'];
+    const SIG_ORDER = ['High rework','Slow pickup','Long discussion','Slow feedback','On track'];
     // Build per-designer signal counts
     const designers = Object.entries(threads).map(([name, ts]) => {{
       const counts = {{}};
@@ -1429,7 +1432,7 @@ function showDrill(el) {{
     return;
   }}
 
-  document.getElementById('pf').classList.remove('on');
+  document.getElementById('pf').style.display = 'none';
   let d = {{}};
   try {{ d = JSON.parse(el.dataset.drill); }} catch(e) {{}}
   const entries = Object.entries(d);
@@ -1440,7 +1443,7 @@ function showDrill(el) {{
 
 function close_() {{
   document.getElementById('ov').classList.remove('on');
-  document.getElementById('pf').classList.remove('on');
+  document.getElementById('pf').style.display = 'none';
 }}
 document.addEventListener('keydown', e => {{ if (e.key === 'Escape') close_(); }});
 </script>
