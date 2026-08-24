@@ -1077,7 +1077,7 @@ th,td{{padding:18px 10px;border-bottom:1px solid #f0f0f0;vertical-align:middle}}
 .th-meta{{font-size:.8rem;color:#666;margin-top:4px;display:flex;gap:12px;flex-wrap:wrap;align-items:center}}
 .th-link{{font-size:.78rem;color:#0057d9;text-decoration:none;margin-left:auto;flex-shrink:0}}
 .th-link:hover{{text-decoration:underline}}
-.des-block{{margin-bottom:24px}}
+.des-block{{margin-bottom:24px;padding-top:16px}}
 .des-hdr{{font-size:.82rem;font-weight:700;color:#111;margin-bottom:8px}}
 .des-sub{{font-size:.72rem;color:#aaa;font-weight:400;margin-left:6px}}
 .th-table{{width:100%;border-collapse:collapse;font-size:.82rem}}
