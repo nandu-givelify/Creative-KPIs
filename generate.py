@@ -428,8 +428,17 @@ GEMINI_URL = ("https://generativelanguage.googleapis.com/v1beta/"
 
 _gemini_call_count = 0
 
+_SIGNAL_CONTEXT = {
+    "High rework":     "the designer went through 7+ revision rounds — something drove repeated changes",
+    "Slow pickup":     "the designer took 5+ business days to respond — something slowed or blocked them",
+    "Long discussion": "there were 8+ messages with ≤1 revision cycle — extended back-and-forth without resolution",
+    "Slow feedback":   "the manager took 2+ business days to respond — something delayed their review",
+}
+
 def generate_signal_summary(thread, signal, deliverable_type, users, mgr_ids):
-    """Call Gemini Flash to get a one-line root-cause explanation for a flagged thread."""
+    """Call Gemini Flash to get a one-line summary + root-cause reasons for a flagged thread.
+    Returns a dict: {"summary": str|None, "reasons": str|None}
+    """
     global _gemini_call_count
     if not GEMINI_API_KEY or signal == "On track":
         return None
@@ -444,13 +453,25 @@ def generate_signal_summary(thread, signal, deliverable_type, users, mgr_ids):
             lines.append(f"[{role}: {name}] {text[:180]}")
 
     transcript = "\n".join(lines)
+    signal_ctx = _SIGNAL_CONTEXT.get(signal, "")
     prompt = (
         f'Analyze this Slack design review thread.\n'
         f'Deliverable: "{deliverable_type}"\n'
-        f'Signal: {signal}\n\n'
+        f'Signal: {signal} — {signal_ctx}\n\n'
         f'Thread:\n{transcript}\n\n'
-        f'Reply with ONE sentence (max 15 words) explaining the likely root cause '
-        f'for "{signal}". Be specific to what is visible. No filler words.'
+        f'Return EXACTLY this format (two lines, nothing else):\n'
+        f'Summary: [One sentence, max 12 words, simple plain language, specific to thread content. '
+        f'Do NOT restate what the signal already implies.]\n'
+        f'Reasons: [Short active phrases explaining the specific underlying cause, '
+        f'e.g. "Scope expanded.", "Direction shifted.", "No existing pattern.". '
+        f'Use simple everyday words. If a reason could be fixed by adding or improving '
+        f'design system patterns, append [DS] after it. '
+        f'Separate multiple reasons with a full stop and space. '
+        f'If you cannot identify a clear reason from the thread, write "None".]\n\n'
+        f'Good reason examples: "Scope expanded.", "Use cases were missed.", '
+        f'"No existing component [DS].", "Brief was unclear.", "Feedback arrived too late."\n'
+        f'Bad reasons (too obvious, do not use): "Stakeholders were not aligned.", '
+        f'"Designer needed more time.", "Multiple revisions were requested."'
     )
 
     url  = GEMINI_URL.format(key=GEMINI_API_KEY)
@@ -485,12 +506,26 @@ def generate_signal_summary(thread, signal, deliverable_type, users, mgr_ids):
                 finish = candidates[0].get("finishReason", "unknown")
                 print(f"  Gemini empty parts — finishReason: {finish}")
                 return None
-            raw_text = parts[0].get("text", "")
-            text = raw_text.strip().strip('"\'')
-            if text:
-                return text[:200]
-            print(f"  Gemini empty text after strip — raw_text repr: {repr(raw_text[:100])}")
-            return None
+            raw_text = parts[0].get("text", "").strip()
+            if not raw_text:
+                print(f"  Gemini empty text after strip — raw_text repr: {repr(raw_text[:100])}")
+                return None
+            # Parse "Summary: ...\nReasons: ..." format
+            summary, reasons = None, None
+            for line in raw_text.splitlines():
+                line = line.strip()
+                if line.lower().startswith("summary:"):
+                    summary = line[len("summary:"):].strip().strip('"\'')
+                    if not summary:
+                        summary = None
+                elif line.lower().startswith("reasons:"):
+                    r = line[len("reasons:"):].strip().strip('"\'')
+                    if r and r.lower() != "none":
+                        reasons = r
+            if summary or reasons:
+                return {"summary": summary, "reasons": reasons}
+            # Fallback: treat entire response as summary
+            return {"summary": raw_text[:150], "reasons": None}
         except Exception as e:
             print(f"  Gemini error (attempt {attempt+1}): {type(e).__name__}: {e}")
             time.sleep(5)
@@ -668,17 +703,29 @@ def process_deliverable_thread(thread, users, managers, month_data, start_ts, en
         slack_url  = make_slack_url(thread[0]["ts"])
         deliv_type = extract_deliverable_type(deliv_msg)
 
-        # AI summary — check cache first, then call Gemini for flagged threads
-        summary_key = f"{thread[0]['ts']}:{uid}:{thread[-1]['ts']}"
-        ai_summary  = None
+        # AI insight — check cache first, then call Gemini for flagged threads
+        summary_key  = f"{thread[0]['ts']}:{uid}:{thread[-1]['ts']}"
+        ai_summary   = None
+        ai_reasons   = None
         if ai_summaries is not None:
             cached = ai_summaries.get(summary_key, "MISSING")
-            ai_summary = cached if cached != "MISSING" and cached is not None else None
+            if cached == "MISSING" or cached is None:
+                cached = None  # not yet cached or previously failed
+            elif isinstance(cached, str):
+                # Legacy string-only cache — treat as summary, no reasons
+                ai_summary = cached or None
+                cached = {"summary": ai_summary, "reasons": None}
+            if cached is not None:
+                ai_summary = cached.get("summary")
+                ai_reasons = cached.get("reasons")
             # Retry if not cached yet OR previously cached as None (failed last time)
-            if ai_summary is None and signal != "On track":
+            if cached is None and signal != "On track":
                 print(f"    Gemini: summarising [{signal}] for {pname}…")
-                ai_summary = generate_signal_summary(thread, signal, deliv_type, users, mgr_ids)
-                ai_summaries[summary_key] = ai_summary  # cache (even if None)
+                result = generate_signal_summary(thread, signal, deliv_type, users, mgr_ids)
+                if result:
+                    ai_summary = result.get("summary")
+                    ai_reasons = result.get("reasons")
+                ai_summaries[summary_key] = result  # cache (even if None)
                 time.sleep(5)  # 5s between calls to stay within 15 RPM free-tier limit
 
         month_data.setdefault(month, []).append({
@@ -696,6 +743,7 @@ def process_deliverable_thread(thread, users, managers, month_data, start_ts, en
             "signal":              signal,
             "slack_url":           slack_url,
             "ai_summary":          ai_summary,
+            "ai_reasons":          ai_reasons,
             "cycles":              cycle_data,
         })
 
@@ -829,6 +877,7 @@ def compute_metrics(month_data, managers, roster=None):
                 "signal":              d.get("signal", "On track"),
                 "slack_url":           d.get("slack_url", ""),
                 "ai_summary":          d.get("ai_summary"),
+                "ai_reasons":          d.get("ai_reasons"),
             })
 
         # ── Monthly insight ───────────────────────────────────────────────────
@@ -836,10 +885,32 @@ def compute_metrics(month_data, managers, roster=None):
         flagged     = [s for s in all_signals if s != "On track"]
         most_common = max(set(flagged), key=flagged.count) if flagged else None
         slowest     = max(deliverables, key=lambda d: d.get("task_days", 0))
-        # Signal breakdown: count of each signal label (excluding "On track")
+        # Signal breakdown
         signal_counts = {}
         for s in all_signals:
             signal_counts[s] = signal_counts.get(s, 0) + 1
+        # Avg days: all vs flagged vs on-track
+        flagged_days   = [d.get("task_days", 0) for d in deliverables if d.get("signal") != "On track"]
+        ontrack_days   = [d.get("task_days", 0) for d in deliverables if d.get("signal") == "On track"]
+        avg_days_all     = round(tt / n, 1)
+        avg_days_flagged = round(sum(flagged_days) / len(flagged_days), 1) if flagged_days else None
+        avg_days_ontrack = round(sum(ontrack_days) / len(ontrack_days), 1) if ontrack_days else None
+        # Aggregate AI reason categories (strip [DS] for counting, track DS count separately)
+        reason_counts = {}
+        ds_reason_count = 0
+        for d in deliverables:
+            raw = d.get("ai_reasons") or ""
+            for phrase in raw.split("."):
+                phrase = phrase.strip()
+                if not phrase:
+                    continue
+                is_ds = "[DS]" in phrase
+                clean = phrase.replace("[DS]", "").strip().rstrip(".")
+                if clean:
+                    reason_counts[clean] = reason_counts.get(clean, 0) + 1
+                    if is_ds:
+                        ds_reason_count += 1
+        top_reasons = sorted(reason_counts.items(), key=lambda x: x[1], reverse=True)[:6]
         monthly_insight = {
             "total":              n,
             "flagged_count":      len(flagged),
@@ -847,6 +918,11 @@ def compute_metrics(month_data, managers, roster=None):
             "signal_breakdown":   signal_counts,
             "slowest_days":       slowest.get("task_days", 0),
             "slowest_url":        slowest.get("slack_url", ""),
+            "avg_days_all":       avg_days_all,
+            "avg_days_flagged":   avg_days_flagged,
+            "avg_days_ontrack":   avg_days_ontrack,
+            "top_reasons":        top_reasons,
+            "ds_reason_count":    ds_reason_count,
         }
 
         result[month]["thread_details"]  = thread_details
@@ -1062,9 +1138,9 @@ th,td{{padding:18px 10px;border-bottom:1px solid #f0f0f0;vertical-align:middle}}
 .info-rules li{{font-size:.85rem;color:#444;line-height:1.55;padding:5px 0 5px 16px;border-bottom:1px solid #f5f5f5;position:relative}}
 .info-rules li:last-child{{border:none}}
 .info-rules li::before{{content:"–";position:absolute;left:0;color:#bbb}}
-.sig{{display:inline-block;font-size:.68rem;font-weight:600;letter-spacing:.4px;padding:2px 8px;border-radius:4px;white-space:nowrap}}
-.sig-err{{background:#fff0f0;color:#c0392b}}
-.sig-ot{{background:#f0faf0;color:#1a7a3a}}
+.sig{{display:inline;font-size:.82rem;font-weight:600;white-space:nowrap}}
+.sig-err{{color:#c0392b}}
+.sig-ot{{color:#1a7a3a}}
 .cell-alert{{color:#c0392b!important;font-weight:700}}
 .pf{{padding:10px 28px 10px;border-bottom:1px solid #f2f2f2;flex-shrink:0;display:none;gap:8px;align-items:center}}
 .pf.on{{display:flex}}
@@ -1093,10 +1169,22 @@ th,td{{padding:18px 10px;border-bottom:1px solid #f0f0f0;vertical-align:middle}}
 .th-table .td-type a:hover{{color:#0057d9;text-decoration:underline}}
 .th-row-click:hover td{{background:#f7f9ff}}
 .ai-why{{font-size:.72rem;color:#888;font-style:italic;margin-top:3px;line-height:1.4}}
-.td-ai{{max-width:360px;min-width:180px}}
-.th-ai{{text-align:left!important}}
+.td-ai{{max-width:300px;min-width:160px}}
+.td-reason{{max-width:280px;min-width:140px}}
+.th-ai,.th-reason{{text-align:left!important}}
 .ai-why-col{{font-size:.72rem;color:#888;font-style:italic;line-height:1.4;display:block}}
 .ai-empty{{color:#ddd}}
+.reason-text{{font-size:.72rem;color:#555;line-height:1.5}}
+.reason-ds{{color:#0057d9;font-weight:600}}
+.dash-grid{{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px}}
+.dash-card{{background:#f9f9f9;border-radius:8px;padding:14px 18px}}
+.dash-label{{font-size:.65rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#bbb;margin-bottom:8px}}
+.dash-big{{font-size:1.6rem;font-weight:700;color:#111;line-height:1}}
+.dash-sub{{font-size:.75rem;color:#888;margin-top:4px}}
+.dash-row{{display:flex;justify-content:space-between;align-items:baseline;padding:5px 0;border-bottom:1px solid #f0f0f0;font-size:.8rem}}
+.dash-row:last-child{{border:none}}
+.dash-section{{margin-bottom:18px}}
+.dash-section-title{{font-size:.65rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#bbb;margin-bottom:10px}}
 .leg{{margin-top:28px;padding-top:18px;border-top:1px solid #f0f0f0}}
 .leg-title{{font-size:.68rem;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:#bbb;margin-bottom:10px}}
 .leg-row{{display:flex;gap:8px;align-items:flex-start;margin-bottom:7px;font-size:.78rem;color:#555;line-height:1.45}}
@@ -1290,7 +1378,16 @@ function drillRow(t, showDesigner) {{
   const isCyc = sig==='High rework', isGap = sig==='Slow pickup',
         isRep = sig==='Long discussion', isMgr = sig==='Slow feedback';
   const desCel = showDesigner ? `<td class="td-name">${{t.designer}}</td>` : '';
-  const aiCell = t.ai_summary ? `<span class="ai-why-col">${{t.ai_summary}}</span>` : '<span class="ai-why-col ai-empty">—</span>';
+  const aiCell = t.ai_summary ? `<span class="ai-why-col">${{t.ai_summary}}</span>` : '';
+  // Render reasons: [DS] phrases in blue, others in grey
+  let reasonHtml = '';
+  if (t.ai_reasons) {{
+    reasonHtml = t.ai_reasons.split('.').map(r => r.trim()).filter(Boolean).map(r => {{
+      const isDs = r.includes('[DS]');
+      const clean = r.replace('[DS]','').trim();
+      return clean ? `<span class="${{isDs?'reason-ds':'reason-text'}}">${{clean}}${{isDs?' ◈':''}}</span>` : '';
+    }}).filter(Boolean).join('<br>');
+  }}
   return `<tr ${{rc}} class="th-row-click">
     ${{desCel}}
     <td class="td-type" title="${{lbl}}">${{lbl}}</td>
@@ -1301,6 +1398,7 @@ function drillRow(t, showDesigner) {{
     <td class="td-num ${{isGap?'cell-alert':''}}">${{gap}}</td>
     <td class="td-num">${{days}}</td>
     <td class="td-ai">${{aiCell}}</td>
+    <td class="td-reason">${{reasonHtml}}</td>
   </tr>`;
 }}
 
@@ -1309,7 +1407,8 @@ function drillHead(showDesigner) {{
   return `<thead><tr>${{dc}}<th>Deliverable</th><th>Signal</th>
     <th style="text-align:center">Cycles</th><th style="text-align:center">Replies</th>
     <th style="text-align:center">Mgr</th><th style="text-align:center">Gap</th>
-    <th style="text-align:center">Days</th><th class="th-ai">AI Summary</th></tr></thead>`;
+    <th style="text-align:center">Days</th><th class="th-ai">AI Summary</th>
+    <th class="th-reason">Reason <span style="color:#0057d9;font-size:.65rem">◈ design system</span></th></tr></thead>`;
 }}
 
 function drillLegend() {{
@@ -1326,7 +1425,8 @@ function drillLegend() {{
     <div class="leg-row"><strong>Mgr</strong> — Avg business days for manager to respond (avg across rounds)</div>
     <div class="leg-row"><strong>Gap</strong> — Longest silent stretch between any two consecutive messages</div>
     <div class="leg-row"><strong>Days</strong> — Total business days from first submission to last message</div>
-    <div class="leg-row"><strong>AI Summary</strong> — One-line root cause from Gemini based on thread content</div>
+    <div class="leg-row"><strong>AI Summary</strong> — One-line root cause from Gemini, specific to thread content</div>
+    <div class="leg-row"><strong>Reason</strong> — Underlying cause category from Gemini · <span style="color:#0057d9;font-weight:600">◈ blue = fixable by adding design system patterns</span></div>
   </div>`;
 }}
 
@@ -1400,35 +1500,117 @@ function showDrill(el) {{
 
   if (metricKey === 'num_ds') {{
     document.getElementById('pf').style.display = 'none';
-    const threads = THREAD_DETAILS[ym] || {{}};
+    const threads  = THREAD_DETAILS[ym] || {{}};
+    const insight  = (INSIGHTS_COMBINED[ym] || INSIGHTS_PRODUCT[ym] || INSIGHTS_MARKETING[ym] || {{}});
     const SIG_ORDER = ['High rework','Slow pickup','Long discussion','Slow feedback','On track'];
-    // Build per-designer signal counts
+
+    // Flatten all threads
+    const allThreads = Object.values(threads).flat();
+    const total      = allThreads.length || insight.total || 0;
+    const flaggedCnt = insight.flagged_count || 0;
+    const onTrackCnt = total - flaggedCnt;
+    const offPct     = total ? Math.round(flaggedCnt/total*100) : 0;
+    const onPct      = 100 - offPct;
+    const sigBreak   = insight.signal_breakdown || {{}};
+    const avgAll     = insight.avg_days_all;
+    const avgFlag    = insight.avg_days_flagged;
+    const avgOk      = insight.avg_days_ontrack;
+    const topReasons = insight.top_reasons || [];
+    const dsCnt      = insight.ds_reason_count || 0;
+
+    // Per-designer table
     const designers = Object.entries(threads).map(([name, ts]) => {{
       const counts = {{}};
       SIG_ORDER.forEach(s => counts[s] = 0);
-      ts.forEach(t => {{ if (counts[t.signal] !== undefined) counts[t.signal]++; else counts[t.signal] = 1; }});
-      return {{ name, total: ts.length, counts }};
-    }});
-    designers.sort((a,b) => b.total - a.total);
-    // Total row
-    const totals = {{}};
-    SIG_ORDER.forEach(s => totals[s] = designers.reduce((n,d) => n + (d.counts[s]||0), 0));
-    const grandTotal = designers.reduce((n,d) => n + d.total, 0);
-    const sigCols = SIG_ORDER.filter(s => totals[s] > 0);
-    const thCols = sigCols.map(s => `<th style="text-align:center;white-space:nowrap"><span class="sig ${{s==='On track'?'sig-ot':'sig-err'}}">${{s}}</span></th>`).join('');
-    const totalCells = sigCols.map(s => `<td style="text-align:center;font-weight:600">${{totals[s]||0}}</td>`).join('');
+      ts.forEach(t => {{ counts[t.signal] = (counts[t.signal]||0)+1; }});
+      const flagged = ts.filter(t => t.signal !== 'On track').length;
+      return {{ name, total: ts.length, flagged, counts }};
+    }}).sort((a,b) => b.flagged - a.flagged || b.total - a.total);
+
+    const sigCols = SIG_ORDER.filter(s => s !== 'On track' && (sigBreak[s]||0) > 0);
+    const thSigCols = sigCols.map(s=>`<th style="text-align:center"><span class="sig sig-err">${{s}}</span></th>`).join('');
     const desCells = designers.map(d => {{
-      const cells = sigCols.map(s => `<td style="text-align:center;color:${{s!=='On track'&&d.counts[s]>0?'#c0392b':'#888'}}">${{d.counts[s]||''}}</td>`).join('');
-      return `<tr><td class="td-name">${{d.name}}</td><td style="text-align:center;font-weight:600">${{d.total}}</td>${{cells}}</tr>`;
+      const cells = sigCols.map(s => `<td style="text-align:center;color:${{d.counts[s]>0?'#c0392b':'#ddd'}}">${{d.counts[s]||''}}</td>`).join('');
+      const flagColor = d.flagged > 0 ? '#c0392b' : '#1a7a3a';
+      return `<tr>
+        <td class="td-name">${{d.name}}</td>
+        <td style="text-align:center">${{d.total}}</td>
+        <td style="text-align:center;color:${{flagColor}};font-weight:${{d.flagged?600:400}}">${{d.flagged||''}}</td>
+        ${{cells}}
+      </tr>`;
     }}).join('');
+
+    // Signal rows
+    const sigRows = SIG_ORDER.filter(s => sigBreak[s]).map(s => {{
+      const cls = s==='On track'?'sig-ot':'sig-err';
+      return `<div class="dash-row"><span class="sig ${{cls}}">${{s}}</span><span style="font-weight:600">${{sigBreak[s]}}</span></div>`;
+    }}).join('');
+
+    // Top reasons
+    const reasonRows = topReasons.length
+      ? topReasons.map(([r,c])=>`<div class="dash-row"><span style="color:#555">${{r}}</span><span style="font-weight:600;color:#333">${{c}}</span></div>`).join('')
+      : '<div style="font-size:.78rem;color:#bbb">No AI reasons yet — run workflow to generate</div>';
+
+    // Timing
+    const timingRows = [
+      avgAll  != null ? `<div class="dash-row"><span style="color:#555">Overall avg</span><span style="font-weight:600">${{avgAll}}d</span></div>` : '',
+      avgFlag != null ? `<div class="dash-row"><span style="color:#c0392b">Off-track avg</span><span style="font-weight:600;color:#c0392b">${{avgFlag}}d</span></div>` : '',
+      avgOk   != null ? `<div class="dash-row"><span style="color:#1a7a3a">On-track avg</span><span style="font-weight:600;color:#1a7a3a">${{avgOk}}d</span></div>` : '',
+      avgFlag && avgOk ? `<div class="dash-row" style="border-top:1px solid #eee;margin-top:4px"><span style="color:#888">Off-track penalty</span><span style="font-weight:700;color:#c0392b">+${{Math.round((avgFlag-avgOk)*10)/10}}d</span></div>` : '',
+    ].filter(Boolean).join('');
+
     document.getElementById('pb').innerHTML = `
-      <table class="th-table">
-        <thead><tr><th>Name</th><th style="text-align:center">Deliverables</th>${{thCols}}</tr></thead>
-        <tbody>
-          <tr style="background:#f9f9f9;font-weight:600"><td>Total</td><td style="text-align:center">${{grandTotal}}</td>${{totalCells}}</tr>
-          ${{desCells}}
-        </tbody>
-      </table>`;
+      <div style="padding:16px 0 8px">
+        <!-- Overview row -->
+        <div class="dash-grid" style="grid-template-columns:1fr 1fr 1fr;margin-bottom:16px">
+          <div class="dash-card">
+            <div class="dash-label">Total</div>
+            <div class="dash-big">${{total}}</div>
+            <div class="dash-sub">deliverables</div>
+          </div>
+          <div class="dash-card">
+            <div class="dash-label">On track</div>
+            <div class="dash-big" style="color:#1a7a3a">${{onPct}}%</div>
+            <div class="dash-sub">${{onTrackCnt}} deliverables</div>
+          </div>
+          <div class="dash-card">
+            <div class="dash-label">Off track</div>
+            <div class="dash-big" style="color:#c0392b">${{offPct}}%</div>
+            <div class="dash-sub">${{flaggedCnt}} deliverables</div>
+          </div>
+        </div>
+
+        <!-- Signals + Reasons + Timing -->
+        <div class="dash-grid" style="margin-bottom:16px">
+          <div>
+            <div class="dash-section-title">Signals</div>
+            ${{sigRows}}
+          </div>
+          <div>
+            <div class="dash-section-title">Days to complete</div>
+            ${{timingRows}}
+          </div>
+        </div>
+
+        <div>
+          <div class="dash-section-title">Top root causes ${{dsCnt>0?`· <span style="color:#0057d9">${{dsCnt}} design system gaps ◈</span>`:''}}</div>
+          ${{reasonRows}}
+        </div>
+
+        <!-- Designer breakdown -->
+        <div style="margin-top:20px">
+          <div class="dash-section-title">By designer</div>
+          <table class="th-table">
+            <thead><tr>
+              <th>Name</th>
+              <th style="text-align:center">Total</th>
+              <th style="text-align:center">Off track</th>
+              ${{thSigCols}}
+            </tr></thead>
+            <tbody>${{desCells}}</tbody>
+          </table>
+        </div>
+      </div>`;
     return;
   }}
 
