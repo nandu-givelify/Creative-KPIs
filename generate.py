@@ -1041,7 +1041,7 @@ th,td{{padding:18px 10px;border-bottom:1px solid #f0f0f0;vertical-align:middle}}
 .empty{{color:#e0e0e0;font-size:.8rem}}
 .ov{{display:none;position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:100}}
 .ov.on{{display:flex;align-items:flex-end;justify-content:center;padding-bottom:0}}
-.pnl{{width:max-content;min-width:520px;max-width:92vw;max-height:35vh;background:#fff;border-radius:16px 16px 0 0;box-shadow:0 -6px 40px rgba(0,0,0,.15);display:flex;flex-direction:column;overflow:hidden;transform:translateY(100%);transition:transform .25s ease}}
+.pnl{{width:max-content;min-width:520px;max-width:92vw;max-height:45vh;background:#fff;border-radius:16px 16px 0 0;box-shadow:0 -6px 40px rgba(0,0,0,.15);display:flex;flex-direction:column;overflow:hidden;transform:translateY(100%);transition:transform .25s ease}}
 .ov.on .pnl{{transform:translateY(0)}}
 .ph{{padding:16px 24px 12px;border-bottom:1px solid #f2f2f2;display:flex;justify-content:space-between;align-items:flex-start;flex-shrink:0}}
 .pt{{font-size:1.05rem;font-weight:600;color:#111}}
@@ -1080,7 +1080,7 @@ th,td{{padding:18px 10px;border-bottom:1px solid #f0f0f0;vertical-align:middle}}
 .des-hdr{{font-size:.82rem;font-weight:700;color:#111;margin-bottom:8px}}
 .des-sub{{font-size:.72rem;color:#aaa;font-weight:400;margin-left:6px}}
 .th-table{{width:100%;border-collapse:collapse;font-size:.82rem}}
-.th-table th{{font-size:.68rem;font-weight:600;letter-spacing:.8px;text-transform:uppercase;color:#bbb;padding:4px 8px 4px 0;border-bottom:1px solid #f0f0f0;text-align:left}}
+.th-table th{{font-size:.75rem;font-weight:600;color:#bbb;padding:4px 8px 4px 0;border-bottom:1px solid #f0f0f0;text-align:left;position:sticky;top:0;background:#fff;z-index:1}}
 .th-table td{{padding:8px 8px 8px 0;border-bottom:1px solid #f8f8f8;color:#333;vertical-align:middle}}
 .th-table tr:last-child td{{border:none}}
 .th-table .td-type{{font-weight:500;color:#111;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}}
@@ -1274,6 +1274,7 @@ function setGroupBy(mode) {{
   document.querySelectorAll('.gf-btn').forEach(b =>
     b.classList.toggle('active', b.dataset.mode === mode));
   renderDrillContent();
+  document.getElementById('pb').scrollTop = 0;
 }}
 
 function drillRow(t, showDesigner) {{
