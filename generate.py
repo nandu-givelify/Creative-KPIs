@@ -1048,7 +1048,7 @@ th,td{{padding:18px 10px;border-bottom:1px solid #f0f0f0;vertical-align:middle}}
 .ps{{font-size:.73rem;color:#aaa;margin-top:4px}}
 .px{{background:none;border:none;cursor:pointer;color:#bbb;font-size:1.15rem;padding:0;margin-left:10px;line-height:1;flex-shrink:0}}
 .px:hover{{color:#333}}
-.pb{{flex:1;overflow-y:auto;padding:22px 28px 28px}}
+.pb{{flex:1;overflow-y:auto;padding:0 28px 28px}}
 .dr{{display:flex;justify-content:space-between;align-items:center;padding:13px 0;border-bottom:1px solid #f8f8f8}}
 .dr:last-child{{border:none}}
 .dn{{font-size:.88rem;color:#444}}
@@ -1080,7 +1080,7 @@ th,td{{padding:18px 10px;border-bottom:1px solid #f0f0f0;vertical-align:middle}}
 .des-hdr{{font-size:.82rem;font-weight:700;color:#111;margin-bottom:8px}}
 .des-sub{{font-size:.72rem;color:#aaa;font-weight:400;margin-left:6px}}
 .th-table{{width:100%;border-collapse:collapse;font-size:.82rem}}
-.th-table th{{font-size:.75rem;font-weight:600;color:#bbb;padding:4px 8px 4px 0;border-bottom:1px solid #f0f0f0;text-align:left;position:sticky;top:0;background:#fff;z-index:1}}
+.th-table th{{font-size:.75rem;font-weight:600;color:#bbb;padding:14px 8px 4px 0;border-bottom:1px solid #f0f0f0;text-align:left;position:sticky;top:0;background:#fff;z-index:1}}
 .th-table td{{padding:8px 8px 8px 0;border-bottom:1px solid #f8f8f8;color:#333;vertical-align:middle}}
 .th-table tr:last-child td{{border:none}}
 .th-table .td-type{{font-weight:500;color:#111;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}}
@@ -1092,7 +1092,7 @@ th,td{{padding:18px 10px;border-bottom:1px solid #f0f0f0;vertical-align:middle}}
 .th-table .td-type a:hover{{color:#0057d9;text-decoration:underline}}
 .th-row-click:hover td{{background:#f7f9ff}}
 .ai-why{{font-size:.72rem;color:#888;font-style:italic;margin-top:3px;line-height:1.4}}
-.td-ai{{max-width:260px;min-width:120px}}
+.td-ai{{max-width:360px;min-width:180px}}
 .th-ai{{text-align:left!important}}
 .ai-why-col{{font-size:.72rem;color:#888;font-style:italic;line-height:1.4;display:block}}
 .ai-empty{{color:#ddd}}
