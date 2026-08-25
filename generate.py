@@ -472,14 +472,14 @@ def generate_signal_summary(thread, signal, deliverable_type, users, mgr_ids):
         f'- "Scope Changed": only if scope was explicitly expanded or reduced AFTER work began, with evidence.\n'
         f'- "Direction Changed": only if the SAME person reversed or significantly changed their OWN direction between rounds.\n'
         f'- "Conflicting Input": only if TWO OR MORE reviewers gave opposing directions IN THE SAME ROUND. Multiple people giving feedback does not qualify.\n'
-        f'- "Unclear Brief": only if the thread shows the designer misunderstood requirements because they were ambiguous upfront — not just because feedback arrived.\n'
+        f'- "Unclear Requirements": only if the thread shows the designer misunderstood requirements because they were ambiguous upfront — not just because feedback arrived.\n'
         f'- "Copy Alignment": design and copy were not in sync, causing rework.\n'
         f'- "Missing Pattern": no existing design system component existed for what was needed.\n'
         f'- "Brand Constraint": brand guidelines directly limited or changed the design direction.\n'
         f'- "Asset Dependency": work was blocked waiting for assets from another team or person.\n'
         f'- "Technical Limit": a platform or engineering constraint changed what was designable.\n'
         f'- "Accessibility Gap": accessibility requirements caused a design change.\n'
-        f'- "Edge Case": an unexpected use case emerged during review not in the original scope.\n'
+        f'- "Missed Usecase": an unexpected use case or scenario was not accounted for in the original design, discovered during review.\n'
         f'If none fit with clear evidence, write "None".]\n\n'
         f'Good example (Direction Changed):\n'
         f'Summary: Stakeholder reversed heart placement direction after approving it.\n'
@@ -493,7 +493,7 @@ def generate_signal_summary(thread, signal, deliverable_type, users, mgr_ids):
         f'Bad Issues — never use these:\n'
         f'"Conflicting Input" when only one person reviewed.\n'
         f'"Scope Changed" when scope was decomposed or planned, not changed mid-work.\n'
-        f'"Unclear Brief" when the brief was clear but scope was large.\n'
+        f'"Unclear Requirements" when the brief was clear but scope was large.\n'
         f'"Direction Changed" when a manager gave normal iterative feedback across rounds.\n'
         f'Any label that restates what the signal already captures.'
     )
@@ -1201,6 +1201,18 @@ th,td{{padding:18px 10px;border-bottom:1px solid #f0f0f0;vertical-align:middle}}
 .pnl.pushed{{transform:translateY(-28px) scale(0.96);transition:transform .25s ease}}
 .ov2{{display:none;position:fixed;inset:0;z-index:190;background:rgba(0,0,0,.15)}}
 .ov2.on{{display:block}}
+.sp{{position:fixed;top:0;right:0;height:100vh;width:380px;background:#fff;box-shadow:-4px 0 32px rgba(0,0,0,.14);transform:translateX(100%);transition:transform .28s ease;z-index:150;display:flex;flex-direction:column;overflow:hidden}}
+.sp.open{{transform:translateX(0)}}
+.sp-ov{{display:none;position:fixed;inset:0;z-index:140;background:rgba(0,0,0,.18)}}
+.sp-ov.on{{display:block}}
+.sp-ph{{padding:20px 20px 14px;border-bottom:1px solid #f0f0f0;display:flex;align-items:flex-start;justify-content:space-between;flex-shrink:0}}
+.sp-pb{{flex:1;overflow-y:auto;padding:20px}}
+.sp-title{{font-size:.92rem;font-weight:700;color:#111}}
+.sp-sub{{font-size:.75rem;color:#aaa;margin-top:2px}}
+.sig-table{{width:100%;border-collapse:collapse;font-size:.8rem;margin-top:8px}}
+.sig-table th{{font-size:.7rem;font-weight:600;color:#bbb;padding:8px 6px 4px 0;border-bottom:1px solid #f0f0f0;text-align:left}}
+.sig-table td{{padding:8px 6px 8px 0;border-bottom:1px solid #f8f8f8;vertical-align:top}}
+.sig-table tr:last-child td{{border-bottom:none}}
 .reason-text{{font-size:.72rem;color:#555;line-height:1.5}}
 .reason-ds{{color:#0057d9;font-weight:600}}
 .dash-grid{{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px}}
@@ -1319,6 +1331,15 @@ th,td{{padding:18px 10px;border-bottom:1px solid #f0f0f0;vertical-align:middle}}
     <button class="px" onclick="closePanel2()">✕</button>
   </div>
   <div class="pb" id="pb2"></div>
+</div>
+
+<div class="sp-ov" id="sp-ov" onclick="closeSidePanel()"></div>
+<div class="sp" id="sp" onclick="event.stopPropagation()">
+  <div class="sp-ph">
+    <div><div class="sp-title" id="sp-title"></div><div class="sp-sub" id="sp-sub"></div></div>
+    <button class="px" onclick="closeSidePanel()">✕</button>
+  </div>
+  <div class="sp-pb" id="sp-pb"></div>
 </div>
 
 <script>
@@ -1660,12 +1681,48 @@ function showDrill(el) {{
   }}
 
   document.getElementById('pf').style.display = 'none';
+
+  if (metricKey === 'ds_per_person') {{
+    // Build per-designer signal breakdown table in side panel
+    const SIG_ORDER = ['High rework','Slow pickup','Long discussion','Late feedback','On track'];
+    const threads = THREAD_DETAILS[ym] || {{}};
+    const rows = Object.entries(threads).map(([name, ts]) => {{
+      const counts = {{}};
+      ts.forEach(t => {{ counts[t.signal] = (counts[t.signal]||0)+1; }});
+      const total = ts.length;
+      const flagged = total - (counts['On track']||0);
+      return {{name, counts, total, flagged}};
+    }}).sort((a,b) => b.flagged - a.flagged || b.total - a.total);
+    if (!rows.length) {{
+      openSidePanel(el.dataset.metric, mon+' '+yr, '<div class="nd">No data</div>');
+      document.getElementById('ov').classList.remove('on');
+      return;
+    }}
+    const sigCols = SIG_ORDER.filter(s => rows.some(r => r.counts[s]));
+    const thead = `<tr><th>Designer</th><th style="text-align:center">Total</th>${{sigCols.map(s=>`<th style="text-align:center">${{s}}</th>`).join('')}}</tr>`;
+    const tbody = rows.map(r => {{
+      const sigCells = sigCols.map(s => {{
+        const v = r.counts[s]||0;
+        const cls = s==='On track'?'sig-ot':'sig-err';
+        return `<td style="text-align:center">${{v ? `<span class="sig ${{cls}}">${{v}}</span>` : '—'}}</td>`;
+      }}).join('');
+      return `<tr><td style="font-weight:500">${{r.name}}</td><td style="text-align:center;font-weight:600">${{r.total}}</td>${{sigCells}}</tr>`;
+    }}).join('');
+    const html = `<table class="sig-table"><thead>${{thead}}</thead><tbody>${{tbody}}</tbody></table>`;
+    openSidePanel(el.dataset.metric, mon+' '+yr, html);
+    document.getElementById('ov').classList.remove('on');
+    return;
+  }}
+
+  // Generic drill — show breakdown list in side panel
   let d = {{}};
   try {{ d = JSON.parse(el.dataset.drill); }} catch(e) {{}}
   const entries = Object.entries(d);
-  document.getElementById('pb').innerHTML = entries.length
+  const html = entries.length
     ? entries.map(([n,v]) => `<div class="dr"><span class="dn">${{n}}</span><span class="dv">${{v}}${{s}}</span></div>`).join('')
     : '<div class="nd">No breakdown available</div>';
+  openSidePanel(el.dataset.metric, mon+' '+yr, html);
+  document.getElementById('ov').classList.remove('on');
 }}
 
 function close_() {{
@@ -1685,7 +1742,18 @@ function closePanel2() {{
   document.getElementById('pnl2').classList.remove('open');
   document.getElementById('pnl').classList.remove('pushed');
 }}
-document.addEventListener('keydown', e => {{ if (e.key === 'Escape') {{ closePanel2(); close_(); }} }});
+function openSidePanel(title, subtitle, html) {{
+  document.getElementById('sp-title').textContent = title;
+  document.getElementById('sp-sub').textContent   = subtitle;
+  document.getElementById('sp-pb').innerHTML      = html;
+  document.getElementById('sp-ov').classList.add('on');
+  document.getElementById('sp').classList.add('open');
+}}
+function closeSidePanel() {{
+  document.getElementById('sp-ov').classList.remove('on');
+  document.getElementById('sp').classList.remove('open');
+}}
+document.addEventListener('keydown', e => {{ if (e.key === 'Escape') {{ closeSidePanel(); closePanel2(); close_(); }} }});
 </script>
 </body>
 </html>"""
