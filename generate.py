@@ -1072,15 +1072,21 @@ def generate_html(metrics_combined, metrics_product, metrics_marketing, year=202
     upd     = datetime.now(tz=timezone.utc).strftime("%B %d, %Y")
     info_js = json.dumps(METRIC_INFO)
 
+    def safe_js(obj):
+        """JSON-encode obj and escape sequences that would break an inline <script> block."""
+        return (json.dumps(obj)
+                .replace("</", "<\\/")   # prevents </script> from ending the block
+                .replace("<!--", "<\\!--"))
+
     # JS data blobs for thread breakdown and insights
-    thread_details_js  = json.dumps({ym: v.get("thread_details", {})
-                                      for ym, v in metrics_combined.items()})
-    insights_combined_js  = json.dumps({ym: v.get("monthly_insight")
-                                         for ym, v in metrics_combined.items() if v.get("monthly_insight")})
-    insights_product_js   = json.dumps({ym: v.get("monthly_insight")
-                                         for ym, v in metrics_product.items() if v.get("monthly_insight")})
-    insights_marketing_js = json.dumps({ym: v.get("monthly_insight")
-                                         for ym, v in metrics_marketing.items() if v.get("monthly_insight")})
+    thread_details_js  = safe_js({ym: v.get("thread_details", {})
+                                   for ym, v in metrics_combined.items()})
+    insights_combined_js  = safe_js({ym: v.get("monthly_insight")
+                                      for ym, v in metrics_combined.items() if v.get("monthly_insight")})
+    insights_product_js   = safe_js({ym: v.get("monthly_insight")
+                                      for ym, v in metrics_product.items() if v.get("monthly_insight")})
+    insights_marketing_js = safe_js({ym: v.get("monthly_insight")
+                                      for ym, v in metrics_marketing.items() if v.get("monthly_insight")})
 
     return f"""<!DOCTYPE html>
 <html lang="en">
