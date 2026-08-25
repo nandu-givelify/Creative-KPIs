@@ -1509,19 +1509,27 @@ function renderDrillContent() {{
   document.getElementById('pb').innerHTML = html + drillLegend();
 }}
 
-function buildThreadTable(threads, ym) {{
+function buildThreadTable(threads) {{
   if (!threads.length) return '<div class="nd">No deliverables</div>';
+  const sorted = [...threads].sort((a,b) => b.task_days - a.task_days);
+  return `<table class="th-table">${{drillHead(true)}}<tbody>${{sorted.map(t=>drillRow(t,true)).join('')}}</tbody></table>${{drillLegend()}}`;
+}}
+
+function openPanel2Filter(ym, filterType, el) {{
+  const filterValue = el.dataset.filter;
   const threadDetails = THREAD_DETAILS[ym] || {{}};
-  // threads may already have designer attached; if not, look it up
-  const withDes = threads.map(t => {{
-    if (t.designer) return t;
-    for (const [name, ts] of Object.entries(threadDetails)) {{
-      if (ts.some(x => x.slack_url === t.slack_url)) return {{...t, designer: name, click_url: t.slack_url}};
-    }}
-    return {{...t, click_url: t.slack_url}};
-  }});
-  withDes.sort((a,b) => b.task_days - a.task_days);
-  return `<table class="th-table">${{drillHead(true)}}<tbody>${{withDes.map(t=>drillRow(t,true)).join('')}}</tbody></table>${{drillLegend()}}`;
+  const allThreads = Object.entries(threadDetails).flatMap(([name, ts]) =>
+    ts.map(t => ({{...t, designer: name, click_url: t.slack_url}})));
+  let filtered;
+  if (filterType === 'signal') {{
+    filtered = allThreads.filter(t => t.signal === filterValue);
+  }} else {{
+    filtered = allThreads.filter(t =>
+      (t.ai_issue||'').split(',').map(s=>s.trim()).includes(filterValue));
+  }}
+  const count = filtered.length;
+  const subtitle = count + ' deliverable' + (count !== 1 ? 's' : '');
+  openPanel2(filterValue, subtitle, buildThreadTable(filtered));
 }}
 
 function showDrill(el) {{
@@ -1571,18 +1579,15 @@ function showDrill(el) {{
     // Signal rows — clickable for non-On-track signals
     const sigRows = SIG_ORDER.filter(s => sigBreak[s]).map(s => {{
       const cls = s==='On track'?'sig-ot':'sig-err';
-      const filtered = allThreads.filter(t => t.signal === s);
-      const html = buildThreadTable(filtered, ym);
-      return `<div class="dash-row" style="${{s!=='On track'?'cursor:pointer':''}}" ${{s!=='On track'?`onclick="openPanel2('${{s}}','${{sigBreak[s]}} deliverable${{sigBreak[s]!==1?'s':''}}','${{html.replace(/\\/g,'\\\\').replace(/'/g,"&#39;")}}')"`:''}}>`+
+      const clickAttr = s!=='On track' ? `onclick="openPanel2Filter('${{ym}}','signal',this)" data-filter="${{s}}"` : '';
+      return `<div class="dash-row" style="${{s!=='On track'?'cursor:pointer':''}}" ${{clickAttr}}>` +
         `<span class="sig ${{cls}}">${{s}}</span><span style="font-weight:600">${{sigBreak[s]}}</span></div>`;
     }}).join('');
 
     // Top issues — clickable
     const issueRows = topIssues.length
       ? topIssues.map(([r,c]) => {{
-          const filtered = allThreads.filter(t => (t.ai_issue||'').split(',').map(s=>s.trim()).includes(r));
-          const html = buildThreadTable(filtered, ym);
-          return `<div class="dash-row" style="cursor:pointer" onclick="openPanel2('${{r}}','${{c}} deliverable${{c!==1?'s':''}}','${{html.replace(/\\/g,'\\\\').replace(/'/g,"&#39;")}}')">` +
+          return `<div class="dash-row" style="cursor:pointer" onclick="openPanel2Filter('${{ym}}','issue',this)" data-filter="${{r.replace(/"/g,'&quot;')}}">` +
             `<span style="color:#555">${{r}}</span><span style="font-weight:600;color:#333">${{c}}</span></div>`;
         }}).join('')
       : '<div style="font-size:.78rem;color:#bbb">Run workflow to generate AI issues</div>';
