@@ -53,6 +53,12 @@ BH_START = 8   # Business hours start (24h)
 BH_END   = 17  # Business hours end   (24h)
 NO_RESPONSE_THRESHOLD_BH = 72  # hours
 
+# Override working hours for specific people (display_name → (bh_start, bh_end) in local tz)
+# Default is BH_START–BH_END (8–17) in their Slack profile timezone
+REVIEWER_HOURS_OVERRIDE = {
+    "Nandu": (15, 22),   # 3:30pm–10:30pm IST (approximated to hour boundaries)
+}
+
 MONTHS     = ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"]
 MONTH_KEYS = ["01","02","03","04","05","06","07","08","09","10","11","12"]
 
@@ -287,15 +293,15 @@ def compute_max_gap_bdays(thread):
     return max_gap if max_gap > 0 else None
 
 
-def compute_signal(cycle_count, manager_wait, designer_wait, reply_count, max_gap=None):
+def compute_signal(cycle_count, reviewer_wait, designer_wait, reply_count, max_gap=None):
     """Return the single most prominent signal, chosen by highest underlying value."""
     candidates = []
     if cycle_count >= HIGH_CYCLES_THRESHOLD:
         candidates.append(("High rework", cycle_count))
     if max_gap is not None and max_gap >= LONGER_GAP_THRESHOLD:
         candidates.append(("Slow pickup", max_gap))
-    if manager_wait is not None and manager_wait > 2:
-        candidates.append(("Late feedback", manager_wait))
+    if reviewer_wait is not None and reviewer_wait > 2:
+        candidates.append(("Late feedback", reviewer_wait))
     # "Slow pickup" removed — Slow pickup already captures thread inactivity regardless of who stalled
     if reply_count >= 8 and cycle_count <= 1:
         candidates.append(("Long discussion", reply_count))
@@ -304,7 +310,9 @@ def compute_signal(cycle_count, manager_wait, designer_wait, reply_count, max_ga
     return max(candidates, key=lambda x: x[1])[0]
 
 
-def business_hours_between(start_ts, end_ts, tz_str):
+def business_hours_between(start_ts, end_ts, tz_str, bh_start=None, bh_end=None):
+    if bh_start is None: bh_start = BH_START
+    if bh_end   is None: bh_end   = BH_END
     try:    tz = ZoneInfo(tz_str)
     except: tz = ZoneInfo("America/New_York")
     s = datetime.fromtimestamp(float(start_ts), tz=tz)
@@ -313,12 +321,12 @@ def business_hours_between(start_ts, end_ts, tz_str):
     total, cur = 0.0, s
     while cur < e:
         if cur.weekday() < 5:
-            open_  = cur.replace(hour=BH_START, minute=0, second=0, microsecond=0)
-            close_ = cur.replace(hour=BH_END,   minute=0, second=0, microsecond=0)
+            open_  = cur.replace(hour=bh_start, minute=0, second=0, microsecond=0)
+            close_ = cur.replace(hour=bh_end,   minute=0, second=0, microsecond=0)
             ws, we = max(cur, open_), min(e, close_)
             if ws < we:
                 total += (we - ws).total_seconds() / 3600.0
-        cur = (cur + timedelta(days=1)).replace(hour=BH_START, minute=0, second=0, microsecond=0)
+        cur = (cur + timedelta(days=1)).replace(hour=bh_start, minute=0, second=0, microsecond=0)
     return round(total, 2)
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -357,6 +365,13 @@ def get_full_text(msg):
     """Combined normalized text from both text field and rich-text blocks."""
     return (normalize(msg.get("text") or "") + " " +
             normalize(extract_blocks_text(msg.get("blocks", [])))).strip()
+
+
+def get_tagged_users(text, exclude_ids=None):
+    """Return list of user IDs @mentioned in text, excluding exclude_ids."""
+    import re
+    exclude = set(exclude_ids or [])
+    return [uid for uid in re.findall(r'<@([A-Z0-9]+)>', text) if uid not in exclude]
 
 
 def msg_has(msg, phrase):
@@ -432,7 +447,7 @@ _SIGNAL_CONTEXT = {
     "High rework":     "the designer went through 7+ revision rounds — something drove repeated changes",
     "Slow pickup":     "the designer took 5+ business days to respond — something slowed or blocked them",
     "Long discussion": "there were 8+ messages with ≤1 revision cycle — extended back-and-forth without resolution",
-    "Late feedback":   "the manager took 2+ business days to respond — something delayed their review",
+    "Late feedback":   "the reviewer took 2+ business days to respond — something delayed their review",
 }
 
 def generate_signal_summary(thread, signal, deliverable_type, users, mgr_ids):
@@ -458,6 +473,9 @@ def generate_signal_summary(thread, signal, deliverable_type, users, mgr_ids):
         f'Analyze this Slack design review thread.\n'
         f'Deliverable: "{deliverable_type}"\n'
         f'Signal: {signal} — {signal_ctx}\n\n'
+        f'Note: The reviewer for each round is whoever the designer @tagged in their submission message — '
+        f'this may be a manager, another designer, or any team member. '
+        f'If a non-manager responded and the manager did not, that is expected — do not flag manager as bottleneck.\n\n'
         f'Thread:\n{transcript}\n\n'
         f'Return EXACTLY this format (two lines, nothing else):\n'
         f'Summary: [One sentence, max 12 words, plain simple language. '
@@ -557,7 +575,7 @@ def generate_signal_summary(thread, signal, deliverable_type, users, mgr_ids):
 
 
 def process_deliverable_thread(thread, users, managers, month_data, start_ts, end_ts,
-                               ai_summaries=None):
+                               ai_summaries=None, reviewer_hours=None):
     """
     Analyze one confirmed deliverable thread and append per-designer entries to month_data.
 
@@ -653,7 +671,7 @@ def process_deliverable_thread(thread, users, managers, month_data, start_ts, en
                 designer_reply_count[uid] += 1
 
     # ── Step 7: compute response times for each designer's cycles ────────────
-    mgr_id_list = list(mgr_ids)
+    _reviewer_hours = reviewer_hours or {}
 
     for uid in first_deliv_idx:
         deliv_idx = first_deliv_idx[uid]
@@ -665,26 +683,33 @@ def process_deliverable_thread(thread, users, managers, month_data, start_ts, en
         cycle_data = []
         for cyc_msg in designer_cycles[uid]:
             cts = float(cyc_msg["ts"])
-            best_ts, best_mgr = None, None
-            for m in thread:
-                mts = float(m["ts"])
-                if mts > cts and m.get("user") in mgr_ids:
-                    if best_ts is None or mts < best_ts:
-                        best_ts, best_mgr = mts, m["user"]
+            full_txt = get_full_text(cyc_msg)
+            # Tagged reviewers: anyone @mentioned in the cycle opener except the designer
+            tagged_ids = get_tagged_users(full_txt, exclude_ids={uid})
+            tagged_set = set(tagged_ids)
+
+            # Find first response from any tagged person
+            first_rev_ts, first_rev_id = None, None
+            if tagged_set:
+                for m in thread:
+                    mts = float(m["ts"])
+                    if mts > cts and m.get("user") in tagged_set:
+                        first_rev_ts, first_rev_id = mts, m["user"]
+                        break  # thread is chronological; first match wins
 
             resp_time = None
-            if best_ts and best_mgr:
-                bh = business_hours_between(cts, best_ts, managers[best_mgr]["tz"])
+            if first_rev_ts and first_rev_id:
+                rev_tz  = users.get(first_rev_id, {}).get("tz", "America/New_York")
+                rev_bh  = _reviewer_hours.get(first_rev_id, (BH_START, BH_END))
+                bh = business_hours_between(cts, first_rev_ts, rev_tz, rev_bh[0], rev_bh[1])
                 if bh <= NO_RESPONSE_THRESHOLD_BH:
                     resp_time = bh
 
-            full_txt = get_full_text(cyc_msg)
-            tagged = [mid for mid in mgr_id_list if f"<@{mid}>" in full_txt]
             cycle_data.append({
-                "ts":                     cyc_msg["ts"],
-                "tagged":                 tagged,
-                "response_time_hours":    resp_time,
-                "responding_manager_id":  best_mgr if resp_time is not None else None,
+                "ts":                      cyc_msg["ts"],
+                "tagged_reviewer_ids":     tagged_ids,
+                "response_time_hours":     resp_time,
+                "responding_reviewer_id":  first_rev_id if resp_time is not None else None,
             })
 
         # Business days (Mon–Fri, weekends excluded) from this designer's deliverable
@@ -693,35 +718,51 @@ def process_deliverable_thread(thread, users, managers, month_data, start_ts, en
         task_days = business_days_between(float(deliv_msg["ts"]), last_thread_ts)
 
         # ── Phase times ──────────────────────────────────────────────────────
-        # Phase 1 (manager wait): how long until a manager replied after each
+        # Phase 1 (reviewer wait): how long until a tagged reviewer replied after each
         #   designer action (deliverable + each cycle).
         # Phase 2 (designer pickup): how long the designer took to post their
-        #   next cycle after receiving manager feedback.
-        all_mgr_ts  = sorted(float(m["ts"]) for m in thread if m.get("user") in mgr_ids)
+        #   next cycle after receiving reviewer feedback.
         all_cyc_ts  = sorted(float(c["ts"]) for c in designer_cycles[uid])
         deliv_ts_f  = float(deliv_msg["ts"])
 
-        mgr_wait_list, des_wait_list = [], []
+        reviewer_wait_list, des_wait_list = [], []
+        reviewer_response_ts = []   # timestamps of reviewer responses (for designer-wait calc)
 
-        # After deliverable
-        nm = next((ts for ts in all_mgr_ts if ts > deliv_ts_f), None)
-        if nm:
-            mgr_wait_list.append(business_days_between(deliv_ts_f, nm))
+        def _first_reviewer_response(after_ts, tagged_set):
+            """Return timestamp of first tagged-reviewer response after after_ts, or None."""
+            if not tagged_set:
+                return None
+            for m in thread:
+                mts = float(m["ts"])
+                if mts > after_ts and m.get("user") in tagged_set:
+                    return mts
+            return None
+
+        # After initial deliverable
+        deliv_tagged = set(get_tagged_users(get_full_text(deliv_msg), exclude_ids={uid}))
+        nr = _first_reviewer_response(deliv_ts_f, deliv_tagged)
+        if nr:
+            reviewer_wait_list.append(business_days_between(deliv_ts_f, nr))
+            reviewer_response_ts.append(nr)
 
         # After each cycle
-        for cyc_ts in all_cyc_ts:
-            nm = next((ts for ts in all_mgr_ts if ts > cyc_ts), None)
-            if nm:
-                mgr_wait_list.append(business_days_between(cyc_ts, nm))
-            pm = max((ts for ts in all_mgr_ts if ts < cyc_ts), default=None)
+        for cyc_msg in designer_cycles[uid]:
+            cyc_ts = float(cyc_msg["ts"])
+            cyc_tagged = set(get_tagged_users(get_full_text(cyc_msg), exclude_ids={uid}))
+            nr = _first_reviewer_response(cyc_ts, cyc_tagged)
+            if nr:
+                reviewer_wait_list.append(business_days_between(cyc_ts, nr))
+                reviewer_response_ts.append(nr)
+            # Designer wait: time from last reviewer response to this cycle
+            pm = max((ts for ts in reviewer_response_ts if ts < cyc_ts), default=None)
             if pm:
                 des_wait_list.append(business_days_between(pm, cyc_ts))
 
-        avg_mgr_wait = round(sum(mgr_wait_list) / len(mgr_wait_list), 1) if mgr_wait_list else None
+        avg_reviewer_wait = round(sum(reviewer_wait_list) / len(reviewer_wait_list), 1) if reviewer_wait_list else None
         avg_des_wait = round(sum(des_wait_list) / len(des_wait_list), 1) if des_wait_list else None
         max_gap      = compute_max_gap_bdays(thread)
 
-        signal    = compute_signal(len(designer_cycles[uid]), avg_mgr_wait, avg_des_wait,
+        signal    = compute_signal(len(designer_cycles[uid]), avg_reviewer_wait, avg_des_wait,
                                    designer_reply_count[uid], max_gap)
         slack_url  = make_slack_url(thread[0]["ts"])
         deliv_type = extract_deliverable_type(deliv_msg)
@@ -761,7 +802,7 @@ def process_deliverable_thread(thread, users, managers, month_data, start_ts, en
             "cycle_count":         len(designer_cycles[uid]),
             "reply_count":         designer_reply_count[uid],
             "task_days":           task_days,
-            "manager_wait_bdays":  avg_mgr_wait,
+            "reviewer_wait_bdays": avg_reviewer_wait,
             "designer_wait_bdays": avg_des_wait,
             "max_gap_bdays":       max_gap,
             "signal":              signal,
@@ -772,7 +813,8 @@ def process_deliverable_thread(thread, users, managers, month_data, start_ts, en
         })
 
 
-def process_slack(client, channel_id, users, managers, start_dt, end_dt, ai_summaries=None):
+def process_slack(client, channel_id, users, managers, start_dt, end_dt, ai_summaries=None,
+                  reviewer_hours=None):
     start_ts = start_dt.timestamp()
     end_ts   = end_dt.timestamp()
 
@@ -802,7 +844,7 @@ def process_slack(client, channel_id, users, managers, start_dt, end_dt, ai_summ
     for rts in confirmed_ts:
         thread = thread_cache.get(rts) or fetch_thread(client, channel_id, rts)
         process_deliverable_thread(thread, users, managers, month_data, start_ts, end_ts,
-                                   ai_summaries=ai_summaries)
+                                   ai_summaries=ai_summaries, reviewer_hours=reviewer_hours)
 
     total_ds = sum(len(v) for v in month_data.values())
     print(f"  Total deliverable entries found: {total_ds}")
@@ -851,8 +893,8 @@ def compute_metrics(month_data, managers, roster=None):
         for d in deliverables:
             for c in d["cycles"]:
                 if c["response_time_hours"] is not None:
-                    mid   = c["responding_manager_id"]
-                    label = managers.get(mid, {}).get("manager_label", mid)
+                    mid   = c.get("responding_reviewer_id")
+                    label = managers.get(mid, {}).get("manager_label") or (mid or "Unknown")
                     mgr_times.setdefault(label, []).append(c["response_time_hours"])
 
         all_t    = [t for ts in mgr_times.values() for t in ts]
@@ -896,7 +938,7 @@ def compute_metrics(month_data, managers, roster=None):
                 "task_days":           d.get("task_days", 0),
                 "cycle_count":         d["cycle_count"],
                 "reply_count":         d.get("reply_count", 0),
-                "manager_wait_bdays":  d.get("manager_wait_bdays"),
+                "reviewer_wait_bdays": d.get("reviewer_wait_bdays"),
                 "max_gap_bdays":       d.get("max_gap_bdays"),
                 "signal":              d.get("signal", "On track"),
                 "slack_url":           d.get("slack_url", ""),
@@ -1020,7 +1062,7 @@ METRIC_INFO = {
         "definition": "How quickly a manager first responds to a review or feedback cycle, measured in business hours. Lower is better.",
         "formula": "Average business hours from each cycle message to the first manager reply",
         "rules": [
-            "Only Mon\u2013Fri, 8am\u20135pm in the responding manager\u2019s timezone counts",
+            "Only Mon\u2013Fri, 8am\u20135pm in the responding reviewer\u2019s timezone counts",
             "Weekends are excluded",
             "Any manager (Joe, Gabe, or Alexa) can respond \u2014 the first one to reply after a cycle message gets credit",
             "If no manager responds within 72 business hours, that cycle is marked \u201cNo Response\u201d and excluded from the average",
@@ -1430,7 +1472,7 @@ function setGroupBy(mode) {{
 
 function drillRow(t, showDesigner) {{
   const lbl  = t.deliverable_type || '—';
-  const mgr  = t.manager_wait_bdays != null ? Math.round(t.manager_wait_bdays)+'d' : '—';
+  const rev  = t.reviewer_wait_bdays != null ? Math.round(t.reviewer_wait_bdays)+'d' : '—';
   const gap  = t.max_gap_bdays     != null ? Math.round(t.max_gap_bdays)+'d'     : '—';
   const days = Math.round(t.task_days)+'d';
   const rc   = t.click_url ? `onclick="window.open('${{t.click_url}}','_blank')" style="cursor:pointer"` : '';
@@ -1450,7 +1492,7 @@ function drillRow(t, showDesigner) {{
     <td><span class="${{sigClass(sig)}}">${{sig}}</span></td>
     <td class="td-num ${{isCyc?'cell-alert':''}}">${{t.cycle_count}}</td>
     <td class="td-num ${{isRep?'cell-alert':''}}">${{t.reply_count??'—'}}</td>
-    <td class="td-num ${{isMgr?'cell-alert':''}}">${{mgr}}</td>
+    <td class="td-num ${{isMgr?'cell-alert':''}}">${{rev}}</td>
     <td class="td-num ${{isGap?'cell-alert':''}}">${{gap}}</td>
     <td class="td-num">${{days}}</td>
     <td class="td-ai">${{aiCell}}</td>
@@ -1467,7 +1509,7 @@ function drillHead(showDesigner) {{
   <thead><tr>
     <th>Deliverable</th><th>Signal</th>
     <th style="text-align:center">Cycles</th><th style="text-align:center">Replies</th>
-    <th style="text-align:center">Mgr</th><th style="text-align:center">Gap</th>
+    <th style="text-align:center">Feedback</th><th style="text-align:center">Gap</th>
     <th style="text-align:center">Days</th><th class="th-ai">AI Summary</th>
     <th class="th-reason">Issue</th>
   </tr></thead>`;
@@ -1478,13 +1520,13 @@ function drillLegend() {{
     <div class="leg-title">Signals — highest raw value wins when multiple apply</div>
     <div class="leg-row"><span class="sig sig-err">High rework</span>7+ revision rounds after first submission</div>
     <div class="leg-row"><span class="sig sig-err">Slow pickup</span>Longest gap ≥5 working days (excl. weekends &amp; US holidays)</div>
-    <div class="leg-row"><span class="sig sig-err">Late feedback</span>Manager avg &gt;2 days to respond</div>
+    <div class="leg-row"><span class="sig sig-err">Late feedback</span>Reviewer avg &gt;2 days to respond</div>
     <div class="leg-row"><span class="sig sig-err">Long discussion</span>8+ replies with ≤1 cycle</div>
     <div class="leg-row"><span class="sig sig-ot">On track</span>No issues detected</div>
     <div class="leg-title" style="margin-top:14px">Columns</div>
     <div class="leg-row"><strong>Cycles</strong> — Extra "For review" / "For feedback" rounds after first</div>
     <div class="leg-row"><strong>Replies</strong> — Discussion messages attributed to this deliverable</div>
-    <div class="leg-row"><strong>Mgr</strong> — Avg business days for manager to respond (avg across rounds)</div>
+    <div class="leg-row"><strong>Feedback</strong> — Avg business days for tagged reviewer to respond (avg across rounds)</div>
     <div class="leg-row"><strong>Gap</strong> — Longest silent stretch between any two consecutive messages</div>
     <div class="leg-row"><strong>Days</strong> — Total business days from first submission to last message</div>
     <div class="leg-row"><strong>AI Summary</strong> — One-line root cause from Gemini, specific to thread content</div>
@@ -1774,6 +1816,15 @@ def main():
     users = get_all_users(client)
     print(f"  {len(users)} users")
 
+    # Build per-user business-hours map from Slack profile tz + overrides
+    reviewer_hours = {}
+    for uid, uinfo in users.items():
+        dname = uinfo.get("display_name", "")
+        if dname in REVIEWER_HOURS_OVERRIDE:
+            reviewer_hours[uid] = REVIEWER_HOURS_OVERRIDE[dname]
+        else:
+            reviewer_hours[uid] = (BH_START, BH_END)
+
     print(f"\n[2/5] Finding managers: {MANAGER_NAMES}")
     managers = find_managers(users, MANAGER_NAMES)
     if not managers:
@@ -1804,7 +1855,7 @@ def main():
 
     print("\n[4/5] Fetching and processing Slack data...")
     month_data = process_slack(client, CHANNEL_ID, users, managers, start_dt, end_dt,
-                               ai_summaries=ai_summaries)
+                               ai_summaries=ai_summaries, reviewer_hours=reviewer_hours)
 
     new_c = compute_metrics(month_data, managers)
     new_p = compute_metrics(month_data, managers, roster=PRODUCT_DESIGNERS)
