@@ -894,7 +894,7 @@ def compute_metrics(month_data, managers, roster=None):
             for c in d["cycles"]:
                 if c["response_time_hours"] is not None:
                     mid   = c.get("responding_reviewer_id")
-                    label = managers.get(mid, {}).get("manager_label") or (mid or "Unknown")
+                    label = managers.get(mid, {}).get("manager_label") or users.get(mid, {}).get("display_name") or (mid or "Unknown")
                     mgr_times.setdefault(label, []).append(c["response_time_hours"])
 
         all_t    = [t for ts in mgr_times.values() for t in ts]
@@ -1641,12 +1641,10 @@ function showDrill(el) {{
   }}
 
   if (metricKey === 'num_ds') {{
-    document.getElementById('pf').style.display = 'none';
     const threads  = THREAD_DETAILS[ym] || {{}};
     const insight  = (INSIGHTS_COMBINED[ym] || INSIGHTS_PRODUCT[ym] || INSIGHTS_MARKETING[ym] || {{}});
-    const SIG_ORDER = ['High rework','Slow pickup','Long discussion','Late feedback','On track'];
+    const SIG_OFF  = ['High rework','Slow pickup','Long discussion','Late feedback'];
 
-    // Flatten all threads
     const allThreads = Object.entries(threads).flatMap(([name, ts]) => ts.map(t => ({{...t, designer: name, click_url: t.slack_url}})));
     const total      = allThreads.length || insight.total || 0;
     const flaggedCnt = insight.flagged_count || 0;
@@ -1659,67 +1657,53 @@ function showDrill(el) {{
     const avgOk      = insight.avg_days_ontrack;
     const topIssues  = insight.top_issues || [];
 
-    // Signal rows — clickable for non-On-track signals
-    const sigRows = SIG_ORDER.filter(s => sigBreak[s]).map(s => {{
-      const cls = s==='On track'?'sig-ot':'sig-err';
-      const clickAttr = s!=='On track' ? `onclick="openPanel2Filter('${{ym}}','signal',this)" data-filter="${{s}}"` : '';
-      return `<div class="dash-row" style="${{s!=='On track'?'cursor:pointer':''}}" ${{clickAttr}}>` +
-        `<span class="sig ${{cls}}">${{s}}</span><span style="font-weight:600">${{sigBreak[s]}}</span></div>`;
-    }}).join('');
+    const fmtSub = (n, avg) => [n+' del', avg!=null ? avg+'d avg' : ''].filter(Boolean).join(' · ');
 
-    // Top issues — clickable
-    const issueRows = topIssues.length
-      ? topIssues.map(([r,c]) => {{
-          return `<div class="dash-row" style="cursor:pointer" onclick="openPanel2Filter('${{ym}}','issue',this)" data-filter="${{r.replace(/"/g,'&quot;')}}">` +
-            `<span style="color:#555">${{r}}</span><span style="font-weight:600;color:#333">${{c}}</span></div>`;
-        }}).join('')
+    // Signal rows — off-track only, all clickable
+    const sigRows = SIG_OFF.filter(s => sigBreak[s]).map(s =>
+      `<div class="dash-row" style="cursor:pointer" onclick="openPanel2Filter('${{ym}}','signal',this)" data-filter="${{s}}">` +
+      `<span class="sig sig-err">${{s}}</span><span style="font-weight:600">${{sigBreak[s]}}</span></div>`
+    ).join('');
+
+    // Top issues — clickable, with type count in header
+    const issueTypeCount = topIssues.length;
+    const issueRows = issueTypeCount
+      ? topIssues.map(([r,c]) =>
+          `<div class="dash-row" style="cursor:pointer" onclick="openPanel2Filter('${{ym}}','issue',this)" data-filter="${{r.replace(/"/g,'&quot;')}}">` +
+          `<span style="color:#555">${{r}}</span><span style="font-weight:600;color:#333">${{c}}</span></div>`
+        ).join('')
       : '<div style="font-size:.78rem;color:#bbb">Run workflow to generate AI issues</div>';
 
-    // Timing
-    const timingRows = [
-      avgAll  != null ? `<div class="dash-row"><span style="color:#555">Overall avg</span><span style="font-weight:600">${{avgAll}}d</span></div>` : '',
-      avgFlag != null ? `<div class="dash-row"><span style="color:#c0392b">Off-track avg</span><span style="font-weight:600;color:#c0392b">${{avgFlag}}d</span></div>` : '',
-      avgOk   != null ? `<div class="dash-row"><span style="color:#1a7a3a">On-track avg</span><span style="font-weight:600;color:#1a7a3a">${{avgOk}}d</span></div>` : '',
-    ].filter(Boolean).join('');
-
-    document.getElementById('pb').innerHTML = `
-      <div style="padding:16px 0 8px">
-        <!-- Overview row -->
-        <div class="dash-grid" style="grid-template-columns:1fr 1fr 1fr;margin-bottom:16px">
-          <div class="dash-card">
-            <div class="dash-label">Total</div>
-            <div class="dash-big">${{total}}</div>
-            <div class="dash-sub">deliverables</div>
-          </div>
-          <div class="dash-card">
-            <div class="dash-label">On track</div>
-            <div class="dash-big" style="color:#1a7a3a">${{onPct}}%</div>
-            <div class="dash-sub">${{onTrackCnt}} deliverables</div>
-          </div>
-          <div class="dash-card">
-            <div class="dash-label">Off track</div>
-            <div class="dash-big" style="color:#c0392b">${{offPct}}%</div>
-            <div class="dash-sub">${{flaggedCnt}} deliverables</div>
-          </div>
+    const html = `
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px">
+        <div style="background:#f8f8f8;border-radius:8px;padding:10px 8px">
+          <div style="font-size:.62rem;color:#999;text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px">Total</div>
+          <div style="font-size:1.5rem;font-weight:700;color:#111;line-height:1">${{total}}</div>
+          <div style="font-size:.68rem;color:#aaa;margin-top:4px">${{avgAll!=null?avgAll+'d avg':'—'}}</div>
         </div>
-
-        <!-- Signals + Timing -->
-        <div class="dash-grid" style="margin-bottom:16px">
-          <div>
-            <div class="dash-section-title">Signals</div>
-            ${{sigRows}}
-          </div>
-          <div>
-            <div class="dash-section-title">Days to complete</div>
-            ${{timingRows}}
-          </div>
+        <div style="background:#fff3f3;border-radius:8px;padding:10px 8px;border:1px solid #f5c6c6">
+          <div style="font-size:.62rem;color:#999;text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px">Off track</div>
+          <div style="font-size:1.5rem;font-weight:700;color:#c0392b;line-height:1">${{offPct}}%</div>
+          <div style="font-size:.68rem;color:#c0392b;margin-top:4px">${{fmtSub(flaggedCnt,avgFlag)}}</div>
         </div>
-
-        <div>
-          <div class="dash-section-title">Top issues</div>
-          ${{issueRows}}
+        <div style="background:#f0faf2;border-radius:8px;padding:10px 8px;border:1px solid #c3e6cb">
+          <div style="font-size:.62rem;color:#999;text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px">On track</div>
+          <div style="font-size:1.5rem;font-weight:700;color:#1a7a3a;line-height:1">${{onPct}}%</div>
+          <div style="font-size:.68rem;color:#1a7a3a;margin-top:4px">${{fmtSub(onTrackCnt,avgOk)}}</div>
         </div>
+      </div>
+      ${{sigRows ? `<div style="border-left:3px solid #e8b4b8;padding-left:10px;margin-bottom:16px">
+        <div style="font-size:.62rem;font-weight:600;color:#c0392b;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Off-track breakdown</div>
+        ${{sigRows}}
+      </div>` : ''}}
+      <div>
+        <div style="font-size:.62rem;font-weight:600;color:#999;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">
+          Top issues${{issueTypeCount ? ' · '+issueTypeCount+' type'+(issueTypeCount!==1?'s':'') : ''}}
+        </div>
+        ${{issueRows}}
       </div>`;
+    openSidePanel(el.dataset.metric, mon+' '+yr, html);
+    document.getElementById('ov').classList.remove('on');
     return;
   }}
 
