@@ -295,7 +295,7 @@ def compute_signal(cycle_count, manager_wait, designer_wait, reply_count, max_ga
     if max_gap is not None and max_gap >= LONGER_GAP_THRESHOLD:
         candidates.append(("Slow pickup", max_gap))
     if manager_wait is not None and manager_wait > 2:
-        candidates.append(("Slow feedback", manager_wait))
+        candidates.append(("Late feedback", manager_wait))
     # "Slow pickup" removed — Slow pickup already captures thread inactivity regardless of who stalled
     if reply_count >= 8 and cycle_count <= 1:
         candidates.append(("Long discussion", reply_count))
@@ -432,7 +432,7 @@ _SIGNAL_CONTEXT = {
     "High rework":     "the designer went through 7+ revision rounds — something drove repeated changes",
     "Slow pickup":     "the designer took 5+ business days to respond — something slowed or blocked them",
     "Long discussion": "there were 8+ messages with ≤1 revision cycle — extended back-and-forth without resolution",
-    "Slow feedback":   "the manager took 2+ business days to respond — something delayed their review",
+    "Late feedback":   "the manager took 2+ business days to respond — something delayed their review",
 }
 
 def generate_signal_summary(thread, signal, deliverable_type, users, mgr_ids):
@@ -460,18 +460,23 @@ def generate_signal_summary(thread, signal, deliverable_type, users, mgr_ids):
         f'Signal: {signal} — {signal_ctx}\n\n'
         f'Thread:\n{transcript}\n\n'
         f'Return EXACTLY this format (two lines, nothing else):\n'
-        f'Summary: [One sentence, max 12 words, simple plain language, specific to thread content. '
-        f'Do NOT restate what the signal already implies.]\n'
-        f'Reasons: [Short active phrases explaining the specific underlying cause, '
-        f'e.g. "Scope expanded.", "Direction shifted.", "No existing pattern.". '
-        f'Use simple everyday words. If a reason could be fixed by adding or improving '
-        f'design system patterns, append [DS] after it. '
-        f'Separate multiple reasons with a full stop and space. '
-        f'If you cannot identify a clear reason from the thread, write "None".]\n\n'
-        f'Good reason examples: "Scope expanded.", "Use cases were missed.", '
-        f'"No existing component [DS].", "Brief was unclear.", "Feedback arrived too late."\n'
-        f'Bad reasons (too obvious, do not use): "Stakeholders were not aligned.", '
-        f'"Designer needed more time.", "Multiple revisions were requested."'
+        f'Summary: [One sentence, max 12 words, plain simple language, specific to what happened. '
+        f'Do NOT restate what the signal already implies — go one level deeper.]\n'
+        f'Issues: [1-3 short root-cause labels, comma-separated, 2-3 words each. '
+        f'Pick from these examples or invent your own if none fit: '
+        f'Missing Pattern, Brand Constraint, Copy Missing, Direction Changed, Scope Changed, '
+        f'Conflicting Input, Unclear Brief, Edge Case, Technical Limit, Accessibility Gap, '
+        f'Missing Sign-off, Asset Dependency. '
+        f'Use active past-tense phrasing: "Direction Changed" not "Direction Change". '
+        f'Do NOT label the obvious surface behaviour the signal already describes. '
+        f'If you genuinely cannot identify a root cause, write "None".]\n\n'
+        f'Good examples:\n'
+        f'Summary: Scope expanded mid-review after stakeholder demo.\n'
+        f'Issues: Scope Changed, Missing Sign-off\n\n'
+        f'Summary: No existing component for this layout pattern.\n'
+        f'Issues: Missing Pattern\n\n'
+        f'Bad Issues (too obvious — do not use): "Multiple revisions needed", '
+        f'"Designer was slow", "Manager delayed", "Feedback was late"'
     )
 
     url  = GEMINI_URL.format(key=GEMINI_API_KEY)
@@ -510,22 +515,20 @@ def generate_signal_summary(thread, signal, deliverable_type, users, mgr_ids):
             if not raw_text:
                 print(f"  Gemini empty text after strip — raw_text repr: {repr(raw_text[:100])}")
                 return None
-            # Parse "Summary: ...\nReasons: ..." format
-            summary, reasons = None, None
+            # Parse "Summary: ...\nIssues: ..." format
+            summary, issue = None, None
             for line in raw_text.splitlines():
                 line = line.strip()
                 if line.lower().startswith("summary:"):
-                    summary = line[len("summary:"):].strip().strip('"\'')
-                    if not summary:
-                        summary = None
-                elif line.lower().startswith("reasons:"):
-                    r = line[len("reasons:"):].strip().strip('"\'')
-                    if r and r.lower() != "none":
-                        reasons = r
-            if summary or reasons:
-                return {"summary": summary, "reasons": reasons}
+                    summary = line[len("summary:"):].strip().strip('"\'') or None
+                elif line.lower().startswith("issues:"):
+                    v = line[len("issues:"):].strip().strip('"\'')
+                    if v and v.lower() != "none":
+                        issue = v
+            if summary or issue:
+                return {"summary": summary, "issue": issue}
             # Fallback: treat entire response as summary
-            return {"summary": raw_text[:150], "reasons": None}
+            return {"summary": raw_text[:150], "issue": None}
         except Exception as e:
             print(f"  Gemini error (attempt {attempt+1}): {type(e).__name__}: {e}")
             time.sleep(5)
@@ -706,22 +709,26 @@ def process_deliverable_thread(thread, users, managers, month_data, start_ts, en
         # AI insight — check cache first, then call Gemini for flagged threads
         summary_key  = f"{thread[0]['ts']}:{uid}:{thread[-1]['ts']}"
         ai_summary   = None
-        ai_reasons   = None
+        ai_issue     = None
         if ai_summaries is not None:
             cached = ai_summaries.get(summary_key, "MISSING")
-            if cached == "MISSING" or cached is None or isinstance(cached, str):
-                # Not cached, previously failed, or old string-only format → re-run
-                cached = None
-            if cached is not None:
+            # Re-run if: never cached, failed, old string format, or old dict without 'issue' key
+            needs_run = (
+                cached == "MISSING" or
+                cached is None or
+                isinstance(cached, str) or
+                (isinstance(cached, dict) and "issue" not in cached)
+            )
+            if not needs_run:
                 ai_summary = cached.get("summary")
-                ai_reasons = cached.get("reasons")
-            # Run if not cached yet, previously failed, or old string entry (no reasons)
-            if cached is None and signal != "On track":
+                ai_issue   = cached.get("issue")
+            # Run Gemini
+            if needs_run and signal != "On track":
                 print(f"    Gemini: summarising [{signal}] for {pname}…")
                 result = generate_signal_summary(thread, signal, deliv_type, users, mgr_ids)
                 if result:
                     ai_summary = result.get("summary")
-                    ai_reasons = result.get("reasons")
+                    ai_issue   = result.get("issue")
                 ai_summaries[summary_key] = result  # cache (even if None)
                 time.sleep(5)  # 5s between calls to stay within 15 RPM free-tier limit
 
@@ -740,7 +747,7 @@ def process_deliverable_thread(thread, users, managers, month_data, start_ts, en
             "signal":              signal,
             "slack_url":           slack_url,
             "ai_summary":          ai_summary,
-            "ai_reasons":          ai_reasons,
+            "ai_issue":            ai_issue,
             "cycles":              cycle_data,
         })
 
@@ -874,7 +881,7 @@ def compute_metrics(month_data, managers, roster=None):
                 "signal":              d.get("signal", "On track"),
                 "slack_url":           d.get("slack_url", ""),
                 "ai_summary":          d.get("ai_summary"),
-                "ai_reasons":          d.get("ai_reasons"),
+                "ai_issue":            d.get("ai_issue"),
             })
 
         # ── Monthly insight ───────────────────────────────────────────────────
@@ -892,22 +899,15 @@ def compute_metrics(month_data, managers, roster=None):
         avg_days_all     = round(tt / n, 1)
         avg_days_flagged = round(sum(flagged_days) / len(flagged_days), 1) if flagged_days else None
         avg_days_ontrack = round(sum(ontrack_days) / len(ontrack_days), 1) if ontrack_days else None
-        # Aggregate AI reason categories (strip [DS] for counting, track DS count separately)
-        reason_counts = {}
-        ds_reason_count = 0
+        # Aggregate AI issue labels for dashboard
+        issue_counts = {}
         for d in deliverables:
-            raw = d.get("ai_reasons") or ""
-            for phrase in raw.split("."):
-                phrase = phrase.strip()
-                if not phrase:
-                    continue
-                is_ds = "[DS]" in phrase
-                clean = phrase.replace("[DS]", "").strip().rstrip(".")
-                if clean:
-                    reason_counts[clean] = reason_counts.get(clean, 0) + 1
-                    if is_ds:
-                        ds_reason_count += 1
-        top_reasons = sorted(reason_counts.items(), key=lambda x: x[1], reverse=True)[:6]
+            raw = d.get("ai_issue") or ""
+            for label in raw.split(","):
+                label = label.strip().strip(".")
+                if label and label.lower() != "none":
+                    issue_counts[label] = issue_counts.get(label, 0) + 1
+        top_issues = sorted(issue_counts.items(), key=lambda x: x[1], reverse=True)
         monthly_insight = {
             "total":              n,
             "flagged_count":      len(flagged),
@@ -918,8 +918,7 @@ def compute_metrics(month_data, managers, roster=None):
             "avg_days_all":       avg_days_all,
             "avg_days_flagged":   avg_days_flagged,
             "avg_days_ontrack":   avg_days_ontrack,
-            "top_reasons":        top_reasons,
-            "ds_reason_count":    ds_reason_count,
+            "top_issues":         top_issues,
         }
 
         result[month]["thread_details"]  = thread_details
@@ -1153,7 +1152,7 @@ th,td{{padding:18px 10px;border-bottom:1px solid #f0f0f0;vertical-align:middle}}
 .des-block{{margin-bottom:24px;padding-top:16px}}
 .des-hdr{{font-size:.82rem;font-weight:700;color:#111;margin-bottom:8px}}
 .des-sub{{font-size:.72rem;color:#aaa;font-weight:400;margin-left:6px}}
-.th-table{{width:100%;border-collapse:collapse;font-size:.82rem}}
+.th-table{{width:100%;border-collapse:collapse;font-size:.82rem;table-layout:fixed}}
 .th-table th{{font-size:.75rem;font-weight:600;color:#bbb;padding:14px 8px 4px 0;border-bottom:1px solid #f0f0f0;text-align:left;position:sticky;top:0;background:#fff;z-index:1}}
 .th-table td{{padding:8px 8px 8px 0;border-bottom:1px solid #f8f8f8;color:#333;vertical-align:middle}}
 .th-table tr:last-child td{{border:none}}
@@ -1171,6 +1170,12 @@ th,td{{padding:18px 10px;border-bottom:1px solid #f0f0f0;vertical-align:middle}}
 .th-ai,.th-reason{{text-align:left!important}}
 .ai-why-col{{font-size:.72rem;color:#888;font-style:italic;line-height:1.4;display:block}}
 .ai-empty{{color:#ddd}}
+.col-deliv{{width:22%}}.col-sig{{width:11%}}.col-num{{width:6%}}.col-ai{{width:22%}}.col-issue{{width:17%}}
+.pnl2{{position:fixed;bottom:0;left:50%;transform:translateX(-50%) translateY(100%);width:max-content;min-width:520px;max-width:92vw;max-height:45vh;background:#fff;border-radius:16px 16px 0 0;box-shadow:0 -6px 40px rgba(0,0,0,.18);display:flex;flex-direction:column;overflow:hidden;transition:transform .25s ease;z-index:200}}
+.pnl2.open{{transform:translateX(-50%) translateY(0)}}
+.pnl.pushed{{transform:translateY(-28px) scale(0.96);transition:transform .25s ease}}
+.ov2{{display:none;position:fixed;inset:0;z-index:190;background:rgba(0,0,0,.15)}}
+.ov2.on{{display:block}}
 .reason-text{{font-size:.72rem;color:#555;line-height:1.5}}
 .reason-ds{{color:#0057d9;font-weight:600}}
 .dash-grid{{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px}}
@@ -1270,6 +1275,7 @@ th,td{{padding:18px 10px;border-bottom:1px solid #f0f0f0;vertical-align:middle}}
           <select class="gf-sel" id="gf-sel" onchange="setGroupBy(this.value)">
             <option value="signal">Signal</option>
             <option value="designer">Designer</option>
+            <option value="issue">Issue</option>
             <option value="none">Days to Complete</option>
           </select>
         </div>
@@ -1278,6 +1284,16 @@ th,td{{padding:18px 10px;border-bottom:1px solid #f0f0f0;vertical-align:middle}}
     </div>
     <div class="pb" id="pb"></div>
   </div>
+</div>
+
+<div class="ov2" id="ov2" onclick="closePanel2()">
+</div>
+<div class="pnl2" id="pnl2" onclick="event.stopPropagation()">
+  <div class="ph">
+    <div><div class="pt" id="pt2"></div><div class="ps" id="ps2"></div></div>
+    <button class="px" onclick="closePanel2()">✕</button>
+  </div>
+  <div class="pb" id="pb2"></div>
 </div>
 
 <script>
@@ -1329,7 +1345,7 @@ function renderInsights(data, containerId) {{
   if (!el) return;
   const months = Object.keys(data).sort().reverse().slice(0, 6);
   if (!months.length) {{ el.innerHTML = '<div class="nd">No data yet</div>'; return; }}
-  const SIG_ORDER = ['High rework','Slow pickup','Long discussion','Slow feedback','On track'];
+  const SIG_ORDER = ['High rework','Slow pickup','Long discussion','Late feedback','On track'];
   el.innerHTML = months.map(ym => {{
     const d = data[ym];
     if (!d) return '';
@@ -1373,21 +1389,17 @@ function drillRow(t, showDesigner) {{
   const rc   = t.click_url ? `onclick="window.open('${{t.click_url}}','_blank')" style="cursor:pointer"` : '';
   const sig  = t.signal;
   const isCyc = sig==='High rework', isGap = sig==='Slow pickup',
-        isRep = sig==='Long discussion', isMgr = sig==='Slow feedback';
-  const desCel = showDesigner ? `<td class="td-name">${{t.designer}}</td>` : '';
+        isRep = sig==='Long discussion', isMgr = sig==='Late feedback';
+  const nameEl = showDesigner
+    ? `<div style="font-size:.7rem;color:#aaa;margin-top:2px">${{t.designer}}</div>` : '';
   const aiCell = t.ai_summary ? `<span class="ai-why-col">${{t.ai_summary}}</span>` : '';
-  // Render reasons: [DS] phrases in blue, others in grey
-  let reasonHtml = '';
-  if (t.ai_reasons) {{
-    reasonHtml = t.ai_reasons.split('.').map(r => r.trim()).filter(Boolean).map(r => {{
-      const isDs = r.includes('[DS]');
-      const clean = r.replace('[DS]','').trim();
-      return clean ? `<span class="${{isDs?'reason-ds':'reason-text'}}">${{clean}}${{isDs?' ◈':''}}</span>` : '';
-    }}).filter(Boolean).join('<br>');
+  let issueHtml = '';
+  if (t.ai_issue) {{
+    issueHtml = t.ai_issue.split(',').map(r => r.trim()).filter(Boolean)
+      .map(r => `<span class="reason-text">${{r}}</span>`).join('<br>');
   }}
   return `<tr ${{rc}} class="th-row-click">
-    ${{desCel}}
-    <td class="td-type" title="${{lbl}}">${{lbl}}</td>
+    <td class="td-type" title="${{lbl}}">${{lbl}}${{nameEl}}</td>
     <td><span class="${{sigClass(sig)}}">${{sig}}</span></td>
     <td class="td-num ${{isCyc?'cell-alert':''}}">${{t.cycle_count}}</td>
     <td class="td-num ${{isRep?'cell-alert':''}}">${{t.reply_count??'—'}}</td>
@@ -1395,17 +1407,23 @@ function drillRow(t, showDesigner) {{
     <td class="td-num ${{isGap?'cell-alert':''}}">${{gap}}</td>
     <td class="td-num">${{days}}</td>
     <td class="td-ai">${{aiCell}}</td>
-    <td class="td-reason">${{reasonHtml}}</td>
+    <td class="td-reason">${{issueHtml}}</td>
   </tr>`;
 }}
 
 function drillHead(showDesigner) {{
-  const dc = showDesigner ? '<th>Designer</th>' : '';
-  return `<thead><tr>${{dc}}<th>Deliverable</th><th>Signal</th>
+  return `<colgroup>
+    ${{showDesigner ? '<col class="col-deliv">' : '<col style="width:28%">'}}
+    <col class="col-sig"><col class="col-num"><col class="col-num"><col class="col-num"><col class="col-num"><col class="col-num">
+    <col class="col-ai"><col class="col-issue">
+  </colgroup>
+  <thead><tr>
+    <th>Deliverable</th><th>Signal</th>
     <th style="text-align:center">Cycles</th><th style="text-align:center">Replies</th>
     <th style="text-align:center">Mgr</th><th style="text-align:center">Gap</th>
     <th style="text-align:center">Days</th><th class="th-ai">AI Summary</th>
-    <th class="th-reason">Reason <span style="color:#0057d9;font-size:.65rem">◈ design system</span></th></tr></thead>`;
+    <th class="th-reason">Issue</th>
+  </tr></thead>`;
 }}
 
 function drillLegend() {{
@@ -1413,7 +1431,7 @@ function drillLegend() {{
     <div class="leg-title">Signals — highest raw value wins when multiple apply</div>
     <div class="leg-row"><span class="sig sig-err">High rework</span>7+ revision rounds after first submission</div>
     <div class="leg-row"><span class="sig sig-err">Slow pickup</span>Longest gap ≥5 working days (excl. weekends &amp; US holidays)</div>
-    <div class="leg-row"><span class="sig sig-err">Slow feedback</span>Manager avg &gt;2 days to respond</div>
+    <div class="leg-row"><span class="sig sig-err">Late feedback</span>Manager avg &gt;2 days to respond</div>
     <div class="leg-row"><span class="sig sig-err">Long discussion</span>8+ replies with ≤1 cycle</div>
     <div class="leg-row"><span class="sig sig-ot">On track</span>No issues detected</div>
     <div class="leg-title" style="margin-top:14px">Columns</div>
@@ -1423,7 +1441,7 @@ function drillLegend() {{
     <div class="leg-row"><strong>Gap</strong> — Longest silent stretch between any two consecutive messages</div>
     <div class="leg-row"><strong>Days</strong> — Total business days from first submission to last message</div>
     <div class="leg-row"><strong>AI Summary</strong> — One-line root cause from Gemini, specific to thread content</div>
-    <div class="leg-row"><strong>Reason</strong> — Underlying cause category from Gemini · <span style="color:#0057d9;font-weight:600">◈ blue = fixable by adding design system patterns</span></div>
+    <div class="leg-row"><strong>Issue</strong> — Root-cause label from Gemini</div>
   </div>`;
 }}
 
@@ -1456,7 +1474,7 @@ function renderDrillContent() {{
       }}).join('');
 
   }} else if (_groupBy === 'signal') {{
-    const SIG_ORDER = ['High rework','Slow pickup','Long discussion','Slow feedback','On track'];
+    const SIG_ORDER = ['High rework','Slow pickup','Long discussion','Late feedback','On track'];
     const bySig = {{}};
     for (const t of flat) {{ bySig[t.signal]=bySig[t.signal]||[]; bySig[t.signal].push(t); }}
     html = SIG_ORDER.filter(s=>bySig[s]).map(sig=>{{
@@ -1466,8 +1484,38 @@ function renderDrillContent() {{
         <table class="th-table">${{drillHead(true)}}<tbody>${{threads.map(t=>drillRow(t,true)).join('')}}</tbody></table>
       </div>`;
     }}).join('');
+  }} else if (_groupBy === 'issue') {{
+    const byIssue = {{}};
+    for (const t of flat) {{
+      const labels = (t.ai_issue||'On track').split(',').map(s=>s.trim()).filter(Boolean);
+      labels.forEach(lbl => {{ byIssue[lbl]=byIssue[lbl]||[]; byIssue[lbl].push(t); }});
+    }}
+    html = Object.entries(byIssue)
+      .sort((a,b) => b[1].length - a[1].length)
+      .map(([lbl, threads]) => {{
+        threads.sort((a,b) => b.task_days - a.task_days);
+        return `<div class="des-block">
+          <div class="des-hdr">${{lbl}}<span class="des-sub">${{threads.length}} deliverable${{threads.length!==1?'s':''}}</span></div>
+          <table class="th-table">${{drillHead(true)}}<tbody>${{threads.map(t=>drillRow(t,true)).join('')}}</tbody></table>
+        </div>`;
+      }}).join('');
   }}
   document.getElementById('pb').innerHTML = html + drillLegend();
+}}
+
+function buildThreadTable(threads, ym) {{
+  if (!threads.length) return '<div class="nd">No deliverables</div>';
+  const threadDetails = THREAD_DETAILS[ym] || {{}};
+  // threads may already have designer attached; if not, look it up
+  const withDes = threads.map(t => {{
+    if (t.designer) return t;
+    for (const [name, ts] of Object.entries(threadDetails)) {{
+      if (ts.some(x => x.slack_url === t.slack_url)) return {{...t, designer: name, click_url: t.slack_url}};
+    }}
+    return {{...t, click_url: t.slack_url}};
+  }});
+  withDes.sort((a,b) => b.task_days - a.task_days);
+  return `<table class="th-table">${{drillHead(true)}}<tbody>${{withDes.map(t=>drillRow(t,true)).join('')}}</tbody></table>${{drillLegend()}}`;
 }}
 
 function showDrill(el) {{
@@ -1499,10 +1547,10 @@ function showDrill(el) {{
     document.getElementById('pf').style.display = 'none';
     const threads  = THREAD_DETAILS[ym] || {{}};
     const insight  = (INSIGHTS_COMBINED[ym] || INSIGHTS_PRODUCT[ym] || INSIGHTS_MARKETING[ym] || {{}});
-    const SIG_ORDER = ['High rework','Slow pickup','Long discussion','Slow feedback','On track'];
+    const SIG_ORDER = ['High rework','Slow pickup','Long discussion','Late feedback','On track'];
 
     // Flatten all threads
-    const allThreads = Object.values(threads).flat();
+    const allThreads = Object.entries(threads).flatMap(([name, ts]) => ts.map(t => ({{...t, designer: name, click_url: t.slack_url}})));
     const total      = allThreads.length || insight.total || 0;
     const flaggedCnt = insight.flagged_count || 0;
     const onTrackCnt = total - flaggedCnt;
@@ -1512,48 +1560,32 @@ function showDrill(el) {{
     const avgAll     = insight.avg_days_all;
     const avgFlag    = insight.avg_days_flagged;
     const avgOk      = insight.avg_days_ontrack;
-    const topReasons = insight.top_reasons || [];
-    const dsCnt      = insight.ds_reason_count || 0;
+    const topIssues  = insight.top_issues || [];
 
-    // Per-designer table
-    const designers = Object.entries(threads).map(([name, ts]) => {{
-      const counts = {{}};
-      SIG_ORDER.forEach(s => counts[s] = 0);
-      ts.forEach(t => {{ counts[t.signal] = (counts[t.signal]||0)+1; }});
-      const flagged = ts.filter(t => t.signal !== 'On track').length;
-      return {{ name, total: ts.length, flagged, counts }};
-    }}).sort((a,b) => b.flagged - a.flagged || b.total - a.total);
-
-    const sigCols = SIG_ORDER.filter(s => s !== 'On track' && (sigBreak[s]||0) > 0);
-    const thSigCols = sigCols.map(s=>`<th style="text-align:center"><span class="sig sig-err">${{s}}</span></th>`).join('');
-    const desCells = designers.map(d => {{
-      const cells = sigCols.map(s => `<td style="text-align:center;color:${{d.counts[s]>0?'#c0392b':'#ddd'}}">${{d.counts[s]||''}}</td>`).join('');
-      const flagColor = d.flagged > 0 ? '#c0392b' : '#1a7a3a';
-      return `<tr>
-        <td class="td-name">${{d.name}}</td>
-        <td style="text-align:center">${{d.total}}</td>
-        <td style="text-align:center;color:${{flagColor}};font-weight:${{d.flagged?600:400}}">${{d.flagged||''}}</td>
-        ${{cells}}
-      </tr>`;
-    }}).join('');
-
-    // Signal rows
+    // Signal rows — clickable for non-On-track signals
     const sigRows = SIG_ORDER.filter(s => sigBreak[s]).map(s => {{
       const cls = s==='On track'?'sig-ot':'sig-err';
-      return `<div class="dash-row"><span class="sig ${{cls}}">${{s}}</span><span style="font-weight:600">${{sigBreak[s]}}</span></div>`;
+      const filtered = allThreads.filter(t => t.signal === s);
+      const html = buildThreadTable(filtered, ym);
+      return `<div class="dash-row" style="${{s!=='On track'?'cursor:pointer':''}}" ${{s!=='On track'?`onclick="openPanel2('${{s}}','${{sigBreak[s]}} deliverable${{sigBreak[s]!==1?'s':''}}','${{html.replace(/\\/g,'\\\\').replace(/'/g,"&#39;")}}')"`:''}}>`+
+        `<span class="sig ${{cls}}">${{s}}</span><span style="font-weight:600">${{sigBreak[s]}}</span></div>`;
     }}).join('');
 
-    // Top reasons
-    const reasonRows = topReasons.length
-      ? topReasons.map(([r,c])=>`<div class="dash-row"><span style="color:#555">${{r}}</span><span style="font-weight:600;color:#333">${{c}}</span></div>`).join('')
-      : '<div style="font-size:.78rem;color:#bbb">No AI reasons yet — run workflow to generate</div>';
+    // Top issues — clickable
+    const issueRows = topIssues.length
+      ? topIssues.map(([r,c]) => {{
+          const filtered = allThreads.filter(t => (t.ai_issue||'').split(',').map(s=>s.trim()).includes(r));
+          const html = buildThreadTable(filtered, ym);
+          return `<div class="dash-row" style="cursor:pointer" onclick="openPanel2('${{r}}','${{c}} deliverable${{c!==1?'s':''}}','${{html.replace(/\\/g,'\\\\').replace(/'/g,"&#39;")}}')">` +
+            `<span style="color:#555">${{r}}</span><span style="font-weight:600;color:#333">${{c}}</span></div>`;
+        }}).join('')
+      : '<div style="font-size:.78rem;color:#bbb">Run workflow to generate AI issues</div>';
 
     // Timing
     const timingRows = [
       avgAll  != null ? `<div class="dash-row"><span style="color:#555">Overall avg</span><span style="font-weight:600">${{avgAll}}d</span></div>` : '',
       avgFlag != null ? `<div class="dash-row"><span style="color:#c0392b">Off-track avg</span><span style="font-weight:600;color:#c0392b">${{avgFlag}}d</span></div>` : '',
       avgOk   != null ? `<div class="dash-row"><span style="color:#1a7a3a">On-track avg</span><span style="font-weight:600;color:#1a7a3a">${{avgOk}}d</span></div>` : '',
-      avgFlag && avgOk ? `<div class="dash-row" style="border-top:1px solid #eee;margin-top:4px"><span style="color:#888">Off-track penalty</span><span style="font-weight:700;color:#c0392b">+${{Math.round((avgFlag-avgOk)*10)/10}}d</span></div>` : '',
     ].filter(Boolean).join('');
 
     document.getElementById('pb').innerHTML = `
@@ -1577,7 +1609,7 @@ function showDrill(el) {{
           </div>
         </div>
 
-        <!-- Signals + Reasons + Timing -->
+        <!-- Signals + Timing -->
         <div class="dash-grid" style="margin-bottom:16px">
           <div>
             <div class="dash-section-title">Signals</div>
@@ -1590,22 +1622,8 @@ function showDrill(el) {{
         </div>
 
         <div>
-          <div class="dash-section-title">Top root causes ${{dsCnt>0?`· <span style="color:#0057d9">${{dsCnt}} design system gaps ◈</span>`:''}}</div>
-          ${{reasonRows}}
-        </div>
-
-        <!-- Designer breakdown -->
-        <div style="margin-top:20px">
-          <div class="dash-section-title">By designer</div>
-          <table class="th-table">
-            <thead><tr>
-              <th>Name</th>
-              <th style="text-align:center">Total</th>
-              <th style="text-align:center">Off track</th>
-              ${{thSigCols}}
-            </tr></thead>
-            <tbody>${{desCells}}</tbody>
-          </table>
+          <div class="dash-section-title">Top issues</div>
+          ${{issueRows}}
         </div>
       </div>`;
     return;
@@ -1624,7 +1642,20 @@ function close_() {{
   document.getElementById('ov').classList.remove('on');
   document.getElementById('pf').style.display = 'none';
 }}
-document.addEventListener('keydown', e => {{ if (e.key === 'Escape') close_(); }});
+function openPanel2(title, subtitle, html) {{
+  document.getElementById('pt2').textContent = title;
+  document.getElementById('ps2').textContent = subtitle;
+  document.getElementById('pb2').innerHTML = html;
+  document.getElementById('ov2').classList.add('on');
+  document.getElementById('pnl2').classList.add('open');
+  document.getElementById('pnl').classList.add('pushed');
+}}
+function closePanel2() {{
+  document.getElementById('ov2').classList.remove('on');
+  document.getElementById('pnl2').classList.remove('open');
+  document.getElementById('pnl').classList.remove('pushed');
+}}
+document.addEventListener('keydown', e => {{ if (e.key === 'Escape') {{ closePanel2(); close_(); }} }});
 </script>
 </body>
 </html>"""
