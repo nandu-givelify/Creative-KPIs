@@ -852,7 +852,7 @@ def process_slack(client, channel_id, users, managers, start_dt, end_dt, ai_summ
     return month_data
 
 
-def compute_metrics(month_data, managers, roster=None):
+def compute_metrics(month_data, managers, users=None, roster=None):
     """
     Compute monthly KPI metrics from raw deliverable data.
 
@@ -894,7 +894,7 @@ def compute_metrics(month_data, managers, roster=None):
             for c in d["cycles"]:
                 if c["response_time_hours"] is not None:
                     mid   = c.get("responding_reviewer_id")
-                    label = managers.get(mid, {}).get("manager_label") or users.get(mid, {}).get("display_name") or (mid or "Unknown")
+                    label = managers.get(mid, {}).get("manager_label") or (users or {}).get(mid, {}).get("display_name") or (mid or "Unknown")
                     mgr_times.setdefault(label, []).append(c["response_time_hours"])
 
         all_t    = [t for ts in mgr_times.values() for t in ts]
@@ -1841,9 +1841,9 @@ def main():
     month_data = process_slack(client, CHANNEL_ID, users, managers, start_dt, end_dt,
                                ai_summaries=ai_summaries, reviewer_hours=reviewer_hours)
 
-    new_c = compute_metrics(month_data, managers)
-    new_p = compute_metrics(month_data, managers, roster=PRODUCT_DESIGNERS)
-    new_m = compute_metrics(month_data, managers, roster=MARKETING_DESIGNERS)
+    new_c = compute_metrics(month_data, managers, users=users)
+    new_p = compute_metrics(month_data, managers, users=users, roster=PRODUCT_DESIGNERS)
+    new_m = compute_metrics(month_data, managers, users=users, roster=MARKETING_DESIGNERS)
 
     for m, d in sorted(new_c.items()):
         print(f"  {m}: {d['num_ds']} Ds (combined) | "
