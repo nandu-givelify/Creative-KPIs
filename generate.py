@@ -278,7 +278,7 @@ def business_days_gap(start_ts, end_ts):
 
 
 LONGER_GAP_THRESHOLD  = 5   # business days (excl. weekends + US holidays)
-HIGH_CYCLES_THRESHOLD = 7   # additional review/feedback rounds after first submission
+HIGH_CYCLES_THRESHOLD = 6   # additional review/feedback rounds after first submission
 
 def compute_max_gap_bdays(thread):
     """Largest holiday-aware business-day gap between consecutive messages in a thread."""
@@ -293,7 +293,9 @@ def compute_max_gap_bdays(thread):
     return max_gap if max_gap > 0 else None
 
 
-def compute_signal(cycle_count, reviewer_wait, designer_wait, reply_count, max_gap=None):
+LONG_DISCUSSION_REPLIES_PER_CYCLE = 5  # replies within a single cycle to flag Long discussion
+
+def compute_signal(cycle_count, reviewer_wait, designer_wait, reply_count, max_gap=None, max_replies_per_cycle=None):
     """Return the single most prominent signal, chosen by highest underlying value."""
     candidates = []
     if cycle_count >= HIGH_CYCLES_THRESHOLD:
@@ -302,9 +304,9 @@ def compute_signal(cycle_count, reviewer_wait, designer_wait, reply_count, max_g
         candidates.append(("Slow pickup", max_gap))
     if reviewer_wait is not None and reviewer_wait > 2:
         candidates.append(("Late feedback", reviewer_wait))
-    # "Slow pickup" removed — Slow pickup already captures thread inactivity regardless of who stalled
-    if reply_count >= 8 and cycle_count <= 1:
-        candidates.append(("Long discussion", reply_count))
+    # Long discussion: any single cycle had 5+ replies (feedback required negotiation)
+    if max_replies_per_cycle is not None and max_replies_per_cycle >= LONG_DISCUSSION_REPLIES_PER_CYCLE:
+        candidates.append(("Long discussion", max_replies_per_cycle))
     if not candidates:
         return "On track"
     return max(candidates, key=lambda x: x[1])[0]
@@ -771,8 +773,29 @@ def process_deliverable_thread(thread, users, managers, month_data, start_ts, en
         avg_des_wait = round(sum(des_wait_list) / len(des_wait_list), 1) if des_wait_list else None
         max_gap      = compute_max_gap_bdays(thread)
 
+        # Compute max replies within any single cycle (between consecutive designer submissions)
+        cycle_boundaries = sorted([float(thread[deliv_idx]["ts"])] +
+                                  [float(c["ts"]) for c in designer_cycles[uid]])
+        max_replies_per_cycle = None
+        if len(cycle_boundaries) >= 1:
+            # Count replies in each window: [boundary[i], boundary[i+1]) for i in 0..n-2,
+            # plus the window after the last cycle boundary.
+            windows = list(zip(cycle_boundaries, cycle_boundaries[1:])) + [(cycle_boundaries[-1], float('inf'))]
+            counts = []
+            for w_start, w_end in windows:
+                n = sum(
+                    1 for m in thread
+                    if w_start < float(m["ts"]) < w_end
+                    and not (m.get("user") == uid and is_cycle_msg(m))
+                    and not (m.get("user") == uid and float(m["ts"]) == w_start)
+                )
+                counts.append(n)
+            if counts:
+                max_replies_per_cycle = max(counts)
+
         signal    = compute_signal(len(designer_cycles[uid]), avg_reviewer_wait, avg_des_wait,
-                                   designer_reply_count[uid], max_gap)
+                                   designer_reply_count[uid], max_gap,
+                                   max_replies_per_cycle=max_replies_per_cycle)
         slack_url  = make_slack_url(thread[0]["ts"])
         deliv_type = extract_deliverable_type(deliv_msg)
 
