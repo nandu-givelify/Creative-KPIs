@@ -1689,7 +1689,7 @@ function showDrill(el) {{
     const avgOk      = insight.avg_days_ontrack;
     const topIssues  = insight.top_issues || [];
 
-    const fmtSub = (n, avg) => [n+' del', avg!=null ? avg+'d avg' : ''].filter(Boolean).join(' · ');
+    const fmtAvg = avg => avg != null ? avg+'d to complete (avg)' : '—';
 
     // Signal rows — off-track only, all clickable
     const sigRows = SIG_OFF.filter(s => sigBreak[s]).map(s =>
@@ -1711,20 +1711,21 @@ function showDrill(el) {{
         <div style="background:#f8f8f8;border-radius:8px;padding:10px 8px">
           <div style="font-size:.62rem;color:#999;text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px">Total</div>
           <div style="font-size:1.5rem;font-weight:700;color:#111;line-height:1">${{total}}</div>
-          <div style="font-size:.68rem;color:#aaa;margin-top:4px">${{avgAll!=null?avgAll+'d avg':'—'}}</div>
-        </div>
-        <div style="background:#fff3f3;border-radius:8px;padding:10px 8px;border:1px solid #f5c6c6">
-          <div style="font-size:.62rem;color:#999;text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px">Off track</div>
-          <div style="font-size:1.5rem;font-weight:700;color:#c0392b;line-height:1">${{offPct}}%</div>
-          <div style="font-size:.68rem;color:#c0392b;margin-top:4px">${{fmtSub(flaggedCnt,avgFlag)}}</div>
+          <div style="font-size:.68rem;color:#aaa;margin-top:4px">${{fmtAvg(avgAll)}}</div>
         </div>
         <div style="background:#f0faf2;border-radius:8px;padding:10px 8px;border:1px solid #c3e6cb">
           <div style="font-size:.62rem;color:#999;text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px">On track</div>
-          <div style="font-size:1.5rem;font-weight:700;color:#1a7a3a;line-height:1">${{onPct}}%</div>
-          <div style="font-size:.68rem;color:#1a7a3a;margin-top:4px">${{fmtSub(onTrackCnt,avgOk)}}</div>
+          <div style="font-size:1.5rem;font-weight:700;color:#1a7a3a;line-height:1">${{onTrackCnt}} <span style="font-size:.95rem;font-weight:500;color:#2e8b50">(${{onPct}}%)</span></div>
+          <div style="font-size:.68rem;color:#1a7a3a;margin-top:4px">${{fmtAvg(avgOk)}}</div>
+        </div>
+        <div style="background:#fff3f3;border-radius:8px;padding:10px 8px;border:1px solid #f5c6c6;position:relative">
+          <div style="font-size:.62rem;color:#999;text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px">Off track</div>
+          <div style="font-size:1.5rem;font-weight:700;color:#c0392b;line-height:1">${{flaggedCnt}} <span style="font-size:.95rem;font-weight:500;color:#c0392b">(${{offPct}}%)</span></div>
+          <div style="font-size:.68rem;color:#c0392b;margin-top:4px">${{fmtAvg(avgFlag)}}</div>
+          ${{sigRows ? `<div style="position:absolute;bottom:-10px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:8px solid transparent;border-right:8px solid transparent;border-top:10px solid #f5c6c6"></div>` : ''}}
         </div>
       </div>
-      ${{sigRows ? `<div style="border-left:3px solid #e8b4b8;padding-left:10px;margin-bottom:16px">
+      ${{sigRows ? `<div style="padding-left:10px;margin-bottom:16px;border-top:2px solid #f5c6c6;padding-top:10px">
         <div style="font-size:.62rem;font-weight:600;color:#c0392b;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Off-track breakdown</div>
         ${{sigRows}}
       </div>` : ''}}
