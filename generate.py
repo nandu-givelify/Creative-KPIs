@@ -1759,12 +1759,14 @@ function showDrill(el) {{
       return;
     }}
     const sigCols = SIG_ORDER;
-    const thead = `<tr><th>Designer</th><th style="text-align:center">Total</th>${{sigCols.map(s=>`<th style="text-align:center">${{s}}</th>`).join('')}}</tr>`;
+    const thStyle = `text-align:center;border-left:1px solid #eee`;
+    const tdStyle = `text-align:center;border-left:1px solid #eee`;
+    const thead = `<tr><th>Designer</th><th style="text-align:center">Total</th>${{sigCols.map(s=>`<th style="${{thStyle}}">${{s}}</th>`).join('')}}</tr>`;
     const tbody = rows.map(r => {{
       const sigCells = sigCols.map(s => {{
         const v = r.counts[s]||0;
         const cls = s==='On track'?'sig-ot':'sig-err';
-        return `<td style="text-align:center">${{v ? `<span class="sig ${{cls}}">${{v}}</span>` : ''}}</td>`;
+        return `<td style="${{tdStyle}}">${{v ? `<span class="sig ${{cls}}">${{v}}</span>` : ''}}</td>`;
       }}).join('');
       return `<tr><td style="font-weight:500">${{r.name}}</td><td style="text-align:center;font-weight:600">${{r.total}}</td>${{sigCells}}</tr>`;
     }}).join('');
