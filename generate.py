@@ -1276,6 +1276,14 @@ th,td{{padding:18px 10px;border-bottom:1px solid #f0f0f0;vertical-align:middle}}
 .pnl.pushed{{transform:translateY(-28px) scale(0.96);transition:transform .25s ease}}
 .ov2{{display:none;position:fixed;inset:0;z-index:190;background:rgba(0,0,0,.15)}}
 .ov2.on{{display:block}}
+.dlg-ov{{display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.35)}}
+.dlg-ov.on{{display:block}}
+.dlg{{display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:90vw;max-width:960px;max-height:85vh;background:#fff;border-radius:12px;box-shadow:0 8px 48px rgba(0,0,0,.22);z-index:201;flex-direction:column;overflow:hidden}}
+.dlg.open{{display:flex}}
+.dlg-hdr{{padding:20px 20px 14px;border-bottom:1px solid #f0f0f0;display:flex;align-items:flex-start;justify-content:space-between;flex-shrink:0;gap:12px}}
+.dlg-title{{font-size:.92rem;font-weight:700;color:#111}}
+.dlg-sub{{font-size:.75rem;color:#aaa;margin-top:2px}}
+.dlg-pb{{flex:1;overflow-y:auto;padding:20px}}
 .sp{{position:fixed;top:0;right:0;height:100vh;width:380px;background:#fff;box-shadow:-4px 0 32px rgba(0,0,0,.14);transform:translateX(100%);transition:transform .28s ease;z-index:150;display:flex;flex-direction:column;overflow:hidden}}
 .sp.open{{transform:translateX(0)}}
 .sp-ov{{display:none;position:fixed;inset:0;z-index:140;background:rgba(0,0,0,.18)}}
@@ -1408,6 +1416,26 @@ th,td{{padding:18px 10px;border-bottom:1px solid #f0f0f0;vertical-align:middle}}
   <div class="pb" id="pb2"></div>
 </div>
 
+<div class="dlg-ov" id="dlg-ov" onclick="closeDialog()"></div>
+<div class="dlg" id="dlg" onclick="event.stopPropagation()">
+  <div class="dlg-hdr">
+    <div><div class="dlg-title" id="dlg-title"></div><div class="dlg-sub" id="dlg-sub"></div></div>
+    <div style="display:flex;align-items:center;gap:10px;flex-shrink:0">
+      <div id="dlg-gf" style="display:none;align-items:center;gap:6px">
+        <span class="pf-lbl">Group by</span>
+        <select class="gf-sel" id="dlg-gf-sel" onchange="setGroupBy(this.value)">
+          <option value="signal">Signal</option>
+          <option value="designer">Designer</option>
+          <option value="issue">Issue</option>
+          <option value="none">Days to Complete</option>
+        </select>
+      </div>
+      <button class="px" onclick="closeDialog()">✕</button>
+    </div>
+  </div>
+  <div class="dlg-pb" id="dlg-pb"></div>
+</div>
+
 <div class="sp-ov" id="sp-ov" onclick="closeSidePanel()"></div>
 <div class="sp" id="sp" onclick="event.stopPropagation()">
   <div class="sp-ph">
@@ -1495,6 +1523,21 @@ function renderInsights(data, containerId) {{
 // ── Drill-down state ────────────────────────────────────────────────────────
 let _drillEntries = {{}};
 let _groupBy = 'signal';
+let _drillTarget = 'pb';
+
+function openDialog(title, subtitle, html, showGroupBy) {{
+  document.getElementById('dlg-title').textContent = title;
+  document.getElementById('dlg-sub').textContent = subtitle;
+  document.getElementById('dlg-pb').innerHTML = html;
+  document.getElementById('dlg-gf').style.display = showGroupBy ? 'flex' : 'none';
+  document.getElementById('dlg-ov').classList.add('on');
+  document.getElementById('dlg').classList.add('open');
+}}
+function closeDialog() {{
+  document.getElementById('dlg-ov').classList.remove('on');
+  document.getElementById('dlg').classList.remove('open');
+  _drillTarget = 'pb';
+}}
 
 function setGroupBy(mode) {{
   _groupBy = mode;
@@ -1621,7 +1664,7 @@ function renderDrillContent() {{
         </div>`;
       }}).join('');
   }}
-  document.getElementById('pb').innerHTML = html + drillLegend();
+  document.getElementById(_drillTarget).innerHTML = html + drillLegend();
 }}
 
 function buildThreadTable(threads) {{
@@ -1644,7 +1687,7 @@ function openPanel2Filter(ym, filterType, el) {{
   }}
   const count = filtered.length;
   const subtitle = count + ' deliverable' + (count !== 1 ? 's' : '');
-  openPanel2(filterValue, subtitle, buildThreadTable(filtered));
+  openDialog(filterValue, subtitle, buildThreadTable(filtered), false);
 }}
 
 function showDrill(el) {{
@@ -1661,13 +1704,14 @@ function showDrill(el) {{
   if (metricKey === 'task_days_per_d') {{
     _drillEntries = THREAD_DETAILS[ym] || {{}};
     _groupBy = 'signal';
-    const sel = document.getElementById('gf-sel');
-    if (sel) sel.value = 'signal';
-    document.getElementById('pf').style.display = 'flex';
+    _drillTarget = 'dlg-pb';
+    const dlgSel = document.getElementById('dlg-gf-sel');
+    if (dlgSel) dlgSel.value = 'signal';
     if (!Object.keys(_drillEntries).length) {{
-      document.getElementById('pb').innerHTML = '<div class="nd">No thread data</div>';
+      openDialog('Avg Days to Complete', mon+' '+yr, '<div class="nd">No thread data</div>', false);
       return;
     }}
+    openDialog('Avg Days to Complete', mon+' '+yr, '', true);
     renderDrillContent();
     return;
   }}
