@@ -1765,7 +1765,7 @@ function showDrill(el) {{
       </div>` : ''}}
       <div style="border-top:1px solid #e4e4e7;margin-top:16px;padding-top:16px">
         <div style="font-size:.75rem;font-weight:600;color:#777;margin-bottom:6px">
-          Top issues${{issueTypeCount ? ' · '+issueTypeCount+' type'+(issueTypeCount!==1?'s':'') : ''}}
+          ${{issueTypeCount ? issueTypeCount+' ' : ''}}Top issues
         </div>
         ${{issueRows}}
       </div>`;
