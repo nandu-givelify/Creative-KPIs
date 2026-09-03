@@ -1110,13 +1110,14 @@ def fmt(val, key):
     if key == "task_days_per_d": return f"{val}d"
     return str(val)
 
-def build_rows(metrics, section, year):
+def build_rows(metrics, section, year, label_overrides=None, extra_tr_class=""):
     html = ""
     for row in METRIC_DEFS:
         if row["section"] != section: continue
-        key, label = row["key"], row["label"]
-        tval = TARGETS.get(key)
-        tstr = str(tval) if tval is not None else "TBD"
+        key   = row["key"]
+        label = (label_overrides or {}).get(key, row["label"])
+        tval  = TARGETS.get(key)
+        tstr  = str(tval) if tval is not None else "TBD"
 
         cells = ""
         for i, mk in enumerate(MONTH_KEYS):
@@ -1140,8 +1141,9 @@ def build_rows(metrics, section, year):
                     f'{disp}</span></td>'
                 )
 
+        tr_class = f"mr {extra_tr_class}".strip()
         html += f"""
-        <tr class="mr">
+        <tr class="{tr_class}">
           <td class="ml">
             <div class="mn click-title" onclick="showInfo('{key}')">{label}</div>
             <div class="mt">Target: {tstr}</div>
@@ -1153,15 +1155,17 @@ def build_rows(metrics, section, year):
 def generate_html(metrics_combined, metrics_product, metrics_marketing, year=2026):
     mh = "".join(f'<th class="mh">{m}</th>' for m in MONTHS)
 
-    # Combined view rows
-    dr_c = build_rows(metrics_combined,  "deliverables", year)
-    rr_c = build_rows(metrics_combined,  "response",     year)
+    # Combined view — deliverables + response merged into one tbody
+    dr_c = (build_rows(metrics_combined,  "deliverables", year) +
+            build_rows(metrics_combined,  "response",     year, extra_tr_class="tr-response"))
 
-    # Separated view rows
-    dr_p = build_rows(metrics_product,   "deliverables", year)
-    rr_p = build_rows(metrics_product,   "response",     year)
-    dr_m = build_rows(metrics_marketing, "deliverables", year)
-    rr_m = build_rows(metrics_marketing, "response",     year)
+    # Separated view — same merge, with label override for num_ds row
+    dr_p = (build_rows(metrics_product,   "deliverables", year,
+                        label_overrides={"num_ds": "Product Deliverables"}) +
+            build_rows(metrics_product,   "response",     year, extra_tr_class="tr-response"))
+    dr_m = (build_rows(metrics_marketing, "deliverables", year,
+                        label_overrides={"num_ds": "Visual Deliverables"}) +
+            build_rows(metrics_marketing, "response",     year, extra_tr_class="tr-response"))
 
     upd     = datetime.now(tz=timezone.utc).strftime("%B %d, %Y")
     info_js = json.dumps(METRIC_INFO)
@@ -1331,6 +1335,8 @@ th,td{{padding:18px 10px;border-bottom:1px solid var(--border);vertical-align:mi
 .ic-link:hover{{text-decoration:underline}}
 .grp-ins{{margin-top:40px}}
 .ft{{margin-top:48px;font-size:.6875rem;color:var(--muted-fg)}}
+tr.tr-response td{{background:#f4f4f5!important}}
+tr.tr-response:hover td{{background:#ebebec!important}}
 </style>
 </head>
 <body>
@@ -1345,48 +1351,24 @@ th,td{{padding:18px 10px;border-bottom:1px solid var(--border);vertical-align:mi
 
 <!-- ═══ COMBINED VIEW ═══ -->
 <div id="view-combined">
-  <div class="sl">Deliverables</div>
   <table>
     <thead><tr><th class="ml"></th>{mh}</tr></thead>
     <tbody>{dr_c}</tbody>
   </table>
-
-  <div class="sl">Time to First Response</div>
-  <table>
-    <thead><tr><th class="ml"></th>{mh}</tr></thead>
-    <tbody>{rr_c}</tbody>
-  </table>
-
 </div>
 
 <!-- ═══ SEPARATED VIEW ═══ -->
 <div id="view-separated" style="display:none">
 
-  <div class="sl">Product Deliverables</div>
   <table>
     <thead><tr><th class="ml"></th>{mh}</tr></thead>
     <tbody>{dr_p}</tbody>
   </table>
 
-  <div class="sl">Time to First Response</div>
-  <table>
-    <thead><tr><th class="ml"></th>{mh}</tr></thead>
-    <tbody>{rr_p}</tbody>
-  </table>
-
-
-  <div class="sl" style="margin-top:20px">Marketing Deliverables</div>
-  <table>
+  <table style="margin-top:40px">
     <thead><tr><th class="ml"></th>{mh}</tr></thead>
     <tbody>{dr_m}</tbody>
   </table>
-
-  <div class="sl">Time to First Response</div>
-  <table>
-    <thead><tr><th class="ml"></th>{mh}</tr></thead>
-    <tbody>{rr_m}</tbody>
-  </table>
-
 
 </div>
 
@@ -1781,8 +1763,8 @@ function showDrill(el) {{
         <div style="font-size:.75rem;font-weight:600;color:#777;margin-bottom:6px">Off-track breakdown</div>
         ${{sigRows}}
       </div>` : ''}}
-      <div style="padding-top:4px;border-top:1px solid #e4e4e7;margin-top:4px">
-        <div style="font-size:.75rem;font-weight:600;color:#777;margin-bottom:6px;padding-top:12px">
+      <div style="border-top:1px solid #e4e4e7;margin-top:16px;padding-top:16px">
+        <div style="font-size:.75rem;font-weight:600;color:#777;margin-bottom:6px">
           Top issues${{issueTypeCount ? ' · '+issueTypeCount+' type'+(issueTypeCount!==1?'s':'') : ''}}
         </div>
         ${{issueRows}}
