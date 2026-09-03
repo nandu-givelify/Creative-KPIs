@@ -301,7 +301,7 @@ def compute_signal(cycle_count, reviewer_wait, designer_wait, reply_count, max_g
     if cycle_count >= HIGH_CYCLES_THRESHOLD:
         candidates.append(("High rework", cycle_count))
     if max_gap is not None and max_gap >= LONGER_GAP_THRESHOLD:
-        candidates.append(("Slow pickup", max_gap))
+        candidates.append(("Long pause", max_gap))
     if reviewer_wait is not None and reviewer_wait > 2:
         candidates.append(("Late feedback", reviewer_wait))
     # Long discussion: any single cycle had 5+ replies (feedback required negotiation)
@@ -447,7 +447,7 @@ _gemini_call_count = 0
 
 _SIGNAL_CONTEXT = {
     "High rework":     "the designer went through 7+ revision rounds — something drove repeated changes",
-    "Slow pickup":     "the designer took 5+ business days to respond — something slowed or blocked them",
+    "Long pause":     "the designer took 5+ business days to respond — something slowed or blocked them",
     "Long discussion": "there were 8+ messages with ≤1 revision cycle — extended back-and-forth without resolution",
     "Late feedback":   "the reviewer took 2+ business days to respond — something delayed their review",
 }
@@ -1362,7 +1362,7 @@ tr.tr-response:hover td{{background:#ebebec!important}}
     <div class="leg-row"><span class="sig sig-err">High rework</span>6+ revision rounds after first submission</div>
     <div class="leg-row"><span class="sig sig-err">Long discussion</span>Any single revision cycle had 5+ messages before the designer could move forward</div>
     <div class="leg-row"><span class="sig sig-err">Late feedback</span>Tagged reviewer took &gt;2 business days to respond</div>
-    <div class="leg-row"><span class="sig sig-err">Slow pickup</span>Longest silent gap ≥5 business days between any two consecutive messages</div>
+    <div class="leg-row"><span class="sig sig-err">Long pause</span>Longest silent gap ≥5 business days between any two consecutive messages</div>
     <div class="leg-row"><span class="sig sig-ot">On track</span>None of the above thresholds triggered</div>
   </div>
 
@@ -1507,7 +1507,7 @@ function renderInsights(data, containerId) {{
   if (!el) return;
   const months = Object.keys(data).sort().reverse().slice(0, 6);
   if (!months.length) {{ el.innerHTML = '<div class="nd">No data yet</div>'; return; }}
-  const SIG_ORDER = ['High rework','Slow pickup','Long discussion','Late feedback','On track'];
+  const SIG_ORDER = ['High rework','Long pause','Long discussion','Late feedback','On track'];
   el.innerHTML = months.map(ym => {{
     const d = data[ym];
     if (!d) return '';
@@ -1565,7 +1565,7 @@ function drillRow(t, showDesigner) {{
   const days = Math.round(t.task_days)+'d';
   const rc   = t.click_url ? `onclick="window.open('${{t.click_url}}','_blank')" style="cursor:pointer"` : '';
   const sig  = t.signal;
-  const isCyc = sig==='High rework', isGap = sig==='Slow pickup',
+  const isCyc = sig==='High rework', isGap = sig==='Long pause',
         isRep = sig==='Long discussion', isMgr = sig==='Late feedback';
   const nameEl = showDesigner
     ? `<div style="font-size:.7rem;color:#71717a;margin-top:2px">${{t.designer}}</div>` : '';
@@ -1607,7 +1607,7 @@ function drillLegend() {{
   return `<div class="leg">
     <div class="leg-title">Signals — highest raw value wins when multiple apply</div>
     <div class="leg-row"><span class="sig sig-err">High rework</span>6+ revision rounds after first submission</div>
-    <div class="leg-row"><span class="sig sig-err">Slow pickup</span>Longest gap ≥5 working days between consecutive messages (excl. weekends &amp; US holidays)</div>
+    <div class="leg-row"><span class="sig sig-err">Long pause</span>Longest gap ≥5 working days between consecutive messages (excl. weekends &amp; US holidays)</div>
     <div class="leg-row"><span class="sig sig-err">Late feedback</span>Reviewer took &gt;2 business days to respond after being tagged</div>
     <div class="leg-row"><span class="sig sig-err">Long discussion</span>Any single revision cycle had 5+ messages before the designer could move forward</div>
     <div class="leg-row"><span class="sig sig-ot">On track</span>None of the above thresholds triggered</div>
@@ -1651,7 +1651,7 @@ function renderDrillContent() {{
       }}).join('');
 
   }} else if (_groupBy === 'signal') {{
-    const SIG_ORDER = ['High rework','Slow pickup','Long discussion','Late feedback','On track'];
+    const SIG_ORDER = ['High rework','Long pause','Long discussion','Late feedback','On track'];
     const bySig = {{}};
     for (const t of flat) {{ bySig[t.signal]=bySig[t.signal]||[]; bySig[t.signal].push(t); }}
     html = SIG_ORDER.filter(s=>bySig[s]).map(sig=>{{
@@ -1733,7 +1733,7 @@ function showDrill(el) {{
   if (metricKey === 'num_ds') {{
     const threads  = THREAD_DETAILS[ym] || {{}};
     const insight  = (INSIGHTS_COMBINED[ym] || INSIGHTS_PRODUCT[ym] || INSIGHTS_MARKETING[ym] || {{}});
-    const SIG_OFF  = ['High rework','Slow pickup','Long discussion','Late feedback'];
+    const SIG_OFF  = ['High rework','Long pause','Long discussion','Late feedback'];
 
     const allThreads = Object.entries(threads).flatMap(([name, ts]) => ts.map(t => ({{...t, designer: name, click_url: t.slack_url}})));
     const total      = allThreads.length || insight.total || 0;
@@ -1769,17 +1769,17 @@ function showDrill(el) {{
         <div style="background:#f4f4f5;border-radius:6px;padding:10px 8px">
           <div style="font-size:.75rem;color:#777;margin-bottom:4px">Total</div>
           <div style="font-size:1.5rem;font-weight:700;color:#09090b;line-height:1">${{total}}</div>
-          <div style="font-size:.68rem;color:#777;margin-top:4px">${{fmtAvg(avgAll)}}</div>
+          <div style="font-size:.68rem;color:#777;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${{fmtAvg(avgAll)}}</div>
         </div>
         <div style="background:#f0faf2;border-radius:6px;padding:10px 8px;border:1px solid #c3e6cb">
           <div style="font-size:.75rem;color:#777;margin-bottom:4px">On track</div>
           <div style="font-size:1.5rem;font-weight:700;color:#16a34a;line-height:1">${{onTrackCnt}} <span style="font-size:.95rem;font-weight:500;color:#16a34a">(${{onPct}}%)</span></div>
-          <div style="font-size:.68rem;color:#777;margin-top:4px">${{fmtAvg(avgOk)}}</div>
+          <div style="font-size:.68rem;color:#777;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${{fmtAvg(avgOk)}}</div>
         </div>
         <div style="background:#fff3f3;border-radius:6px;padding:10px 8px;border:1px solid #f5c6c6;position:relative">
           <div style="font-size:.75rem;color:#777;margin-bottom:4px">Off track</div>
           <div style="font-size:1.5rem;font-weight:700;color:#dc2626;line-height:1">${{flaggedCnt}} <span style="font-size:.95rem;font-weight:500;color:#dc2626">(${{offPct}}%)</span></div>
-          <div style="font-size:.68rem;color:#777;margin-top:4px">${{fmtAvg(avgFlag)}}</div>
+          <div style="font-size:.68rem;color:#777;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${{fmtAvg(avgFlag)}}</div>
           ${{sigRows ? `<div style="position:absolute;bottom:-10px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:8px solid transparent;border-right:8px solid transparent;border-top:10px solid #f5c6c6"></div>` : ''}}
         </div>
       </div>
@@ -1802,7 +1802,7 @@ function showDrill(el) {{
 
   if (metricKey === 'ds_per_person') {{
     // Build per-designer signal breakdown table in side panel
-    const SIG_ORDER = ['High rework','Slow pickup','Long discussion','Late feedback','On track'];
+    const SIG_ORDER = ['High rework','Long pause','Long discussion','Late feedback','On track'];
     const threads = THREAD_DETAILS[ym] || {{}};
     const rows = Object.entries(threads).map(([name, ts]) => {{
       const counts = {{}};
