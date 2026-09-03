@@ -1193,10 +1193,10 @@ def generate_html(metrics_combined, metrics_product, metrics_marketing, year=202
 <style>
 :root{{
   --bg:#ffffff;--fg:#09090b;
-  --muted:#f4f4f5;--muted-fg:#71717a;
+  --muted:#f4f4f5;--muted-fg:#777;
   --border:#e4e4e7;
   --primary:#18181b;--primary-fg:#fafafa;
-  --ring:#a1a1aa;
+  --ring:#777;
   --radius:0.375rem;
 }}
 *{{box-sizing:border-box;margin:0;padding:0}}
@@ -1234,7 +1234,7 @@ th,td{{padding:18px 10px;border-bottom:1px solid var(--border);vertical-align:mi
 .pb{{flex:1;overflow-y:auto;padding:0 28px 28px}}
 .dr{{display:flex;justify-content:space-between;align-items:center;padding:13px 0;border-bottom:1px solid var(--border)}}
 .dr:last-child{{border:none}}
-.dn{{font-size:.875rem;color:#52525b}}
+.dn{{font-size:.875rem;color:#777}}
 .dv{{font-size:.875rem;font-weight:600;color:var(--fg)}}
 .nd{{color:var(--ring);font-size:.8rem;padding:20px 0;text-align:center}}
 .info-section{{margin-bottom:24px}}
@@ -1242,7 +1242,7 @@ th,td{{padding:18px 10px;border-bottom:1px solid var(--border);vertical-align:mi
 .info-text{{font-size:.875rem;color:var(--fg);line-height:1.6}}
 .info-formula{{font-size:.875rem;color:var(--fg);background:var(--muted);border-radius:var(--radius);padding:10px 14px;font-family:'JetBrains Mono',monospace;line-height:1.5}}
 .info-rules{{list-style:none;padding:0;margin:0}}
-.info-rules li{{font-size:.85rem;color:#52525b;line-height:1.55;padding:5px 0 5px 16px;border-bottom:1px solid var(--border);position:relative}}
+.info-rules li{{font-size:.85rem;color:#777;line-height:1.55;padding:5px 0 5px 16px;border-bottom:1px solid var(--border);position:relative}}
 .info-rules li:last-child{{border:none}}
 .info-rules li::before{{content:"–";position:absolute;left:0;color:var(--ring)}}
 .sig{{display:inline;font-size:.8rem;font-weight:600;white-space:nowrap}}
@@ -1265,11 +1265,11 @@ th,td{{padding:18px 10px;border-bottom:1px solid var(--border);vertical-align:mi
 .des-sub{{font-size:.7rem;color:var(--muted-fg);font-weight:400;margin-left:6px}}
 .th-table{{width:100%;border-collapse:collapse;font-size:.8rem;table-layout:fixed}}
 .th-table th{{font-size:.75rem;font-weight:600;color:var(--muted-fg);padding:14px 8px 4px 0;border-bottom:1px solid var(--border);text-align:left;position:sticky;top:0;background:var(--bg);z-index:1}}
-.th-table td{{padding:8px 8px 8px 0;border-bottom:1px solid var(--border);color:#3f3f46;vertical-align:middle}}
+.th-table td{{padding:8px 8px 8px 0;border-bottom:1px solid var(--border);color:#09090b;vertical-align:middle}}
 .th-table tr:last-child td{{border:none}}
 .th-table .td-type{{font-weight:500;color:var(--fg);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}}
-.th-table .td-name{{font-weight:500;color:#52525b;white-space:nowrap}}
-.th-table .td-num{{text-align:center;color:#52525b}}
+.th-table .td-name{{font-weight:500;color:#777;white-space:nowrap}}
+.th-table .td-num{{text-align:center;color:#777}}
 .th-table .td-link{{text-align:right}}
 .th-table .td-link a{{color:#2563eb;text-decoration:none;font-size:.8rem}}
 .th-table .td-type a{{color:var(--fg);text-decoration:none;font-weight:500}}
@@ -1294,7 +1294,7 @@ th,td{{padding:18px 10px;border-bottom:1px solid var(--border);vertical-align:mi
 .dlg-hdr{{padding:20px 20px 14px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;justify-content:space-between;flex-shrink:0;gap:12px}}
 .dlg-title{{font-size:.9375rem;font-weight:600;color:var(--fg)}}
 .dlg-sub{{font-size:.75rem;color:var(--muted-fg);margin-top:2px}}
-.dlg-pb{{flex:1;overflow-y:auto;padding:20px}}
+.dlg-pb{{flex:1;overflow-y:auto;padding:0 20px 20px}}
 .sp{{position:fixed;top:0;right:0;height:100vh;width:380px;background:var(--bg);box-shadow:-4px 0 24px rgba(0,0,0,.08);transform:translateX(100%);transition:transform .28s ease;z-index:150;display:flex;flex-direction:column;overflow:hidden}}
 .sp.open{{transform:translateX(0)}}
 .sp-ov{{display:none;position:fixed;inset:0;z-index:140;background:rgba(0,0,0,.15)}}
@@ -1307,7 +1307,7 @@ th,td{{padding:18px 10px;border-bottom:1px solid var(--border);vertical-align:mi
 .sig-table th{{font-size:.7rem;font-weight:600;color:var(--muted-fg);padding:8px 6px 4px 0;border-bottom:1px solid var(--border);text-align:left}}
 .sig-table td{{padding:8px 6px 8px 0;border-bottom:1px solid var(--border);vertical-align:top}}
 .sig-table tr:last-child td{{border-bottom:none}}
-.reason-text{{font-size:.72rem;color:#52525b;line-height:1.5}}
+.reason-text{{font-size:.72rem;color:#777;line-height:1.5}}
 .reason-ds{{color:#2563eb;font-weight:600}}
 .dash-grid{{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px}}
 .dash-card{{background:var(--muted);border-radius:var(--radius);padding:14px 18px}}
@@ -1320,13 +1320,13 @@ th,td{{padding:18px 10px;border-bottom:1px solid var(--border);vertical-align:mi
 .dash-section-title{{font-size:.7rem;font-weight:600;color:var(--muted-fg);margin-bottom:10px}}
 .leg{{margin-top:28px;padding-top:18px;border-top:1px solid var(--border)}}
 .leg-title{{font-size:.7rem;font-weight:600;color:var(--muted-fg);margin-bottom:10px}}
-.leg-row{{display:flex;gap:8px;align-items:flex-start;margin-bottom:7px;font-size:.78rem;color:#52525b;line-height:1.45}}
+.leg-row{{display:flex;gap:8px;align-items:flex-start;margin-bottom:7px;font-size:.78rem;color:#777;line-height:1.45}}
 .leg-row .sig{{flex-shrink:0;margin-top:1px}}
 .ic-grid{{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;margin-bottom:52px}}
 .ic{{background:var(--muted);border:1px solid var(--border);border-radius:var(--radius);padding:20px 22px}}
 .ic-month{{font-size:.6875rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--muted-fg);margin-bottom:10px}}
 .ic-stat{{font-size:1.1rem;font-weight:500;color:var(--fg);margin-bottom:4px}}
-.ic-detail{{font-size:.8rem;color:#52525b;margin-bottom:4px}}
+.ic-detail{{font-size:.8rem;color:#777;margin-bottom:4px}}
 .ic-link{{font-size:.78rem;color:#2563eb;text-decoration:none}}
 .ic-link:hover{{text-decoration:underline}}
 .grp-ins{{margin-top:40px}}
@@ -1754,35 +1754,35 @@ function showDrill(el) {{
     const issueRows = issueTypeCount
       ? topIssues.map(([r,c]) =>
           `<div class="dash-row" style="cursor:pointer" onclick="openPanel2Filter('${{ym}}','issue',this)" data-filter="${{r.replace(/"/g,'&quot;')}}">` +
-          `<span style="color:#555">${{r}}</span><span style="font-weight:600;color:#333">${{c}}</span></div>`
+          `<span style="color:#09090b">${{r}}</span><span style="font-weight:600;color:#09090b">${{c}}</span></div>`
         ).join('')
       : '<div style="font-size:.78rem;color:#71717a">Run workflow to generate AI issues</div>';
 
     const html = `
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px">
-        <div style="background:#f8f8f8;border-radius:8px;padding:10px 8px">
-          <div style="font-size:.75rem;color:#71717a;margin-bottom:4px">Total</div>
-          <div style="font-size:1.5rem;font-weight:700;color:#111;line-height:1">${{total}}</div>
-          <div style="font-size:.68rem;color:#aaa;margin-top:4px">${{fmtAvg(avgAll)}}</div>
+        <div style="background:#f4f4f5;border-radius:6px;padding:10px 8px">
+          <div style="font-size:.75rem;color:#777;margin-bottom:4px">Total</div>
+          <div style="font-size:1.5rem;font-weight:700;color:#09090b;line-height:1">${{total}}</div>
+          <div style="font-size:.68rem;color:#777;margin-top:4px">${{fmtAvg(avgAll)}}</div>
         </div>
-        <div style="background:#f0faf2;border-radius:8px;padding:10px 8px;border:1px solid #c3e6cb">
-          <div style="font-size:.75rem;color:#71717a;margin-bottom:4px">On track</div>
-          <div style="font-size:1.5rem;font-weight:700;color:#1a7a3a;line-height:1">${{onTrackCnt}} <span style="font-size:.95rem;font-weight:500;color:#2e8b50">(${{onPct}}%)</span></div>
-          <div style="font-size:.68rem;color:#1a7a3a;margin-top:4px">${{fmtAvg(avgOk)}}</div>
+        <div style="background:#f0faf2;border-radius:6px;padding:10px 8px;border:1px solid #c3e6cb">
+          <div style="font-size:.75rem;color:#777;margin-bottom:4px">On track</div>
+          <div style="font-size:1.5rem;font-weight:700;color:#16a34a;line-height:1">${{onTrackCnt}} <span style="font-size:.95rem;font-weight:500;color:#16a34a">(${{onPct}}%)</span></div>
+          <div style="font-size:.68rem;color:#777;margin-top:4px">${{fmtAvg(avgOk)}}</div>
         </div>
-        <div style="background:#fff3f3;border-radius:8px;padding:10px 8px;border:1px solid #f5c6c6;position:relative">
-          <div style="font-size:.75rem;color:#71717a;margin-bottom:4px">Off track</div>
-          <div style="font-size:1.5rem;font-weight:700;color:#c0392b;line-height:1">${{flaggedCnt}} <span style="font-size:.95rem;font-weight:500;color:#c0392b">(${{offPct}}%)</span></div>
-          <div style="font-size:.68rem;color:#c0392b;margin-top:4px">${{fmtAvg(avgFlag)}}</div>
+        <div style="background:#fff3f3;border-radius:6px;padding:10px 8px;border:1px solid #f5c6c6;position:relative">
+          <div style="font-size:.75rem;color:#777;margin-bottom:4px">Off track</div>
+          <div style="font-size:1.5rem;font-weight:700;color:#dc2626;line-height:1">${{flaggedCnt}} <span style="font-size:.95rem;font-weight:500;color:#dc2626">(${{offPct}}%)</span></div>
+          <div style="font-size:.68rem;color:#777;margin-top:4px">${{fmtAvg(avgFlag)}}</div>
           ${{sigRows ? `<div style="position:absolute;bottom:-10px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:8px solid transparent;border-right:8px solid transparent;border-top:10px solid #f5c6c6"></div>` : ''}}
         </div>
       </div>
-      ${{sigRows ? `<div style="padding-left:10px;margin-bottom:16px;border-top:2px solid #f5c6c6;padding-top:10px">
-        <div style="font-size:.75rem;font-weight:600;color:#dc2626;margin-bottom:6px">Off-track breakdown</div>
+      ${{sigRows ? `<div style="margin-bottom:20px;border-top:2px solid #f5c6c6;padding-top:10px">
+        <div style="font-size:.75rem;font-weight:600;color:#777;margin-bottom:6px">Off-track breakdown</div>
         ${{sigRows}}
       </div>` : ''}}
-      <div>
-        <div style="font-size:.75rem;font-weight:600;color:#71717a;margin-bottom:6px">
+      <div style="padding-top:4px;border-top:1px solid #e4e4e7;margin-top:4px">
+        <div style="font-size:.75rem;font-weight:600;color:#777;margin-bottom:6px;padding-top:12px">
           Top issues${{issueTypeCount ? ' · '+issueTypeCount+' type'+(issueTypeCount!==1?'s':'') : ''}}
         </div>
         ${{issueRows}}
