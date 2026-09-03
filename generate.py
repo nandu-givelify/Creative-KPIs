@@ -1091,14 +1091,15 @@ METRIC_INFO = {
     },
     "response_per_d": {
         "label": "Avg. Response Time",
-        "definition": "How quickly a manager first responds to a review or feedback cycle, measured in business hours. Lower is better.",
-        "formula": "Average business hours from each cycle message to the first manager reply",
+        "definition": "How quickly the tagged reviewer first responds after a designer posts a review or feedback cycle, measured in business hours. Lower is better.",
+        "formula": "Average business hours from each cycle message to the first reply from the designer\u2019s tagged reviewer",
         "rules": [
-            "Only Mon\u2013Fri, 8am\u20135pm in the responding reviewer\u2019s timezone counts",
-            "Weekends are excluded",
-            "Any manager (Joe, Gabe, or Alexa) can respond \u2014 the first one to reply after a cycle message gets credit",
-            "If no manager responds within 72 business hours, that cycle is marked \u201cNo Response\u201d and excluded from the average",
-            "Click any monthly value to see the average response time per manager",
+            "Only the reviewer the designer @mentions in their cycle message is tracked \u2014 any team member can be a reviewer, not just managers",
+            "Business hours are counted in the reviewer\u2019s local timezone and working hours (Mon\u2013Fri, 8am\u20135pm by default)",
+            "Nandu\u2019s working hours are tracked as 3:30pm\u201310:30pm IST",
+            "Weekends and hours outside the reviewer\u2019s working window are excluded",
+            "If the tagged reviewer does not respond within 72 business hours, that cycle is marked \u201cNo Response\u201d and excluded from the average",
+            "Click any monthly value to see the average response time per reviewer",
         ],
     },
 }
@@ -1357,7 +1358,7 @@ tr.tr-response:hover td{{background:#ebebec!important}}
   </table>
 
   <div class="leg">
-    <div class="leg-title">Signals</div>
+    <div class="leg-title">Signals — highest raw value wins when multiple apply</div>
     <div class="leg-row"><span class="sig sig-err">High rework</span>6+ revision rounds after first submission</div>
     <div class="leg-row"><span class="sig sig-err">Long discussion</span>Any single revision cycle had 5+ messages before the designer could move forward</div>
     <div class="leg-row"><span class="sig sig-err">Late feedback</span>Tagged reviewer took &gt;2 business days to respond</div>
@@ -1480,11 +1481,8 @@ function showView(v) {{
 function showInfo(key) {{
   const info = METRIC_INFO[key];
   if (!info) return;
-  document.getElementById('pt').textContent = info.label;
-  document.getElementById('ps').textContent = 'Definition & Rules';
-  document.getElementById('pf').style.display = 'none';
   const rules = info.rules.map(r => `<li>${{r}}</li>`).join('');
-  document.getElementById('pb').innerHTML = `
+  const html = `
     <div class="info-section">
       <div class="info-label">What it means</div>
       <div class="info-text">${{info.definition}}</div>
@@ -1497,7 +1495,7 @@ function showInfo(key) {{
       <div class="info-label">Rules</div>
       <ul class="info-rules">${{rules}}</ul>
     </div>`;
-  document.getElementById('ov').classList.add('on');
+  openSidePanel(info.label, 'Definition & Rules', html);
 }}
 
 function sigClass(s) {{
