@@ -1355,6 +1355,32 @@ tr.tr-response:hover td{{background:#ebebec!important}}
     <thead><tr><th class="ml"></th>{mh}</tr></thead>
     <tbody>{dr_c}</tbody>
   </table>
+
+  <div class="leg">
+    <div class="leg-title">Signals</div>
+    <div class="leg-row"><span class="sig sig-err">High rework</span>6+ revision rounds after first submission</div>
+    <div class="leg-row"><span class="sig sig-err">Long discussion</span>Any single revision cycle had 5+ messages before the designer could move forward</div>
+    <div class="leg-row"><span class="sig sig-err">Late feedback</span>Tagged reviewer took &gt;2 business days to respond</div>
+    <div class="leg-row"><span class="sig sig-err">Slow pickup</span>Longest silent gap ≥5 business days between any two consecutive messages</div>
+    <div class="leg-row"><span class="sig sig-ot">On track</span>None of the above thresholds triggered</div>
+  </div>
+
+  <div class="leg" style="margin-top:24px">
+    <div class="leg-title">Issue types</div>
+    <div class="leg-row"><strong>Scope Changed</strong> — Scope was explicitly expanded or reduced after work began</div>
+    <div class="leg-row"><strong>Direction Changed</strong> — The same person reversed or significantly changed their own direction between rounds</div>
+    <div class="leg-row"><strong>Conflicting Input</strong> — Two or more reviewers gave opposing directions in the same round</div>
+    <div class="leg-row"><strong>Unclear Requirements</strong> — The designer misunderstood requirements because they were ambiguous upfront</div>
+    <div class="leg-row"><strong>Copy Alignment</strong> — Design and copy were not in sync, including debates over wording, tone, or CTA placement</div>
+    <div class="leg-row"><strong>Missing Pattern</strong> — No existing design system component or established pattern existed for what was needed</div>
+    <div class="leg-row"><strong>Priority Changed</strong> — Designer paused or deprioritized the work due to competing delivery commitments</div>
+    <div class="leg-row"><strong>Brand Constraint</strong> — Brand guidelines directly limited or changed the design direction</div>
+    <div class="leg-row"><strong>Asset Dependency</strong> — Work was blocked waiting for assets from another team or person</div>
+    <div class="leg-row"><strong>Technical Limit</strong> — A platform or engineering constraint changed what was designable</div>
+    <div class="leg-row"><strong>Accessibility Gap</strong> — Accessibility requirements caused a design change</div>
+    <div class="leg-row"><strong>Missed Usecase</strong> — An unexpected user scenario or flow was not accounted for during design, discovered during review</div>
+    <div class="leg-row"><strong>Design Oversight</strong> — A visible detail already in the design was missed before submission, or feedback was not correctly incorporated</div>
+  </div>
 </div>
 
 <!-- ═══ SEPARATED VIEW ═══ -->
@@ -1582,11 +1608,11 @@ function drillHead(showDesigner) {{
 function drillLegend() {{
   return `<div class="leg">
     <div class="leg-title">Signals — highest raw value wins when multiple apply</div>
-    <div class="leg-row"><span class="sig sig-err">High rework</span>7+ revision rounds after first submission</div>
-    <div class="leg-row"><span class="sig sig-err">Slow pickup</span>Longest gap ≥5 working days (excl. weekends &amp; US holidays)</div>
-    <div class="leg-row"><span class="sig sig-err">Late feedback</span>Reviewer avg &gt;2 days to respond</div>
-    <div class="leg-row"><span class="sig sig-err">Long discussion</span>8+ replies with ≤1 cycle</div>
-    <div class="leg-row"><span class="sig sig-ot">On track</span>No issues detected</div>
+    <div class="leg-row"><span class="sig sig-err">High rework</span>6+ revision rounds after first submission</div>
+    <div class="leg-row"><span class="sig sig-err">Slow pickup</span>Longest gap ≥5 working days between consecutive messages (excl. weekends &amp; US holidays)</div>
+    <div class="leg-row"><span class="sig sig-err">Late feedback</span>Reviewer took &gt;2 business days to respond after being tagged</div>
+    <div class="leg-row"><span class="sig sig-err">Long discussion</span>Any single revision cycle had 5+ messages before the designer could move forward</div>
+    <div class="leg-row"><span class="sig sig-ot">On track</span>None of the above thresholds triggered</div>
     <div class="leg-title" style="margin-top:14px">Columns</div>
     <div class="leg-row"><strong>Cycles</strong> — Extra "For review" / "For feedback" rounds after first</div>
     <div class="leg-row"><strong>Replies</strong> — Discussion messages attributed to this deliverable</div>
