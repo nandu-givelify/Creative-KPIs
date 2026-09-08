@@ -786,7 +786,7 @@ def process_deliverable_thread(thread, users, managers, month_data, start_ts, en
                 n = sum(
                     1 for m in thread
                     if w_start < float(m["ts"]) < w_end
-                    and not (m.get("user") == uid and is_cycle_msg(m))
+                    and not is_cycle_msg(m)   # exclude any designer's submission/cycle — not just the current one
                     and not (m.get("user") == uid and float(m["ts"]) == w_start)
                 )
                 counts.append(n)
