@@ -6,6 +6,7 @@ and writes index.html + data.json to disk.
 The GitHub Actions workflow commits and pushes those files.
 """
 
+import hashlib
 import json
 import os
 import re
@@ -39,6 +40,11 @@ MARKETING_DESIGNERS = [
 # Full roster (combined) — every member appears in the drill-down.
 # Ds/Person divides by the number of active posters that month, not a fixed number.
 TEAM_MEMBERS = PRODUCT_DESIGNERS + MARKETING_DESIGNERS
+
+DASHBOARD_FILENAME = "kpi-glfy.html"
+
+def designer_slug(name):
+    return hashlib.md5((name + "gv-ck-2025").encode()).hexdigest()[:8]
 
 TARGETS = {
     "num_ds":          48,
@@ -1019,6 +1025,35 @@ def compute_metrics(month_data, managers, users=None, roster=None):
         result[month]["monthly_insight"] = monthly_insight
     return result
 
+def compute_all_designer_stats(merged_c):
+    """Aggregate per-designer stats across all months from thread_details."""
+    designer_deliverables = {}  # name → list of (month, deliverable_dict)
+    for month, mdata in sorted(merged_c.items()):
+        for name, delivs in mdata.get("thread_details", {}).items():
+            designer_deliverables.setdefault(name, []).extend((month, d) for d in delivs)
+
+    result = {}
+    for name, pairs in designer_deliverables.items():
+        total = len(pairs)
+        on_track = sum(1 for _, d in pairs if d.get("signal") == "On track")
+        off_track = total - on_track
+        avg_days = round(sum(d.get("task_days", 0) for _, d in pairs) / total, 1) if total else 0
+        months_active = len(set(m for m, _ in pairs))
+        avg_ds_per_month = round(total / months_active, 1) if months_active else 0
+        avg_replies = round(sum(d.get("reply_count", 0) for _, d in pairs) / total, 1) if total else 0
+        avg_cycles = round(sum(d.get("cycle_count", 0) for _, d in pairs) / total, 1) if total else 0
+        monthly = {}
+        for month, d in pairs:
+            monthly.setdefault(month, []).append(d)
+        result[name] = {
+            "total": total, "on_track": on_track, "off_track": off_track,
+            "avg_days": avg_days, "avg_ds_per_month": avg_ds_per_month,
+            "avg_replies": avg_replies, "avg_cycles": avg_cycles,
+            "monthly": monthly,
+        }
+    return result
+
+
 # ═══════════════════════════════════════════════════════════════════════════════
 #  HTML GENERATION
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -1153,7 +1188,257 @@ def build_rows(metrics, section, year, label_overrides=None, extra_tr_class=""):
     return html
 
 
-def generate_html(metrics_combined, metrics_product, metrics_marketing, year=2026):
+def generate_designer_page(name, stats, base_url=".."):
+    """Generate a self-contained HTML dashboard page for one designer."""
+    total = stats.get("total", 0)
+    on_track = stats.get("on_track", 0)
+    off_track = stats.get("off_track", 0)
+    avg_days = stats.get("avg_days", 0)
+    avg_ds_per_month = stats.get("avg_ds_per_month", 0)
+    avg_replies = stats.get("avg_replies", 0)
+    avg_cycles = stats.get("avg_cycles", 0)
+    monthly = stats.get("monthly", {})
+
+    on_pct = round(on_track / total * 100) if total else 0
+    off_pct = 100 - on_pct if total else 0
+
+    months_sorted = sorted(monthly.keys(), reverse=True)
+
+    # Build monthly table rows (pre-computed, not inside the outer f-string)
+    monthly_rows_html = ""
+    for month in months_sorted:
+        delivs = monthly[month]
+        n = len(delivs)
+        m_on = sum(1 for d in delivs if d.get("signal") == "On track")
+        m_off = n - m_on
+        m_cycles = round(sum(d.get("cycle_count", 0) for d in delivs) / n, 1) if n else 0
+        m_replies = round(sum(d.get("reply_count", 0) for d in delivs) / n, 1) if n else 0
+        m_days = round(sum(d.get("task_days", 0) for d in delivs) / n, 1) if n else 0
+        detail_items = ""
+        for d in delivs:
+            sig = d.get("signal", "On track")
+            sig_cls = "sig-ot" if sig == "On track" else "sig-err"
+            ai_html = f'<span class="detail-ai">{d.get("ai_summary")}</span>' if d.get("ai_summary") else ""
+            detail_items += (
+                f'<div class="detail-item">'
+                f'<a href="{d.get("slack_url","#")}" target="_blank" class="detail-link">'
+                f'{d.get("deliverable_type","—")}</a>'
+                f'<span class="detail-sig {sig_cls}">{sig}</span>'
+                f'<span class="detail-meta">Cycles: {d.get("cycle_count",0)} · '
+                f'Replies: {d.get("reply_count",0)} · Days: {round(d.get("task_days",0))}d</span>'
+                f'{ai_html}'
+                f'</div>'
+            )
+        monthly_rows_html += (
+            f'<tr class="month-row" onclick="toggleMonth(this)" data-month="{month}">'
+            f'<td class="month-cell"><span class="expand-icon">&#9658;</span>{month}</td>'
+            f'<td>{n}</td>'
+            f'<td style="color:var(--green)">{m_on}</td>'
+            f'<td style="color:var(--red)">{m_off}</td>'
+            f'<td>{m_cycles}</td>'
+            f'<td>{m_replies}</td>'
+            f'<td>{m_days}d</td>'
+            f'</tr>'
+            f'<tr class="detail-row" id="detail-{month}" style="display:none">'
+            f'<td colspan="7" style="padding:0">'
+            f'<div class="detail-inner">{detail_items}</div>'
+            f'</td></tr>'
+        )
+
+    if months_sorted:
+        monthly_section = (
+            '<table class="mbk-table">'
+            '<thead><tr>'
+            '<th>Month</th><th># Deliverables</th><th>On Track</th>'
+            '<th>Off Track</th><th>Cycles/D</th><th>Replies/D</th><th>Avg Days</th>'
+            '</tr></thead>'
+            f'<tbody>{monthly_rows_html}</tbody>'
+            '</table>'
+        )
+    else:
+        monthly_section = '<p style="color:var(--muted-fg);font-size:.875rem">No data yet.</p>'
+
+    # Embed monthly data as JSON for JS (strip heavy fields not needed on page)
+    monthly_js_data = {}
+    for m, delivs in monthly.items():
+        monthly_js_data[m] = [
+            {
+                "deliverable_type": d.get("deliverable_type", ""),
+                "signal": d.get("signal", "On track"),
+                "cycle_count": d.get("cycle_count", 0),
+                "reply_count": d.get("reply_count", 0),
+                "task_days": d.get("task_days", 0),
+                "slack_url": d.get("slack_url", ""),
+                "ai_summary": d.get("ai_summary"),
+            } for d in delivs
+        ]
+    monthly_js = json.dumps(monthly_js_data).replace("</", "<\\/").replace("<!--", "<\\!--")
+    name_js = json.dumps(name).replace("</", "<\\/")
+    slug = designer_slug(name)
+    total_disp = total if total else "—"
+    on_track_disp = on_track if total else "—"
+    off_track_disp = off_track if total else "—"
+    avg_days_disp = avg_days if total else "—"
+    avg_ds_disp = avg_ds_per_month if total else "—"
+    avg_replies_disp = avg_replies if total else "—"
+    avg_cycles_disp = avg_cycles if total else "—"
+
+    return f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{name} — Creative KPIs</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {{
+  --bg:#ffffff; --fg:#09090b;
+  --muted:#f4f4f5; --muted-fg:#777;
+  --border:#e4e4e7;
+  --primary:#18181b; --primary-fg:#fafafa;
+  --radius:0.375rem;
+  --green:#16a34a; --red:#dc2626;
+  --accent:#5e6ad2;
+}}
+*{{box-sizing:border-box;margin:0;padding:0}}
+body{{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--fg);font-size:.875rem;line-height:1.5}}
+.topnav{{display:flex;align-items:center;gap:16px;padding:16px 48px;border-bottom:1px solid var(--border);background:var(--bg);position:sticky;top:0;z-index:10}}
+.back-link{{color:var(--muted-fg);text-decoration:none;font-size:.875rem;display:flex;align-items:center;gap:6px;transition:color .15s}}
+.back-link:hover{{color:var(--accent)}}
+.page-title{{font-size:1.125rem;font-weight:600;color:var(--fg);flex:1}}
+.copy-btn-nav{{background:none;border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;color:var(--muted-fg);font-size:.8rem;padding:5px 12px;transition:all .15s;white-space:nowrap}}
+.copy-btn-nav:hover{{border-color:var(--accent);color:var(--accent)}}
+.main{{padding:40px 48px}}
+.stat-grid{{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:16px}}
+.stat-grid-sm{{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:40px}}
+.stat-card{{background:var(--muted);border-radius:var(--radius);padding:20px 22px;border:1px solid transparent}}
+.stat-card.green{{background:#f0faf2;border-color:#c3e6cb}}
+.stat-card.red{{background:#fff3f3;border-color:#f5c6c6}}
+.stat-label{{font-size:.7rem;font-weight:600;color:var(--muted-fg);margin-bottom:10px;text-transform:uppercase;letter-spacing:.04em}}
+.stat-big{{font-size:2rem;font-weight:700;color:var(--fg);line-height:1}}
+.stat-big.green{{color:var(--green)}}
+.stat-big.red{{color:var(--red)}}
+.stat-sub{{font-size:.78rem;color:var(--muted-fg);margin-top:6px}}
+.stat-card-sm{{background:var(--muted);border-radius:var(--radius);padding:14px 18px}}
+.stat-label-sm{{font-size:.7rem;font-weight:600;color:var(--muted-fg);margin-bottom:6px;text-transform:uppercase;letter-spacing:.04em}}
+.stat-num-sm{{font-size:1.25rem;font-weight:600;color:var(--fg);line-height:1}}
+.section-title{{font-size:.875rem;font-weight:600;color:var(--fg);margin-bottom:16px}}
+.mbk-table{{width:100%;border-collapse:collapse}}
+.mbk-table th{{font-size:.7rem;font-weight:600;color:var(--muted-fg);padding:10px 8px;border-bottom:1px solid var(--border);text-align:center;white-space:nowrap}}
+.mbk-table th:first-child{{text-align:left}}
+.mbk-table td{{padding:12px 8px;border-bottom:1px solid var(--border);text-align:center;font-size:.875rem}}
+.mbk-table td:first-child{{text-align:left}}
+.mbk-table tr:last-child td{{border:none}}
+.month-row{{cursor:pointer;transition:background .1s}}
+.month-row:hover td{{background:var(--muted)}}
+.month-cell{{font-weight:600;display:flex;align-items:center;gap:8px}}
+.expand-icon{{font-size:.6rem;color:var(--muted-fg);transition:transform .2s;display:inline-block}}
+.expand-icon.open{{transform:rotate(90deg)}}
+.detail-row td{{padding:0!important}}
+.detail-inner{{background:#fafafa;border-left:3px solid var(--border);padding:12px 20px;display:flex;flex-direction:column;gap:10px}}
+.detail-item{{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;padding:6px 0;border-bottom:1px solid var(--border)}}
+.detail-item:last-child{{border:none}}
+.detail-link{{color:var(--fg);text-decoration:none;font-weight:500;font-size:.83rem}}
+.detail-link:hover{{color:var(--accent);text-decoration:underline}}
+.detail-sig{{font-size:.75rem;font-weight:600;white-space:nowrap}}
+.sig-err{{color:var(--red)}}
+.sig-ot{{color:var(--green)}}
+.detail-meta{{font-size:.75rem;color:var(--muted-fg);white-space:nowrap}}
+.detail-ai{{font-size:.72rem;color:var(--muted-fg);font-style:italic;flex:1;min-width:120px}}
+.ft{{margin-top:48px;font-size:.6875rem;color:var(--muted-fg)}}
+@media(max-width:900px){{
+  .stat-grid,.stat-grid-sm{{grid-template-columns:repeat(2,1fr)}}
+  .topnav,.main{{padding-left:24px;padding-right:24px}}
+}}
+@media(max-width:500px){{
+  .stat-grid,.stat-grid-sm{{grid-template-columns:1fr}}
+  .topnav,.main{{padding-left:16px;padding-right:16px}}
+}}
+</style>
+</head>
+<body>
+<nav class="topnav">
+  <a href="{base_url}/{DASHBOARD_FILENAME}" class="back-link">&#8592; Creative KPIs</a>
+  <div class="page-title">{name}</div>
+  <button class="copy-btn-nav" onclick="copyLink(this)" title="Copy dashboard link">&#128203; Copy link</button>
+</nav>
+<div class="main">
+  <div class="stat-grid">
+    <div class="stat-card">
+      <div class="stat-label">Total Deliverables</div>
+      <div class="stat-big">{total_disp}</div>
+      <div class="stat-sub">all time</div>
+    </div>
+    <div class="stat-card green">
+      <div class="stat-label">On Track</div>
+      <div class="stat-big green">{on_track_disp}</div>
+      <div class="stat-sub">{on_pct}% of total</div>
+    </div>
+    <div class="stat-card red">
+      <div class="stat-label">Off Track</div>
+      <div class="stat-big red">{off_track_disp}</div>
+      <div class="stat-sub">{off_pct}% of total</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Avg Days to Complete</div>
+      <div class="stat-big">{avg_days_disp}</div>
+      <div class="stat-sub">business days</div>
+    </div>
+  </div>
+  <div class="stat-grid-sm">
+    <div class="stat-card-sm">
+      <div class="stat-label-sm">Avg / Month</div>
+      <div class="stat-num-sm">{avg_ds_disp}</div>
+    </div>
+    <div class="stat-card-sm">
+      <div class="stat-label-sm">Avg Replies / D</div>
+      <div class="stat-num-sm">{avg_replies_disp}</div>
+    </div>
+    <div class="stat-card-sm">
+      <div class="stat-label-sm">Avg Cycles / D</div>
+      <div class="stat-num-sm">{avg_cycles_disp}</div>
+    </div>
+    <div class="stat-card-sm" style="opacity:.4">
+      <div class="stat-label-sm">Coming soon</div>
+      <div class="stat-num-sm">&#8212;</div>
+    </div>
+  </div>
+  <div class="section-title">Monthly Breakdown</div>
+  {monthly_section}
+  <div class="ft">Generated by Creative KPIs</div>
+</div>
+<script>
+const MONTHLY_DATA = {monthly_js};
+const DESIGNER_NAME = {name_js};
+
+function copyLink(btn) {{
+  const url = 'https://nandu-givelify.github.io/Creative-KPIs/d/{slug}.html';
+  navigator.clipboard.writeText(url).then(() => {{
+    const orig = btn.textContent;
+    btn.textContent = '✓ Copied!';
+    setTimeout(() => {{ btn.textContent = orig; }}, 2000);
+  }}).catch(() => {{
+    btn.textContent = '✓ Copied!';
+    setTimeout(() => {{ btn.textContent = orig; }}, 2000);
+  }});
+}}
+
+function toggleMonth(row) {{
+  const month = row.dataset.month;
+  const detailRow = document.getElementById('detail-' + month);
+  const icon = row.querySelector('.expand-icon');
+  if (!detailRow) return;
+  const isOpen = detailRow.style.display !== 'none';
+  detailRow.style.display = isOpen ? 'none' : '';
+  if (icon) icon.classList.toggle('open', !isOpen);
+}}
+</script>
+</body>
+</html>"""
+
+
+def generate_html(metrics_combined, metrics_product, metrics_marketing, year=2026, designer_stats=None):
     mh = "".join(f'<th class="mh">{m}</th>' for m in MONTHS)
 
     # Combined view — deliverables + response merged into one tbody
@@ -1176,6 +1461,23 @@ def generate_html(metrics_combined, metrics_product, metrics_marketing, year=202
         return (json.dumps(obj)
                 .replace("</", "<\\/")   # prevents </script> from ending the block
                 .replace("<!--", "<\\!--"))
+
+    # JS data blobs for designer roster
+    ds_with_slug = {}
+    for nm in TEAM_MEMBERS:
+        s = (designer_stats or {}).get(nm, {})
+        ds_with_slug[nm] = {
+            "total":           s.get("total", 0),
+            "on_track":        s.get("on_track", 0),
+            "off_track":       s.get("off_track", 0),
+            "avg_days":        s.get("avg_days", 0),
+            "avg_ds_per_month":s.get("avg_ds_per_month", 0),
+            "avg_replies":     s.get("avg_replies", 0),
+            "avg_cycles":      s.get("avg_cycles", 0),
+            "_slug":           designer_slug(nm),
+        }
+    designer_stats_js = safe_js(ds_with_slug)
+    roster_js = json.dumps(TEAM_MEMBERS)
 
     # JS data blobs for thread breakdown and insights
     thread_details_js  = safe_js({ym: v.get("thread_details", {})
@@ -1338,6 +1640,16 @@ th,td{{padding:18px 10px;border-bottom:1px solid var(--border);vertical-align:mi
 .ft{{margin-top:48px;font-size:.6875rem;color:var(--muted-fg)}}
 tr.tr-response td{{background:#f4f4f5!important}}
 tr.tr-response:hover td{{background:#ebebec!important}}
+.roster-table{{width:100%;border-collapse:collapse}}
+.roster-table th{{font-size:.7rem;font-weight:600;color:var(--muted-fg);padding:10px 8px;border-bottom:1px solid var(--border);text-align:center;white-space:nowrap}}
+.roster-table th:first-child{{text-align:left}}
+.roster-table td{{padding:12px 8px;border-bottom:1px solid var(--border);text-align:center;font-size:.875rem}}
+.roster-table td:first-child{{text-align:left;font-weight:600}}
+.roster-table tr:last-child td{{border:none}}
+.copy-btn{{background:none;border:none;cursor:pointer;color:var(--muted-fg);font-size:.85rem;padding:2px 6px;border-radius:4px;transition:color .15s}}
+.copy-btn:hover{{color:var(--fg)}}
+.designer-link{{color:var(--fg);text-decoration:none;font-weight:600}}
+.designer-link:hover{{color:#5e6ad2;text-decoration:underline;text-decoration-style:dotted}}
 </style>
 </head>
 <body>
@@ -1386,17 +1698,23 @@ tr.tr-response:hover td{{background:#ebebec!important}}
 
 <!-- ═══ SEPARATED VIEW ═══ -->
 <div id="view-separated" style="display:none">
-
-  <table>
-    <thead><tr><th class="ml"></th>{mh}</tr></thead>
-    <tbody>{dr_p}</tbody>
+  <div class="grp-hdr">Designer Roster</div>
+  <table class="roster-table">
+    <thead>
+      <tr>
+        <th>Designer</th>
+        <th>Total</th>
+        <th>On Track</th>
+        <th>Off Track</th>
+        <th>Avg Days</th>
+        <th>Avg/Month</th>
+        <th>Avg Replies</th>
+        <th>Avg Cycles</th>
+        <th>Link</th>
+      </tr>
+    </thead>
+    <tbody id="roster-tbody"></tbody>
   </table>
-
-  <table style="margin-top:40px">
-    <thead><tr><th class="ml"></th>{mh}</tr></thead>
-    <tbody>{dr_m}</tbody>
-  </table>
-
 </div>
 
 <div class="ft">Last updated: {upd}</div>
@@ -1468,7 +1786,47 @@ const INSIGHTS_COMBINED = {insights_combined_js};
 const INSIGHTS_PRODUCT  = {insights_product_js};
 const INSIGHTS_MARKETING= {insights_marketing_js};
 const MONTH_KEYS_MAP    = {{"JAN":"01","FEB":"02","MAR":"03","APR":"04","MAY":"05","JUN":"06","JUL":"07","AUG":"08","SEP":"09","OCT":"10","NOV":"11","DEC":"12"}};
+const DESIGNER_STATS    = {designer_stats_js};
+const ROSTER            = {roster_js};
 let _activeView = 'combined';
+
+function buildRosterTable() {{
+  const tbody = document.getElementById('roster-tbody');
+  if (!tbody) return;
+  const dash = v => (v || v === 0) && v !== 0 ? v : '—';
+  tbody.innerHTML = ROSTER.map(name => {{
+    const s = DESIGNER_STATS[name] || {{}};
+    const slug = s._slug || '';
+    const total = s.total || 0;
+    const on = s.on_track || 0;
+    const off = s.off_track || 0;
+    const days = s.avg_days || 0;
+    const dpm = s.avg_ds_per_month || 0;
+    const rep = s.avg_replies || 0;
+    const cyc = s.avg_cycles || 0;
+    const url = 'https://nandu-givelify.github.io/Creative-KPIs/d/' + slug + '.html';
+    const dv = v => v ? v : '—';
+    return '<tr>'
+      + '<td><a href="d/' + slug + '.html" class="designer-link">' + name + '</a></td>'
+      + '<td>' + dv(total) + '</td>'
+      + '<td style="color:var(--green)">' + dv(on) + '</td>'
+      + '<td style="color:var(--red)">' + dv(off) + '</td>'
+      + '<td>' + (days ? days + 'd' : '—') + '</td>'
+      + '<td>' + dv(dpm) + '</td>'
+      + '<td>' + dv(rep) + '</td>'
+      + '<td>' + dv(cyc) + '</td>'
+      + '<td><button class="copy-btn" onclick="copyDesignerLink(\'' + url + '\',this)" title="Copy dashboard link">📋</button></td>'
+      + '</tr>';
+  }}).join('');
+}}
+
+function copyDesignerLink(url, btn) {{
+  navigator.clipboard.writeText(url).then(() => {{
+    const orig = btn.textContent;
+    btn.textContent = '✓';
+    setTimeout(() => {{ btn.textContent = orig; }}, 2000);
+  }});
+}}
 
 function showView(v) {{
   _activeView = v;
@@ -1874,6 +2232,7 @@ function closeSidePanel() {{
   document.getElementById('sp').classList.remove('open');
 }}
 document.addEventListener('keydown', e => {{ if (e.key === 'Escape') {{ closeSidePanel(); closePanel2(); close_(); }} }});
+buildRosterTable();
 </script>
 </body>
 </html>"""
@@ -1948,9 +2307,62 @@ def main():
     merged_m = {**existing_m, **new_m}
 
     print("\n[5/5] Writing output files...")
-    html = generate_html(merged_c, merged_p, merged_m)
-    with open("index.html", "w") as f: f.write(html)
-    print("  ✓ index.html")
+
+    # Compute per-designer stats across all historical months
+    designer_stats = compute_all_designer_stats(merged_c)
+
+    # Main dashboard
+    html = generate_html(merged_c, merged_p, merged_m, designer_stats=designer_stats)
+    with open(DASHBOARD_FILENAME, "w") as f: f.write(html)
+    print(f"  ✓ {DASHBOARD_FILENAME}")
+
+    # Dead-end index.html
+    dead_end_html = """<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>404 — Nothing to see here</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',system-ui,sans-serif;background:#ffffff;color:#09090b;display:flex;align-items:center;justify-content:center;min-height:100vh;text-align:center;padding:40px}
+.container{max-width:480px}
+.emoji{font-size:4rem;margin-bottom:24px;display:block}
+h1{font-size:1.75rem;font-weight:700;margin-bottom:12px;letter-spacing:-.02em}
+p{font-size:1rem;color:#777;line-height:1.6;margin-bottom:32px}
+a.btn{display:inline-block;background:#18181b;color:#fafafa;text-decoration:none;padding:12px 28px;border-radius:6px;font-weight:600;font-size:.9rem;transition:background .15s}
+a.btn:hover{background:#3f3f46}
+</style>
+</head>
+<body>
+<div class="container">
+  <span class="emoji">&#128064;</span>
+  <h1>404 &mdash; Nothing to see here</h1>
+  <p>Looks like you took a wrong turn. This isn&rsquo;t the page you&rsquo;re looking for.<br>
+  The one you want is somewhere else entirely. We&rsquo;re not saying where.</p>
+  <a class="btn" href="https://www.givelify.com">Take me somewhere useful</a>
+</div>
+</body>
+</html>"""
+    with open("index.html", "w") as f: f.write(dead_end_html)
+    print("  ✓ index.html (dead end)")
+
+    # Per-designer pages
+    os.makedirs("d", exist_ok=True)
+    for name in TEAM_MEMBERS:
+        stats = designer_stats.get(name)
+        if stats is None:
+            stats = {
+                "total": 0, "on_track": 0, "off_track": 0,
+                "avg_days": 0, "avg_ds_per_month": 0,
+                "avg_replies": 0, "avg_cycles": 0, "monthly": {},
+            }
+        slug = designer_slug(name)
+        page_html = generate_designer_page(name, stats, base_url="..")
+        with open(f"d/{slug}.html", "w") as f: f.write(page_html)
+    print(f"  ✓ {len(TEAM_MEMBERS)} designer pages in d/")
 
     with open("data.json", "w") as f:
         json.dump({

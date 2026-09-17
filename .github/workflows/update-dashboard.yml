@@ -51,11 +51,11 @@ jobs:
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add index.html data.json
+          git add index.html data.json kpi-glfy.html d/
           git diff --staged --quiet || git commit -m "Dashboard update $(date +'%Y-%m-%d')"
           git pull --rebase origin main || (
-            git checkout --theirs data.json index.html &&
-            git add data.json index.html &&
+            git checkout --theirs data.json index.html kpi-glfy.html &&
+            git add data.json index.html kpi-glfy.html d/ &&
             git rebase --continue
           )
           git push
