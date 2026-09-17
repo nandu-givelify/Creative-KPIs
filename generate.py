@@ -1815,12 +1815,13 @@ function buildRosterTable() {{
       + '<td>' + dv(dpm) + '</td>'
       + '<td>' + dv(rep) + '</td>'
       + '<td>' + dv(cyc) + '</td>'
-      + '<td><button class="copy-btn" onclick="copyDesignerLink(\'' + url + '\',this)" title="Copy dashboard link">📋</button></td>'
+      + '<td><button class="copy-btn" data-url="' + url + '" onclick="copyDesignerLink(this)" title="Copy dashboard link">📋</button></td>'
       + '</tr>';
   }}).join('');
 }}
 
-function copyDesignerLink(url, btn) {{
+function copyDesignerLink(btn) {{
+  const url = btn.dataset.url;
   navigator.clipboard.writeText(url).then(() => {{
     const orig = btn.textContent;
     btn.textContent = '✓';
