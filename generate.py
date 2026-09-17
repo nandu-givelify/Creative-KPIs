@@ -1189,99 +1189,137 @@ def build_rows(metrics, section, year, label_overrides=None, extra_tr_class=""):
 
 
 def generate_designer_page(name, stats, base_url=".."):
-    """Generate a self-contained HTML dashboard page for one designer."""
-    total = stats.get("total", 0)
-    on_track = stats.get("on_track", 0)
-    off_track = stats.get("off_track", 0)
-    avg_days = stats.get("avg_days", 0)
+    """Generate a self-contained HTML dashboard page for one designer.
+    Uses the same table/drilldown patterns as the main dashboard.
+    """
+    total          = stats.get("total", 0)
+    on_track       = stats.get("on_track", 0)
+    off_track      = stats.get("off_track", 0)
+    avg_days       = stats.get("avg_days", 0)
     avg_ds_per_month = stats.get("avg_ds_per_month", 0)
-    avg_replies = stats.get("avg_replies", 0)
-    avg_cycles = stats.get("avg_cycles", 0)
-    monthly = stats.get("monthly", {})
+    avg_replies    = stats.get("avg_replies", 0)
+    avg_cycles     = stats.get("avg_cycles", 0)
+    monthly        = stats.get("monthly", {})
 
-    on_pct = round(on_track / total * 100) if total else 0
+    on_pct  = round(on_track / total * 100) if total else 0
     off_pct = 100 - on_pct if total else 0
 
-    months_sorted = sorted(monthly.keys(), reverse=True)
+    # ── Month list (ascending for table header) ──────────────────────────────
+    all_months = sorted(monthly.keys())
+    month_name_map = {
+        "01":"Jan","02":"Feb","03":"Mar","04":"Apr","05":"May","06":"Jun",
+        "07":"Jul","08":"Aug","09":"Sep","10":"Oct","11":"Nov","12":"Dec",
+    }
+    def mon_label(ym):
+        parts = ym.split("-")
+        return month_name_map.get(parts[1], parts[1]) if len(parts) == 2 else ym
 
-    # Build monthly table rows (pre-computed, not inside the outer f-string)
-    monthly_rows_html = ""
-    for month in months_sorted:
-        delivs = monthly[month]
+    # ── Does this designer have any reviewer-wait data? ───────────────────────
+    has_response = any(
+        d.get("reviewer_wait_bdays") is not None
+        for delivs in monthly.values() for d in delivs
+    )
+
+    # ── Per-month metric values ───────────────────────────────────────────────
+    def month_metrics(delivs):
         n = len(delivs)
-        m_on = sum(1 for d in delivs if d.get("signal") == "On track")
-        m_off = n - m_on
-        m_cycles = round(sum(d.get("cycle_count", 0) for d in delivs) / n, 1) if n else 0
-        m_replies = round(sum(d.get("reply_count", 0) for d in delivs) / n, 1) if n else 0
-        m_days = round(sum(d.get("task_days", 0) for d in delivs) / n, 1) if n else 0
-        detail_items = ""
-        for d in delivs:
-            sig = d.get("signal", "On track")
-            sig_cls = "sig-ot" if sig == "On track" else "sig-err"
-            ai_html = f'<span class="detail-ai">{d.get("ai_summary")}</span>' if d.get("ai_summary") else ""
-            detail_items += (
-                f'<div class="detail-item">'
-                f'<a href="{d.get("slack_url","#")}" target="_blank" class="detail-link">'
-                f'{d.get("deliverable_type","—")}</a>'
-                f'<span class="detail-sig {sig_cls}">{sig}</span>'
-                f'<span class="detail-meta">Cycles: {d.get("cycle_count",0)} · '
-                f'Replies: {d.get("reply_count",0)} · Days: {round(d.get("task_days",0))}d</span>'
-                f'{ai_html}'
-                f'</div>'
-            )
-        monthly_rows_html += (
-            f'<tr class="month-row" onclick="toggleMonth(this)" data-month="{month}">'
-            f'<td class="month-cell"><span class="expand-icon">&#9658;</span>{month}</td>'
-            f'<td>{n}</td>'
-            f'<td style="color:var(--green)">{m_on}</td>'
-            f'<td style="color:var(--red)">{m_off}</td>'
-            f'<td>{m_cycles}</td>'
-            f'<td>{m_replies}</td>'
-            f'<td>{m_days}d</td>'
-            f'</tr>'
-            f'<tr class="detail-row" id="detail-{month}" style="display:none">'
-            f'<td colspan="7" style="padding:0">'
-            f'<div class="detail-inner">{detail_items}</div>'
-            f'</td></tr>'
+        if not n:
+            return {}
+        cycles  = round(sum(d.get("cycle_count", 0) for d in delivs) / n, 2)
+        replies = round(sum(d.get("reply_count", 0) for d in delivs) / n, 2)
+        days    = round(sum(d.get("task_days", 0)   for d in delivs) / n, 1)
+        rt = [d["reviewer_wait_bdays"] for d in delivs if d.get("reviewer_wait_bdays") is not None]
+        return {
+            "num_ds":          n,
+            "cycles_per_d":    cycles,
+            "replies_per_d":   replies,
+            "task_days_per_d": days,
+            "response_per_d":  round(sum(rt)/len(rt), 1) if rt else None,
+        }
+
+    mv = {m: month_metrics(delivs) for m, delivs in monthly.items()}
+
+    # ── Table header (one cell per month) ────────────────────────────────────
+    mh_cells = "".join(f'<th class="mh">{mon_label(m)}</th>' for m in all_months)
+
+    # ── Metric rows ───────────────────────────────────────────────────────────
+    # Skip ds_per_person (meaningless for 1 person). Target for num_ds = 4 (individual).
+    INDIV_METRICS = [
+        ("num_ds",          "# Deliverables",        "4",   "dl"),
+        ("cycles_per_d",    "Cycles / Deliverable",  "TBD", "sp"),
+        ("replies_per_d",   "Replies / Deliverable", "TBD", "sp"),
+        ("task_days_per_d", "Avg. Days to Complete", "TBD", "dlg"),
+    ]
+    if has_response:
+        INDIV_METRICS.append(("response_per_d", "Avg. Response Time", "TBD", "sp"))
+
+    def fmt(val, key):
+        if val is None: return None
+        if key == "response_per_d":  return f"{val}h"
+        if key == "task_days_per_d": return f"{val}d"
+        if key == "num_ds":          return str(int(val))
+        return str(val)
+
+    rows_html = ""
+    for key, label, tstr, drill_type in INDIV_METRICS:
+        tr_cls = "mr tr-response" if key == "response_per_d" else "mr"
+        cells  = ""
+        for m in all_months:
+            val  = mv.get(m, {}).get(key)
+            fval = fmt(val, key)
+            mlab = mon_label(m)
+            yr   = m.split("-")[0]
+            if fval is None:
+                cells += '<td class="mc"><span class="empty">—</span></td>'
+            elif drill_type == "dlg":
+                cells += (
+                    f'<td class="mc"><span class="mv click" '
+                    f'data-ym="{m}" data-label="{mlab}" data-year="{yr}" data-key="{key}"'
+                    f' onclick="drillDlg(this)">{fval}</span></td>'
+                )
+            else:
+                cells += (
+                    f'<td class="mc"><span class="mv click" '
+                    f'data-ym="{m}" data-label="{mlab}" data-year="{yr}" data-key="{key}" data-metric="{label}"'
+                    f' onclick="drillPanel(this)">{fval}</span></td>'
+                )
+        rows_html += (
+            f'<tr class="{tr_cls}">'
+            f'<td class="ml"><div class="mn">{label}</div>'
+            f'<div class="mt">Target: {tstr}</div></td>'
+            f'{cells}</tr>'
         )
 
-    if months_sorted:
-        monthly_section = (
-            '<table class="mbk-table">'
-            '<thead><tr>'
-            '<th>Month</th><th># Deliverables</th><th>On Track</th>'
-            '<th>Off Track</th><th>Cycles/D</th><th>Replies/D</th><th>Avg Days</th>'
-            '</tr></thead>'
-            f'<tbody>{monthly_rows_html}</tbody>'
-            '</table>'
-        )
-    else:
-        monthly_section = '<p style="color:var(--muted-fg);font-size:.875rem">No data yet.</p>'
-
-    # Embed monthly data as JSON for JS (strip heavy fields not needed on page)
-    monthly_js_data = {}
+    # ── Thread details JSON for JS ────────────────────────────────────────────
+    td_js_data = {}
     for m, delivs in monthly.items():
-        monthly_js_data[m] = [
-            {
-                "deliverable_type": d.get("deliverable_type", ""),
-                "signal": d.get("signal", "On track"),
-                "cycle_count": d.get("cycle_count", 0),
-                "reply_count": d.get("reply_count", 0),
-                "task_days": d.get("task_days", 0),
-                "slack_url": d.get("slack_url", ""),
-                "ai_summary": d.get("ai_summary"),
-            } for d in delivs
-        ]
-    monthly_js = json.dumps(monthly_js_data).replace("</", "<\\/").replace("<!--", "<\\!--")
-    name_js = json.dumps(name).replace("</", "<\\/")
-    slug = designer_slug(name)
-    total_disp = total if total else "—"
-    on_track_disp = on_track if total else "—"
-    off_track_disp = off_track if total else "—"
-    avg_days_disp = avg_days if total else "—"
-    avg_ds_disp = avg_ds_per_month if total else "—"
-    avg_replies_disp = avg_replies if total else "—"
-    avg_cycles_disp = avg_cycles if total else "—"
+        td_js_data[m] = [{
+            "deliverable_type":    d.get("deliverable_type", ""),
+            "signal":              d.get("signal", "On track"),
+            "cycle_count":         d.get("cycle_count", 0),
+            "reply_count":         d.get("reply_count", 0),
+            "task_days":           d.get("task_days", 0),
+            "reviewer_wait_bdays": d.get("reviewer_wait_bdays"),
+            "max_gap_bdays":       d.get("max_gap_bdays"),
+            "slack_url":           d.get("slack_url", ""),
+            "ai_summary":          d.get("ai_summary"),
+            "ai_issue":            d.get("ai_issue"),
+        } for d in delivs]
+
+    def _safe(obj):
+        return json.dumps(obj).replace("</", "<\\/").replace("<!--", "<\\!--")
+
+    td_js    = _safe(td_js_data)
+    name_js  = _safe(name)
+    slug     = designer_slug(name)
+
+    total_d       = total         if total else "—"
+    on_d          = on_track      if total else "—"
+    off_d         = off_track     if total else "—"
+    avg_days_d    = f"{avg_days}d"  if total else "—"
+    avg_ds_d      = avg_ds_per_month if total else "—"
+    avg_replies_d = avg_replies   if total else "—"
+    avg_cycles_d  = avg_cycles    if total else "—"
 
     return f"""<!DOCTYPE html>
 <html lang="en">
@@ -1292,125 +1330,156 @@ def generate_designer_page(name, stats, base_url=".."):
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
-:root {{
-  --bg:#ffffff; --fg:#09090b;
-  --muted:#f4f4f5; --muted-fg:#777;
-  --border:#e4e4e7;
-  --primary:#18181b; --primary-fg:#fafafa;
-  --radius:0.375rem;
-  --green:#16a34a; --red:#dc2626;
-  --accent:#5e6ad2;
-}}
+:root{{--bg:#ffffff;--fg:#09090b;--muted:#f4f4f5;--muted-fg:#777;--border:#e4e4e7;--primary:#18181b;--primary-fg:#fafafa;--ring:#777;--radius:0.375rem}}
 *{{box-sizing:border-box;margin:0;padding:0}}
-body{{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--fg);font-size:.875rem;line-height:1.5}}
-.topnav{{display:flex;align-items:center;gap:16px;padding:16px 48px;border-bottom:1px solid var(--border);background:var(--bg);position:sticky;top:0;z-index:10}}
-.back-link{{color:var(--muted-fg);text-decoration:none;font-size:.875rem;display:flex;align-items:center;gap:6px;transition:color .15s}}
-.back-link:hover{{color:var(--accent)}}
-.page-title{{font-size:1.125rem;font-weight:600;color:var(--fg);flex:1}}
-.copy-btn-nav{{background:none;border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;color:var(--muted-fg);font-size:.8rem;padding:5px 12px;transition:all .15s;white-space:nowrap}}
-.copy-btn-nav:hover{{border-color:var(--accent);color:var(--accent)}}
-.main{{padding:40px 48px}}
+body{{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--fg);padding:52px 64px;font-size:.875rem;line-height:1.5}}
+.hdr{{display:flex;align-items:center;justify-content:space-between;margin-bottom:40px}}
+.hdr-left{{display:flex;align-items:center;gap:14px}}
+h1{{font-size:1.875rem;font-weight:600;letter-spacing:-.025em;color:var(--fg)}}
+.copy-btn-hdr{{background:none;border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;font-size:.8rem;font-weight:500;color:var(--muted-fg);padding:7px 14px;transition:all .15s;white-space:nowrap}}
+.copy-btn-hdr:hover{{border-color:var(--ring);color:var(--fg)}}
+/* stat cards */
 .stat-grid{{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:16px}}
-.stat-grid-sm{{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:40px}}
-.stat-card{{background:var(--muted);border-radius:var(--radius);padding:20px 22px;border:1px solid transparent}}
-.stat-card.green{{background:#f0faf2;border-color:#c3e6cb}}
-.stat-card.red{{background:#fff3f3;border-color:#f5c6c6}}
-.stat-label{{font-size:.7rem;font-weight:600;color:var(--muted-fg);margin-bottom:10px;text-transform:uppercase;letter-spacing:.04em}}
-.stat-big{{font-size:2rem;font-weight:700;color:var(--fg);line-height:1}}
-.stat-big.green{{color:var(--green)}}
-.stat-big.red{{color:var(--red)}}
-.stat-sub{{font-size:.78rem;color:var(--muted-fg);margin-top:6px}}
-.stat-card-sm{{background:var(--muted);border-radius:var(--radius);padding:14px 18px}}
-.stat-label-sm{{font-size:.7rem;font-weight:600;color:var(--muted-fg);margin-bottom:6px;text-transform:uppercase;letter-spacing:.04em}}
-.stat-num-sm{{font-size:1.25rem;font-weight:600;color:var(--fg);line-height:1}}
-.section-title{{font-size:.875rem;font-weight:600;color:var(--fg);margin-bottom:16px}}
-.mbk-table{{width:100%;border-collapse:collapse}}
-.mbk-table th{{font-size:.7rem;font-weight:600;color:var(--muted-fg);padding:10px 8px;border-bottom:1px solid var(--border);text-align:center;white-space:nowrap}}
-.mbk-table th:first-child{{text-align:left}}
-.mbk-table td{{padding:12px 8px;border-bottom:1px solid var(--border);text-align:center;font-size:.875rem}}
-.mbk-table td:first-child{{text-align:left}}
-.mbk-table tr:last-child td{{border:none}}
-.month-row{{cursor:pointer;transition:background .1s}}
-.month-row:hover td{{background:var(--muted)}}
-.month-cell{{font-weight:600;display:flex;align-items:center;gap:8px}}
-.expand-icon{{font-size:.6rem;color:var(--muted-fg);transition:transform .2s;display:inline-block}}
-.expand-icon.open{{transform:rotate(90deg)}}
-.detail-row td{{padding:0!important}}
-.detail-inner{{background:#fafafa;border-left:3px solid var(--border);padding:12px 20px;display:flex;flex-direction:column;gap:10px}}
-.detail-item{{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;padding:6px 0;border-bottom:1px solid var(--border)}}
-.detail-item:last-child{{border:none}}
-.detail-link{{color:var(--fg);text-decoration:none;font-weight:500;font-size:.83rem}}
-.detail-link:hover{{color:var(--accent);text-decoration:underline}}
-.detail-sig{{font-size:.75rem;font-weight:600;white-space:nowrap}}
-.sig-err{{color:var(--red)}}
-.sig-ot{{color:var(--green)}}
-.detail-meta{{font-size:.75rem;color:var(--muted-fg);white-space:nowrap}}
-.detail-ai{{font-size:.72rem;color:var(--muted-fg);font-style:italic;flex:1;min-width:120px}}
-.ft{{margin-top:48px;font-size:.6875rem;color:var(--muted-fg)}}
-@media(max-width:900px){{
-  .stat-grid,.stat-grid-sm{{grid-template-columns:repeat(2,1fr)}}
-  .topnav,.main{{padding-left:24px;padding-right:24px}}
-}}
-@media(max-width:500px){{
-  .stat-grid,.stat-grid-sm{{grid-template-columns:1fr}}
-  .topnav,.main{{padding-left:16px;padding-right:16px}}
-}}
+.stat-grid-sm{{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:48px}}
+.sc{{background:var(--muted);border-radius:8px;padding:20px 22px;border:1px solid transparent}}
+.sc.green{{background:#f0faf2;border-color:#c3e6cb}}
+.sc.red{{background:#fff3f3;border-color:#f5c6c6}}
+.sc-lbl{{font-size:.68rem;font-weight:600;color:var(--muted-fg);margin-bottom:10px;text-transform:uppercase;letter-spacing:.05em}}
+.sc-big{{font-size:2rem;font-weight:700;color:var(--fg);line-height:1}}
+.sc-big.green{{color:#16a34a}}.sc-big.red{{color:#dc2626}}
+.sc-sub{{font-size:.75rem;color:var(--muted-fg);margin-top:6px}}
+.sc-sm{{background:var(--muted);border-radius:8px;padding:16px 20px}}
+.sc-sm-lbl{{font-size:.68rem;font-weight:600;color:var(--muted-fg);margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em}}
+.sc-sm-val{{font-size:1.375rem;font-weight:600;color:var(--fg)}}
+/* table — identical to main dashboard */
+table{{width:100%;border-collapse:collapse;margin-bottom:52px}}
+th,td{{padding:18px 10px;border-bottom:1px solid var(--border);vertical-align:middle}}
+.mh{{font-size:.6875rem;font-weight:500;letter-spacing:.05em;text-transform:uppercase;color:var(--muted-fg);text-align:center;min-width:62px}}
+.ml{{min-width:200px;padding-right:28px}}
+.mn{{font-size:1rem;font-weight:600;color:var(--fg);margin-bottom:4px}}
+.mt{{font-size:.75rem;color:var(--muted-fg)}}
+.mc{{text-align:center}}
+.mv{{font-size:.9375rem;font-weight:500;color:var(--fg)}}
+.mv.click{{cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-decoration-color:#d4d4d8;transition:color .15s,text-decoration-color .15s}}
+.mv.click:hover{{color:#0057d9;text-decoration-color:#0057d9}}
+.empty{{color:#d4d4d8;font-size:.8rem}}
+tr.tr-response td{{background:#f4f4f5!important}}
+tr.tr-response:hover td{{background:#ebebec!important}}
+/* side panel */
+.sp-ov{{display:none;position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.2)}}
+.sp-ov.on{{display:block}}
+.sp{{position:fixed;top:0;right:-480px;width:460px;max-width:95vw;height:100vh;background:var(--bg);box-shadow:-4px 0 24px rgba(0,0,0,.1);transition:right .25s ease;z-index:101;display:flex;flex-direction:column}}
+.sp.open{{right:0}}
+.sp-ph{{padding:20px 24px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:flex-start;flex-shrink:0}}
+.sp-title{{font-size:.9375rem;font-weight:600;color:var(--fg)}}
+.sp-sub{{font-size:.75rem;color:var(--muted-fg);margin-top:4px}}
+.sp-pb{{flex:1;overflow-y:auto;padding:0 24px 24px}}
+.px{{background:none;border:none;cursor:pointer;color:var(--ring);font-size:1.1rem;padding:0;line-height:1}}
+.px:hover{{color:var(--fg)}}
+/* dialog (for avg days) */
+.dlg-ov{{display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.4)}}
+.dlg-ov.on{{display:block}}
+.dlg{{display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:90vw;max-width:960px;max-height:85vh;background:var(--bg);border-radius:.5rem;box-shadow:0 8px 30px rgba(0,0,0,.12),0 0 0 1px rgba(0,0,0,.05);z-index:201;flex-direction:column;overflow:hidden}}
+.dlg.open{{display:flex}}
+.dlg-hdr{{padding:20px 20px 14px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;justify-content:space-between;flex-shrink:0;gap:12px}}
+.dlg-title{{font-size:1rem;font-weight:600;color:var(--fg)}}
+.dlg-sub{{font-size:.8rem;color:var(--muted-fg);margin-top:4px}}
+.dlg-pb{{flex:1;overflow-y:auto;padding:0 20px 20px}}
+/* thread table (reused in both panel and dialog) */
+.th-table{{width:100%;border-collapse:collapse;font-size:.8rem;table-layout:fixed}}
+.th-table th{{font-size:.75rem;font-weight:600;color:var(--muted-fg);padding:14px 8px 4px 0;border-bottom:1px solid var(--border);text-align:left;position:sticky;top:0;background:var(--bg);z-index:1}}
+.th-table td{{padding:8px 8px 8px 0;border-bottom:1px solid var(--border);color:#09090b;vertical-align:middle}}
+.th-table tr:last-child td{{border:none}}
+.td-type{{font-weight:500;color:var(--fg);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}}
+.td-type a{{color:var(--fg);text-decoration:none;font-weight:500}}
+.td-type a:hover{{color:#2563eb;text-decoration:underline}}
+.td-num{{text-align:center;color:#777}}
+.sig{{font-size:.78rem;font-weight:600;white-space:nowrap}}
+.sig-err{{color:#dc2626}}.sig-ot{{color:#16a34a}}
+.ai-why-col{{font-size:.72rem;color:var(--muted-fg);font-style:italic;line-height:1.4;display:block}}
+.nd{{color:var(--ring);font-size:.8rem;padding:20px 0;text-align:center}}
+.col-deliv{{width:24%}}.col-sig{{width:12%}}.col-num{{width:7%}}.col-ai{{width:30%}}.col-issue{{width:20%}}
+.ft{{font-size:.6875rem;color:var(--muted-fg);margin-top:8px}}
+@media(max-width:900px){{body{{padding:32px 28px}}.stat-grid{{grid-template-columns:repeat(2,1fr)}}.stat-grid-sm{{grid-template-columns:repeat(2,1fr)}}}}
+@media(max-width:540px){{body{{padding:24px 16px}}.stat-grid{{grid-template-columns:1fr}}.stat-grid-sm{{grid-template-columns:1fr}}}}
 </style>
 </head>
 <body>
-<nav class="topnav">
-  <a href="{base_url}/{DASHBOARD_FILENAME}" class="back-link">&#8592; Creative KPIs</a>
-  <div class="page-title">{name}</div>
-  <button class="copy-btn-nav" onclick="copyLink(this)" title="Copy dashboard link">&#128203; Copy link</button>
-</nav>
-<div class="main">
-  <div class="stat-grid">
-    <div class="stat-card">
-      <div class="stat-label">Total Deliverables</div>
-      <div class="stat-big">{total_disp}</div>
-      <div class="stat-sub">all time</div>
-    </div>
-    <div class="stat-card green">
-      <div class="stat-label">On Track</div>
-      <div class="stat-big green">{on_track_disp}</div>
-      <div class="stat-sub">{on_pct}% of total</div>
-    </div>
-    <div class="stat-card red">
-      <div class="stat-label">Off Track</div>
-      <div class="stat-big red">{off_track_disp}</div>
-      <div class="stat-sub">{off_pct}% of total</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">Avg Days to Complete</div>
-      <div class="stat-big">{avg_days_disp}</div>
-      <div class="stat-sub">business days</div>
-    </div>
+<div class="hdr">
+  <div class="hdr-left">
+    <h1>{name}</h1>
+    <button class="copy-btn-hdr" onclick="copyLink(this)">&#128203; Copy link</button>
   </div>
-  <div class="stat-grid-sm">
-    <div class="stat-card-sm">
-      <div class="stat-label-sm">Avg / Month</div>
-      <div class="stat-num-sm">{avg_ds_disp}</div>
-    </div>
-    <div class="stat-card-sm">
-      <div class="stat-label-sm">Avg Replies / D</div>
-      <div class="stat-num-sm">{avg_replies_disp}</div>
-    </div>
-    <div class="stat-card-sm">
-      <div class="stat-label-sm">Avg Cycles / D</div>
-      <div class="stat-num-sm">{avg_cycles_disp}</div>
-    </div>
-    <div class="stat-card-sm" style="opacity:.4">
-      <div class="stat-label-sm">Coming soon</div>
-      <div class="stat-num-sm">&#8212;</div>
-    </div>
-  </div>
-  <div class="section-title">Monthly Breakdown</div>
-  {monthly_section}
-  <div class="ft">Generated by Creative KPIs</div>
 </div>
+
+<div class="stat-grid">
+  <div class="sc">
+    <div class="sc-lbl">Total Deliverables</div>
+    <div class="sc-big">{total_d}</div>
+    <div class="sc-sub">all time</div>
+  </div>
+  <div class="sc green">
+    <div class="sc-lbl">On Track</div>
+    <div class="sc-big green">{on_d}</div>
+    <div class="sc-sub">{on_pct}% of total</div>
+  </div>
+  <div class="sc red">
+    <div class="sc-lbl">Off Track</div>
+    <div class="sc-big red">{off_d}</div>
+    <div class="sc-sub">{off_pct}% of total</div>
+  </div>
+  <div class="sc">
+    <div class="sc-lbl">Avg Days to Complete</div>
+    <div class="sc-big">{avg_days_d}</div>
+    <div class="sc-sub">business days</div>
+  </div>
+</div>
+<div class="stat-grid-sm">
+  <div class="sc-sm">
+    <div class="sc-sm-lbl">Avg / Month</div>
+    <div class="sc-sm-val">{avg_ds_d}</div>
+  </div>
+  <div class="sc-sm">
+    <div class="sc-sm-lbl">Avg Replies / D</div>
+    <div class="sc-sm-val">{avg_replies_d}</div>
+  </div>
+  <div class="sc-sm">
+    <div class="sc-sm-lbl">Avg Cycles / D</div>
+    <div class="sc-sm-val">{avg_cycles_d}</div>
+  </div>
+</div>
+
+<table>
+  <thead><tr><th class="ml"></th>{mh_cells}</tr></thead>
+  <tbody>{rows_html}</tbody>
+</table>
+
+<div class="ft">Creative KPIs · {name}</div>
+
+<!-- Side panel -->
+<div class="sp-ov" id="sp-ov" onclick="closeSP()"></div>
+<div class="sp" id="sp" onclick="event.stopPropagation()">
+  <div class="sp-ph">
+    <div><div class="sp-title" id="sp-title"></div><div class="sp-sub" id="sp-sub"></div></div>
+    <button class="px" onclick="closeSP()">✕</button>
+  </div>
+  <div class="sp-pb" id="sp-pb"></div>
+</div>
+
+<!-- Dialog (avg days) -->
+<div class="dlg-ov" id="dlg-ov" onclick="closeDlg()"></div>
+<div class="dlg" id="dlg" onclick="event.stopPropagation()">
+  <div class="dlg-hdr">
+    <div><div class="dlg-title" id="dlg-title"></div><div class="dlg-sub" id="dlg-sub"></div></div>
+    <button class="px" onclick="closeDlg()">✕</button>
+  </div>
+  <div class="dlg-pb" id="dlg-pb"></div>
+</div>
+
 <script>
-const MONTHLY_DATA = {monthly_js};
-const DESIGNER_NAME = {name_js};
+const THREAD_DATA = {td_js};
+const DESIGNER   = {name_js};
+const MONTH_NAMES = {{"01":"Jan","02":"Feb","03":"Mar","04":"Apr","05":"May","06":"Jun","07":"Jul","08":"Aug","09":"Sep","10":"Oct","11":"Nov","12":"Dec"}};
 
 function copyLink(btn) {{
   const url = 'https://nandu-givelify.github.io/Creative-KPIs/d/{slug}.html';
@@ -1418,21 +1487,86 @@ function copyLink(btn) {{
     const orig = btn.textContent;
     btn.textContent = '✓ Copied!';
     setTimeout(() => {{ btn.textContent = orig; }}, 2000);
-  }}).catch(() => {{
-    btn.textContent = '✓ Copied!';
-    setTimeout(() => {{ btn.textContent = orig; }}, 2000);
   }});
 }}
 
-function toggleMonth(row) {{
-  const month = row.dataset.month;
-  const detailRow = document.getElementById('detail-' + month);
-  const icon = row.querySelector('.expand-icon');
-  if (!detailRow) return;
-  const isOpen = detailRow.style.display !== 'none';
-  detailRow.style.display = isOpen ? 'none' : '';
-  if (icon) icon.classList.toggle('open', !isOpen);
+function buildThreadTable(threads, sortKey) {{
+  if (!threads || !threads.length) return '<div class="nd">No data for this month.</div>';
+  const sorted = [...threads].sort((a,b) => (b[sortKey]||0) - (a[sortKey]||0));
+  const rows = sorted.map(t => {{
+    const sig = t.signal || 'On track';
+    const sigCls = sig === 'On track' ? 'sig-ot' : 'sig-err';
+    const typeCell = t.slack_url
+      ? `<a href="${{t.slack_url}}" target="_blank">${{t.deliverable_type||'—'}}</a>`
+      : (t.deliverable_type || '—');
+    const ai = t.ai_summary ? `<span class="ai-why-col">${{t.ai_summary}}</span>` : '';
+    const issue = t.ai_issue || '';
+    return `<tr>
+      <td class="td-type col-deliv">${{typeCell}}</td>
+      <td class="col-sig"><span class="sig ${{sigCls}}">${{sig}}</span></td>
+      <td class="td-num col-num">${{t.cycle_count??'—'}}</td>
+      <td class="td-num col-num">${{t.reply_count??'—'}}</td>
+      <td class="td-num col-num">${{t.task_days!=null?t.task_days+'d':'—'}}</td>
+      <td class="col-ai">${{ai}}</td>
+      <td class="col-issue" style="font-size:.72rem;color:#777">${{issue}}</td>
+    </tr>`;
+  }}).join('');
+  return `<table class="th-table">
+    <colgroup>
+      <col class="col-deliv"><col class="col-sig">
+      <col class="col-num"><col class="col-num"><col class="col-num">
+      <col class="col-ai"><col class="col-issue">
+    </colgroup>
+    <thead><tr>
+      <th>Deliverable</th><th>Signal</th>
+      <th style="text-align:center">Cycles</th>
+      <th style="text-align:center">Replies</th>
+      <th style="text-align:center">Days</th>
+      <th>AI Summary</th><th>Issues</th>
+    </tr></thead>
+    <tbody>${{rows}}</tbody>
+  </table>`;
 }}
+
+function drillPanel(el) {{
+  const ym  = el.dataset.ym;
+  const lbl = el.dataset.label;
+  const yr  = el.dataset.year;
+  const key = el.dataset.key;
+  const metric = el.dataset.metric;
+  const threads = THREAD_DATA[ym] || [];
+  const sortKey = key === 'cycles_per_d' ? 'cycle_count'
+                : key === 'replies_per_d' ? 'reply_count'
+                : key === 'response_per_d' ? 'reviewer_wait_bdays'
+                : 'task_days';
+  document.getElementById('sp-title').textContent = metric;
+  document.getElementById('sp-sub').textContent   = lbl + ' ' + yr;
+  document.getElementById('sp-pb').innerHTML = buildThreadTable(threads, sortKey);
+  document.getElementById('sp-ov').classList.add('on');
+  document.getElementById('sp').classList.add('open');
+}}
+
+function drillDlg(el) {{
+  const ym  = el.dataset.ym;
+  const lbl = el.dataset.label;
+  const yr  = el.dataset.year;
+  const threads = THREAD_DATA[ym] || [];
+  document.getElementById('dlg-title').textContent = 'Avg Days to Complete';
+  document.getElementById('dlg-sub').textContent   = lbl + ' ' + yr;
+  document.getElementById('dlg-pb').innerHTML = buildThreadTable(threads, 'task_days');
+  document.getElementById('dlg-ov').classList.add('on');
+  document.getElementById('dlg').classList.add('open');
+}}
+
+function closeSP() {{
+  document.getElementById('sp-ov').classList.remove('on');
+  document.getElementById('sp').classList.remove('open');
+}}
+function closeDlg() {{
+  document.getElementById('dlg-ov').classList.remove('on');
+  document.getElementById('dlg').classList.remove('open');
+}}
+document.addEventListener('keydown', e => {{ if (e.key==='Escape') {{ closeSP(); closeDlg(); }} }});
 </script>
 </body>
 </html>"""
