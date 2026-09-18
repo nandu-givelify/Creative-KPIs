@@ -1215,8 +1215,10 @@ def generate_designer_page(name, stats, base_url=".."):
     avg_days_ok   = _avg_days(_on_delivs)
     avg_days_flag = _avg_days(_off_delivs)
 
-    # ── Month list (ascending for table header) ──────────────────────────────
-    all_months = sorted(monthly.keys())
+    # ── Month list: ALL 12 months of each year present in data ───────────────
+    _data_years = sorted(set(m.split("-")[0] for m in monthly.keys())) if monthly else []
+    all_months  = [f"{yr}-{mm:02d}" for yr in _data_years for mm in range(1, 13)]
+    _data_year  = _data_years[-1] if _data_years else "2026"
     month_name_map = {
         "01":"Jan","02":"Feb","03":"Mar","04":"Apr","05":"May","06":"Jun",
         "07":"Jul","08":"Aug","09":"Sep","10":"Oct","11":"Nov","12":"Dec",
@@ -1328,21 +1330,22 @@ def generate_designer_page(name, stats, base_url=".."):
     name_js  = _safe(name)
     slug     = designer_slug(name)
 
-    total_d       = total         if total else "—"
-    on_d          = on_track      if total else "—"
-    off_d         = off_track     if total else "—"
-    _fmt_sub = lambda v: f"{v}d to complete" if v is not None else "—"
-    avg_all_sub   = _fmt_sub(avg_days_all)
-    avg_ok_sub    = _fmt_sub(avg_days_ok)
-    avg_flag_sub  = _fmt_sub(avg_days_flag)
-    on_pct_str    = f"({on_pct}%)" if total else ""
-    off_pct_str   = f"({off_pct}%)" if total else ""
+    total_d     = str(total)           if total else "—"
+    on_d        = str(on_track)        if total else "—"
+    off_d       = str(off_track)       if total else "—"
+    on_pct_d    = f"({on_pct}%)"      if total else ""
+    off_pct_d   = f"({off_pct}%)"     if total else ""
+    avg_days_d  = f"{avg_days_all}d"  if avg_days_all else "—"
+    avg_ds_d    = str(avg_ds_per_month) if total else "—"
+    avg_cyc_d   = str(avg_cycles)      if total else "—"
+    avg_rep_d   = str(avg_replies)     if total else "—"
 
-    # Bullet line for stats
-    _avg_ds_bul  = avg_ds_per_month if total else "—"
-    _avg_rep_bul = avg_replies       if total else "—"
-    _avg_cyc_bul = avg_cycles        if total else "—"
-    stats_bullets = f"Avg {_avg_ds_bul}/month&nbsp;&nbsp;·&nbsp;&nbsp;{_avg_rep_bul} replies/d&nbsp;&nbsp;·&nbsp;&nbsp;{_avg_cyc_bul} cycles/d"
+    # Overall avg response time (for review efficiency card)
+    _rt_all   = [d["reviewer_wait_bdays"] for delivs in monthly.values() for d in delivs
+                 if d.get("reviewer_wait_bdays") is not None]
+    _avg_resp = round(sum(_rt_all) / len(_rt_all), 1) if _rt_all else None
+    resp_row  = (f'<div class="kpi-row"><span class="kpi-row-l">Avg response time</span>'
+                 f'<span class="kpi-row-v">{_avg_resp}h</span></div>') if _avg_resp else ""
 
     return f"""<!DOCTYPE html>
 <html lang="en">
@@ -1361,10 +1364,16 @@ body{{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--
 h1{{font-size:1.875rem;font-weight:600;letter-spacing:-.025em;color:var(--fg)}}
 .copy-btn-hdr{{background:none;border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;font-size:.8rem;font-weight:500;color:var(--muted-fg);padding:7px 14px;transition:all .15s;white-space:nowrap}}
 .copy-btn-hdr:hover{{border-color:var(--ring);color:var(--fg)}}
-/* summary cards — match main dashboard deliverables drill-down style */
-.sum-cards{{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px}}
-.sum-stats{{font-size:.8rem;color:var(--muted-fg);margin-bottom:40px;padding-top:2px}}
-.sum-stats span{{margin-right:14px;white-space:nowrap}}
+/* top KPI section */
+.kpi-top{{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:44px}}
+.kpi-card{{background:var(--muted);border-radius:8px;padding:18px 20px}}
+.kpi-lbl{{font-size:.68rem;font-weight:600;color:var(--muted-fg);margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em}}
+.kpi-big{{font-size:2rem;font-weight:700;color:var(--fg);line-height:1;margin-bottom:10px}}
+.kpi-rows{{display:flex;flex-direction:column;gap:5px}}
+.kpi-row{{display:flex;justify-content:space-between;align-items:baseline;font-size:.78rem}}
+.kpi-row-l{{color:var(--muted-fg)}}
+.kpi-row-v{{font-weight:600;color:var(--fg)}}
+.kpi-row-v.green{{color:#16a34a}}.kpi-row-v.red{{color:#dc2626}}
 /* definitions legend */
 .dash-row{{display:flex;justify-content:space-between;align-items:baseline;padding:5px 0;border-bottom:1px solid var(--border);font-size:.8rem}}
 .dash-row:last-child{{border:none}}
@@ -1421,8 +1430,8 @@ tr.tr-response:hover td{{background:#ebebec!important}}
 .nd{{color:var(--ring);font-size:.8rem;padding:20px 0;text-align:center}}
 .col-deliv{{width:24%}}.col-sig{{width:12%}}.col-num{{width:7%}}.col-ai{{width:30%}}.col-issue{{width:20%}}
 .ft{{font-size:.6875rem;color:var(--muted-fg);margin-top:8px}}
-@media(max-width:900px){{body{{padding:32px 28px}}.sum-cards{{grid-template-columns:repeat(2,1fr)}}}}
-@media(max-width:540px){{body{{padding:24px 16px}}.sum-cards{{grid-template-columns:1fr}}}}
+@media(max-width:900px){{body{{padding:32px 28px}}.kpi-top{{grid-template-columns:repeat(2,1fr)}}}}
+@media(max-width:540px){{body{{padding:24px 16px}}.kpi-top{{grid-template-columns:1fr}}}}
 </style>
 </head>
 <body>
@@ -1433,24 +1442,53 @@ tr.tr-response:hover td{{background:#ebebec!important}}
   </div>
 </div>
 
-<div class="sum-cards">
-  <div style="background:#f4f4f5;border-radius:6px;padding:10px 8px">
-    <div style="font-size:.75rem;color:#777;margin-bottom:4px">Total</div>
-    <div style="font-size:1.5rem;font-weight:700;color:#09090b;line-height:1">{total_d}</div>
-    <div style="font-size:.68rem;color:#777;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{avg_all_sub}</div>
+<div class="kpi-top">
+  <!-- Card 1: Total deliverables -->
+  <div class="kpi-card">
+    <div class="kpi-lbl">Total in {_data_year}</div>
+    <div class="kpi-big">{total_d}</div>
+    <div class="kpi-rows">
+      <div class="kpi-row">
+        <span class="kpi-row-l">On track</span>
+        <span class="kpi-row-v green">{on_d} {on_pct_d}</span>
+      </div>
+      <div class="kpi-row">
+        <span class="kpi-row-l">Off track</span>
+        <span class="kpi-row-v red">{off_d} {off_pct_d}</span>
+      </div>
+    </div>
   </div>
-  <div style="background:#f0faf2;border-radius:6px;padding:10px 8px;border:1px solid #c3e6cb">
-    <div style="font-size:.75rem;color:#777;margin-bottom:4px">On track</div>
-    <div style="font-size:1.5rem;font-weight:700;color:#16a34a;line-height:1">{on_d} <span style="font-size:.95rem;font-weight:500;color:#16a34a">{on_pct_str}</span></div>
-    <div style="font-size:.68rem;color:#777;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{avg_ok_sub}</div>
+  <!-- Card 2: Volume -->
+  <div class="kpi-card">
+    <div class="kpi-lbl">Avg / Month</div>
+    <div class="kpi-big">{avg_ds_d}</div>
+    <div class="kpi-rows">
+      <div class="kpi-row">
+        <span class="kpi-row-l">Avg to complete</span>
+        <span class="kpi-row-v">{avg_days_d}</span>
+      </div>
+    </div>
   </div>
-  <div style="background:#fff3f3;border-radius:6px;padding:10px 8px;border:1px solid #f5c6c6">
-    <div style="font-size:.75rem;color:#777;margin-bottom:4px">Off track</div>
-    <div style="font-size:1.5rem;font-weight:700;color:#dc2626;line-height:1">{off_d} <span style="font-size:.95rem;font-weight:500;color:#dc2626">{off_pct_str}</span></div>
-    <div style="font-size:.68rem;color:#777;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{avg_flag_sub}</div>
+  <!-- Card 3: Review efficiency -->
+  <div class="kpi-card">
+    <div class="kpi-lbl">Review Efficiency</div>
+    <div class="kpi-rows" style="margin-top:4px">
+      <div class="kpi-row">
+        <span class="kpi-row-l">Total deliverables</span>
+        <span class="kpi-row-v">{total_d}</span>
+      </div>
+      <div class="kpi-row">
+        <span class="kpi-row-l">Cycles / deliverable</span>
+        <span class="kpi-row-v">{avg_cyc_d}</span>
+      </div>
+      <div class="kpi-row">
+        <span class="kpi-row-l">Replies / deliverable</span>
+        <span class="kpi-row-v">{avg_rep_d}</span>
+      </div>
+      {resp_row}
+    </div>
   </div>
 </div>
-<div class="sum-stats">{stats_bullets}</div>
 
 <table>
   <thead><tr><th class="ml"></th>{mh_cells}</tr></thead>
@@ -1735,7 +1773,7 @@ def generate_html(metrics_combined, metrics_product, metrics_marketing, year=202
 }}
 *{{box-sizing:border-box;margin:0;padding:0}}
 body{{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--fg);padding:52px 64px;font-size:.875rem;line-height:1.5}}
-.hdr{{display:flex;align-items:center;justify-content:space-between;margin-bottom:52px}}
+.hdr{{display:flex;align-items:center;gap:20px;margin-bottom:52px}}
 h1{{font-size:1.875rem;font-weight:600;letter-spacing:-.025em;color:var(--fg)}}
 .vnav{{display:flex;gap:4px}}
 .nbtn{{background:none;border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;font-size:.8rem;font-weight:500;color:var(--muted-fg);padding:7px 18px;transition:all .15s}}
@@ -1834,7 +1872,7 @@ th,td{{padding:18px 10px;border-bottom:1px solid var(--border);vertical-align:mi
 .sp-ov{{display:none;position:fixed;inset:0;z-index:140;background:rgba(0,0,0,.15)}}
 .sp-ov.on{{display:block}}
 .sp-ph{{padding:20px 20px 14px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;justify-content:space-between;flex-shrink:0}}
-.sp-pb{{flex:1;overflow-y:auto;padding:20px}}
+.sp-pb{{flex:1;overflow-y:auto;padding:20px 24px 24px}}
 .sp-title{{font-size:.9375rem;font-weight:600;color:var(--fg)}}
 .sp-sub{{font-size:.75rem;color:var(--muted-fg);margin-top:2px}}
 .sig-table{{width:100%;border-collapse:collapse;font-size:.8rem;margin-top:8px}}
