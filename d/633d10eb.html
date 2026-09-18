@@ -15,19 +15,17 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--f
 h1{font-size:1.875rem;font-weight:600;letter-spacing:-.025em;color:var(--fg)}
 .copy-btn-hdr{background:none;border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;font-size:.8rem;font-weight:500;color:var(--muted-fg);padding:7px 14px;transition:all .15s;white-space:nowrap}
 .copy-btn-hdr:hover{border-color:var(--ring);color:var(--fg)}
-/* stat cards */
-.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:16px}
-.stat-grid-sm{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:48px}
-.sc{background:var(--muted);border-radius:8px;padding:20px 22px;border:1px solid transparent}
-.sc.green{background:#f0faf2;border-color:#c3e6cb}
-.sc.red{background:#fff3f3;border-color:#f5c6c6}
-.sc-lbl{font-size:.68rem;font-weight:600;color:var(--muted-fg);margin-bottom:10px;text-transform:uppercase;letter-spacing:.05em}
-.sc-big{font-size:2rem;font-weight:700;color:var(--fg);line-height:1}
-.sc-big.green{color:#16a34a}.sc-big.red{color:#dc2626}
-.sc-sub{font-size:.75rem;color:var(--muted-fg);margin-top:6px}
-.sc-sm{background:var(--muted);border-radius:8px;padding:16px 20px}
-.sc-sm-lbl{font-size:.68rem;font-weight:600;color:var(--muted-fg);margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em}
-.sc-sm-val{font-size:1.375rem;font-weight:600;color:var(--fg)}
+/* summary cards — match main dashboard deliverables drill-down style */
+.sum-cards{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px}
+.sum-stats{font-size:.8rem;color:var(--muted-fg);margin-bottom:40px;padding-top:2px}
+.sum-stats span{margin-right:14px;white-space:nowrap}
+/* definitions legend */
+.dash-row{display:flex;justify-content:space-between;align-items:baseline;padding:5px 0;border-bottom:1px solid var(--border);font-size:.8rem}
+.dash-row:last-child{border:none}
+.leg{margin-top:28px;padding-top:18px;border-top:1px solid var(--border)}
+.leg-title{font-size:.7rem;font-weight:600;color:var(--muted-fg);margin-bottom:10px}
+.leg-row{display:flex;gap:8px;align-items:flex-start;margin-bottom:7px;font-size:.78rem;color:#777;line-height:1.45}
+.leg-row .sig{flex-shrink:0;margin-top:1px}
 /* table — identical to main dashboard */
 table{width:100%;border-collapse:collapse;margin-bottom:52px}
 th,td{padding:18px 10px;border-bottom:1px solid var(--border);vertical-align:middle}
@@ -77,8 +75,8 @@ tr.tr-response:hover td{background:#ebebec!important}
 .nd{color:var(--ring);font-size:.8rem;padding:20px 0;text-align:center}
 .col-deliv{width:24%}.col-sig{width:12%}.col-num{width:7%}.col-ai{width:30%}.col-issue{width:20%}
 .ft{font-size:.6875rem;color:var(--muted-fg);margin-top:8px}
-@media(max-width:900px){body{padding:32px 28px}.stat-grid{grid-template-columns:repeat(2,1fr)}.stat-grid-sm{grid-template-columns:repeat(2,1fr)}}
-@media(max-width:540px){body{padding:24px 16px}.stat-grid{grid-template-columns:1fr}.stat-grid-sm{grid-template-columns:1fr}}
+@media(max-width:900px){body{padding:32px 28px}.sum-cards{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:540px){body{padding:24px 16px}.sum-cards{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -89,47 +87,46 @@ tr.tr-response:hover td{background:#ebebec!important}
   </div>
 </div>
 
-<div class="stat-grid">
-  <div class="sc">
-    <div class="sc-lbl">Total Deliverables</div>
-    <div class="sc-big">21</div>
-    <div class="sc-sub">all time</div>
+<div class="sum-cards">
+  <div style="background:#f4f4f5;border-radius:6px;padding:10px 8px">
+    <div style="font-size:.75rem;color:#777;margin-bottom:4px">Total</div>
+    <div style="font-size:1.5rem;font-weight:700;color:#09090b;line-height:1">21</div>
+    <div style="font-size:.68rem;color:#777;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">9.2d to complete</div>
   </div>
-  <div class="sc green">
-    <div class="sc-lbl">On Track</div>
-    <div class="sc-big green">14</div>
-    <div class="sc-sub">67% of total</div>
+  <div style="background:#f0faf2;border-radius:6px;padding:10px 8px;border:1px solid #c3e6cb">
+    <div style="font-size:.75rem;color:#777;margin-bottom:4px">On track</div>
+    <div style="font-size:1.5rem;font-weight:700;color:#16a34a;line-height:1">14 <span style="font-size:.95rem;font-weight:500;color:#16a34a">(67%)</span></div>
+    <div style="font-size:.68rem;color:#777;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">3.1d to complete</div>
   </div>
-  <div class="sc red">
-    <div class="sc-lbl">Off Track</div>
-    <div class="sc-big red">7</div>
-    <div class="sc-sub">33% of total</div>
-  </div>
-  <div class="sc">
-    <div class="sc-lbl">Avg Days to Complete</div>
-    <div class="sc-big">9.2d</div>
-    <div class="sc-sub">business days</div>
+  <div style="background:#fff3f3;border-radius:6px;padding:10px 8px;border:1px solid #f5c6c6">
+    <div style="font-size:.75rem;color:#777;margin-bottom:4px">Off track</div>
+    <div style="font-size:1.5rem;font-weight:700;color:#dc2626;line-height:1">7 <span style="font-size:.95rem;font-weight:500;color:#dc2626">(33%)</span></div>
+    <div style="font-size:.68rem;color:#777;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">21.6d to complete</div>
   </div>
 </div>
-<div class="stat-grid-sm">
-  <div class="sc-sm">
-    <div class="sc-sm-lbl">Avg / Month</div>
-    <div class="sc-sm-val">2.6</div>
-  </div>
-  <div class="sc-sm">
-    <div class="sc-sm-lbl">Avg Replies / D</div>
-    <div class="sc-sm-val">6.0</div>
-  </div>
-  <div class="sc-sm">
-    <div class="sc-sm-lbl">Avg Cycles / D</div>
-    <div class="sc-sm-val">2.4</div>
-  </div>
-</div>
+<div class="sum-stats">Avg 2.6/month&nbsp;&nbsp;·&nbsp;&nbsp;6.0 replies/d&nbsp;&nbsp;·&nbsp;&nbsp;2.4 cycles/d</div>
 
 <table>
   <thead><tr><th class="ml"></th><th class="mh">Jan</th><th class="mh">Mar</th><th class="mh">Apr</th><th class="mh">May</th><th class="mh">Jun</th><th class="mh">Jul</th><th class="mh">Aug</th><th class="mh">Sep</th></tr></thead>
-  <tbody><tr class="mr"><td class="ml"><div class="mn"># Deliverables</div><div class="mt">Target: 4</div></td><td class="mc"><span class="mv click" data-ym="2026-01" data-label="Jan" data-year="2026" data-key="num_ds" data-metric="# Deliverables" onclick="drillPanel(this)">4</span></td><td class="mc"><span class="mv click" data-ym="2026-03" data-label="Mar" data-year="2026" data-key="num_ds" data-metric="# Deliverables" onclick="drillPanel(this)">2</span></td><td class="mc"><span class="mv click" data-ym="2026-04" data-label="Apr" data-year="2026" data-key="num_ds" data-metric="# Deliverables" onclick="drillPanel(this)">5</span></td><td class="mc"><span class="mv click" data-ym="2026-05" data-label="May" data-year="2026" data-key="num_ds" data-metric="# Deliverables" onclick="drillPanel(this)">2</span></td><td class="mc"><span class="mv click" data-ym="2026-06" data-label="Jun" data-year="2026" data-key="num_ds" data-metric="# Deliverables" onclick="drillPanel(this)">2</span></td><td class="mc"><span class="mv click" data-ym="2026-07" data-label="Jul" data-year="2026" data-key="num_ds" data-metric="# Deliverables" onclick="drillPanel(this)">3</span></td><td class="mc"><span class="mv click" data-ym="2026-08" data-label="Aug" data-year="2026" data-key="num_ds" data-metric="# Deliverables" onclick="drillPanel(this)">2</span></td><td class="mc"><span class="mv click" data-ym="2026-09" data-label="Sep" data-year="2026" data-key="num_ds" data-metric="# Deliverables" onclick="drillPanel(this)">1</span></td></tr><tr class="mr"><td class="ml"><div class="mn">Cycles / Deliverable</div><div class="mt">Target: TBD</div></td><td class="mc"><span class="mv click" data-ym="2026-01" data-label="Jan" data-year="2026" data-key="cycles_per_d" data-metric="Cycles / Deliverable" onclick="drillPanel(this)">2.75</span></td><td class="mc"><span class="mv click" data-ym="2026-03" data-label="Mar" data-year="2026" data-key="cycles_per_d" data-metric="Cycles / Deliverable" onclick="drillPanel(this)">6.0</span></td><td class="mc"><span class="mv click" data-ym="2026-04" data-label="Apr" data-year="2026" data-key="cycles_per_d" data-metric="Cycles / Deliverable" onclick="drillPanel(this)">0.8</span></td><td class="mc"><span class="mv click" data-ym="2026-05" data-label="May" data-year="2026" data-key="cycles_per_d" data-metric="Cycles / Deliverable" onclick="drillPanel(this)">7.0</span></td><td class="mc"><span class="mv click" data-ym="2026-06" data-label="Jun" data-year="2026" data-key="cycles_per_d" data-metric="Cycles / Deliverable" onclick="drillPanel(this)">1.0</span></td><td class="mc"><span class="mv click" data-ym="2026-07" data-label="Jul" data-year="2026" data-key="cycles_per_d" data-metric="Cycles / Deliverable" onclick="drillPanel(this)">0.33</span></td><td class="mc"><span class="mv click" data-ym="2026-08" data-label="Aug" data-year="2026" data-key="cycles_per_d" data-metric="Cycles / Deliverable" onclick="drillPanel(this)">3.0</span></td><td class="mc"><span class="mv click" data-ym="2026-09" data-label="Sep" data-year="2026" data-key="cycles_per_d" data-metric="Cycles / Deliverable" onclick="drillPanel(this)">0.0</span></td></tr><tr class="mr"><td class="ml"><div class="mn">Replies / Deliverable</div><div class="mt">Target: TBD</div></td><td class="mc"><span class="mv click" data-ym="2026-01" data-label="Jan" data-year="2026" data-key="replies_per_d" data-metric="Replies / Deliverable" onclick="drillPanel(this)">8.75</span></td><td class="mc"><span class="mv click" data-ym="2026-03" data-label="Mar" data-year="2026" data-key="replies_per_d" data-metric="Replies / Deliverable" onclick="drillPanel(this)">10.0</span></td><td class="mc"><span class="mv click" data-ym="2026-04" data-label="Apr" data-year="2026" data-key="replies_per_d" data-metric="Replies / Deliverable" onclick="drillPanel(this)">2.8</span></td><td class="mc"><span class="mv click" data-ym="2026-05" data-label="May" data-year="2026" data-key="replies_per_d" data-metric="Replies / Deliverable" onclick="drillPanel(this)">14.5</span></td><td class="mc"><span class="mv click" data-ym="2026-06" data-label="Jun" data-year="2026" data-key="replies_per_d" data-metric="Replies / Deliverable" onclick="drillPanel(this)">2.5</span></td><td class="mc"><span class="mv click" data-ym="2026-07" data-label="Jul" data-year="2026" data-key="replies_per_d" data-metric="Replies / Deliverable" onclick="drillPanel(this)">2.67</span></td><td class="mc"><span class="mv click" data-ym="2026-08" data-label="Aug" data-year="2026" data-key="replies_per_d" data-metric="Replies / Deliverable" onclick="drillPanel(this)">8.0</span></td><td class="mc"><span class="mv click" data-ym="2026-09" data-label="Sep" data-year="2026" data-key="replies_per_d" data-metric="Replies / Deliverable" onclick="drillPanel(this)">0.0</span></td></tr><tr class="mr"><td class="ml"><div class="mn">Avg. Days to Complete</div><div class="mt">Target: TBD</div></td><td class="mc"><span class="mv click" data-ym="2026-01" data-label="Jan" data-year="2026" data-key="task_days_per_d" onclick="drillDlg(this)">6.2d</span></td><td class="mc"><span class="mv click" data-ym="2026-03" data-label="Mar" data-year="2026" data-key="task_days_per_d" onclick="drillDlg(this)">16.0d</span></td><td class="mc"><span class="mv click" data-ym="2026-04" data-label="Apr" data-year="2026" data-key="task_days_per_d" onclick="drillDlg(this)">3.6d</span></td><td class="mc"><span class="mv click" data-ym="2026-05" data-label="May" data-year="2026" data-key="task_days_per_d" onclick="drillDlg(this)">36.5d</span></td><td class="mc"><span class="mv click" data-ym="2026-06" data-label="Jun" data-year="2026" data-key="task_days_per_d" onclick="drillDlg(this)">3.0d</span></td><td class="mc"><span class="mv click" data-ym="2026-07" data-label="Jul" data-year="2026" data-key="task_days_per_d" onclick="drillDlg(this)">7.7d</span></td><td class="mc"><span class="mv click" data-ym="2026-08" data-label="Aug" data-year="2026" data-key="task_days_per_d" onclick="drillDlg(this)">8.5d</span></td><td class="mc"><span class="mv click" data-ym="2026-09" data-label="Sep" data-year="2026" data-key="task_days_per_d" onclick="drillDlg(this)">0.0d</span></td></tr><tr class="mr tr-response"><td class="ml"><div class="mn">Avg. Response Time</div><div class="mt">Target: TBD</div></td><td class="mc"><span class="mv click" data-ym="2026-01" data-label="Jan" data-year="2026" data-key="response_per_d" data-metric="Avg. Response Time" onclick="drillPanel(this)">0.4h</span></td><td class="mc"><span class="mv click" data-ym="2026-03" data-label="Mar" data-year="2026" data-key="response_per_d" data-metric="Avg. Response Time" onclick="drillPanel(this)">0.9h</span></td><td class="mc"><span class="mv click" data-ym="2026-04" data-label="Apr" data-year="2026" data-key="response_per_d" data-metric="Avg. Response Time" onclick="drillPanel(this)">1.0h</span></td><td class="mc"><span class="mv click" data-ym="2026-05" data-label="May" data-year="2026" data-key="response_per_d" data-metric="Avg. Response Time" onclick="drillPanel(this)">0.6h</span></td><td class="mc"><span class="mv click" data-ym="2026-06" data-label="Jun" data-year="2026" data-key="response_per_d" data-metric="Avg. Response Time" onclick="drillPanel(this)">0.0h</span></td><td class="mc"><span class="mv click" data-ym="2026-07" data-label="Jul" data-year="2026" data-key="response_per_d" data-metric="Avg. Response Time" onclick="drillPanel(this)">1.0h</span></td><td class="mc"><span class="mv click" data-ym="2026-08" data-label="Aug" data-year="2026" data-key="response_per_d" data-metric="Avg. Response Time" onclick="drillPanel(this)">0.9h</span></td><td class="mc"><span class="empty">—</span></td></tr></tbody>
+  <tbody><tr class="mr"><td class="ml"><div class="mn"># Deliverables</div><div class="mt">Target: 4</div></td><td class="mc"><span class="mv click" data-ym="2026-01" data-label="Jan" data-year="2026" onclick="drillNumDs(this)">4</span></td><td class="mc"><span class="mv click" data-ym="2026-03" data-label="Mar" data-year="2026" onclick="drillNumDs(this)">2</span></td><td class="mc"><span class="mv click" data-ym="2026-04" data-label="Apr" data-year="2026" onclick="drillNumDs(this)">5</span></td><td class="mc"><span class="mv click" data-ym="2026-05" data-label="May" data-year="2026" onclick="drillNumDs(this)">2</span></td><td class="mc"><span class="mv click" data-ym="2026-06" data-label="Jun" data-year="2026" onclick="drillNumDs(this)">2</span></td><td class="mc"><span class="mv click" data-ym="2026-07" data-label="Jul" data-year="2026" onclick="drillNumDs(this)">3</span></td><td class="mc"><span class="mv click" data-ym="2026-08" data-label="Aug" data-year="2026" onclick="drillNumDs(this)">2</span></td><td class="mc"><span class="mv click" data-ym="2026-09" data-label="Sep" data-year="2026" onclick="drillNumDs(this)">1</span></td></tr><tr class="mr"><td class="ml"><div class="mn">Cycles / Deliverable</div><div class="mt">Target: TBD</div></td><td class="mc"><span class="mv">2.75</span></td><td class="mc"><span class="mv">6.0</span></td><td class="mc"><span class="mv">0.8</span></td><td class="mc"><span class="mv">7.0</span></td><td class="mc"><span class="mv">1.0</span></td><td class="mc"><span class="mv">0.33</span></td><td class="mc"><span class="mv">3.0</span></td><td class="mc"><span class="mv">0.0</span></td></tr><tr class="mr"><td class="ml"><div class="mn">Replies / Deliverable</div><div class="mt">Target: TBD</div></td><td class="mc"><span class="mv">8.75</span></td><td class="mc"><span class="mv">10.0</span></td><td class="mc"><span class="mv">2.8</span></td><td class="mc"><span class="mv">14.5</span></td><td class="mc"><span class="mv">2.5</span></td><td class="mc"><span class="mv">2.67</span></td><td class="mc"><span class="mv">8.0</span></td><td class="mc"><span class="mv">0.0</span></td></tr><tr class="mr"><td class="ml"><div class="mn">Avg. Days to Complete</div><div class="mt">Target: TBD</div></td><td class="mc"><span class="mv click" data-ym="2026-01" data-label="Jan" data-year="2026" data-key="task_days_per_d" onclick="drillDlg(this)">6.2d</span></td><td class="mc"><span class="mv click" data-ym="2026-03" data-label="Mar" data-year="2026" data-key="task_days_per_d" onclick="drillDlg(this)">16.0d</span></td><td class="mc"><span class="mv click" data-ym="2026-04" data-label="Apr" data-year="2026" data-key="task_days_per_d" onclick="drillDlg(this)">3.6d</span></td><td class="mc"><span class="mv click" data-ym="2026-05" data-label="May" data-year="2026" data-key="task_days_per_d" onclick="drillDlg(this)">36.5d</span></td><td class="mc"><span class="mv click" data-ym="2026-06" data-label="Jun" data-year="2026" data-key="task_days_per_d" onclick="drillDlg(this)">3.0d</span></td><td class="mc"><span class="mv click" data-ym="2026-07" data-label="Jul" data-year="2026" data-key="task_days_per_d" onclick="drillDlg(this)">7.7d</span></td><td class="mc"><span class="mv click" data-ym="2026-08" data-label="Aug" data-year="2026" data-key="task_days_per_d" onclick="drillDlg(this)">8.5d</span></td><td class="mc"><span class="mv click" data-ym="2026-09" data-label="Sep" data-year="2026" data-key="task_days_per_d" onclick="drillDlg(this)">0.0d</span></td></tr><tr class="mr tr-response"><td class="ml"><div class="mn">Avg. Response Time</div><div class="mt">Target: TBD</div></td><td class="mc"><span class="mv">0.4h</span></td><td class="mc"><span class="mv">0.9h</span></td><td class="mc"><span class="mv">1.0h</span></td><td class="mc"><span class="mv">0.6h</span></td><td class="mc"><span class="mv">0.0h</span></td><td class="mc"><span class="mv">1.0h</span></td><td class="mc"><span class="mv">0.9h</span></td><td class="mc"><span class="empty">—</span></td></tr></tbody>
 </table>
+
+<div class="leg">
+  <div class="leg-title">Signals — highest raw value wins when multiple apply</div>
+  <div class="leg-row"><span class="sig sig-err">High rework</span>6+ revision rounds after first submission</div>
+  <div class="leg-row"><span class="sig sig-err">Long pause</span>Longest gap ≥5 working days between consecutive messages (excl. weekends &amp; US holidays)</div>
+  <div class="leg-row"><span class="sig sig-err">Late feedback</span>Reviewer took &gt;2 business days to respond after being tagged</div>
+  <div class="leg-row"><span class="sig sig-err">Long discussion</span>Any single revision cycle had 5+ messages before the designer could move forward</div>
+  <div class="leg-row"><span class="sig sig-ot">On track</span>None of the above thresholds triggered</div>
+  <div class="leg-title" style="margin-top:14px">Columns</div>
+  <div class="leg-row"><strong>Cycles</strong> — Extra "For review" / "For feedback" rounds after first</div>
+  <div class="leg-row"><strong>Replies</strong> — Discussion messages attributed to this deliverable</div>
+  <div class="leg-row"><strong>Feedback</strong> — Avg business days for tagged reviewer to respond (avg across rounds)</div>
+  <div class="leg-row"><strong>Gap</strong> — Longest silent stretch between any two consecutive messages</div>
+  <div class="leg-row"><strong>Days</strong> — Total business days from first submission to last message</div>
+  <div class="leg-row"><strong>AI Summary</strong> — One-line root cause from Gemini, specific to thread content</div>
+  <div class="leg-row"><strong>Issue</strong> — Root-cause label from Gemini</div>
+</div>
 
 <div class="ft">Creative KPIs · Olexii Lysenko</div>
 
@@ -154,7 +151,7 @@ tr.tr-response:hover td{background:#ebebec!important}
 </div>
 
 <script>
-const THREAD_DATA = {"2026-01": [{"deliverable_type": "Update to the \u20183", "signal": "On track", "cycle_count": 0, "reply_count": 1, "task_days": 0.0, "reviewer_wait_bdays": 0.0, "max_gap_bdays": null, "slack_url": "https://givelify.slack.com/archives/C042J20J3M5/p1769089267779229", "ai_summary": null, "ai_issue": null}, {"deliverable_type": "Lifetime Giving - Top", "signal": "On track", "cycle_count": 0, "reply_count": 1, "task_days": 0.0, "reviewer_wait_bdays": 0.0, "max_gap_bdays": null, "slack_url": "https://givelify.slack.com/archives/C042J20J3M5/p1769788490746979", "ai_summary": null, "ai_issue": null}, {"deliverable_type": "UI and copy for", "signal": "On track", "cycle_count": 0, "reply_count": 2, "task_days": 1.0, "reviewer_wait_bdays": 1.0, "max_gap_bdays": null, "slack_url": "https://givelify.slack.com/archives/C042J20J3M5/p1768827856613269", "ai_summary": null, "ai_issue": null}, {"deliverable_type": "UX for Lifetime Giving", "signal": "High rework", "cycle_count": 11, "reply_count": 31, "task_days": 24.0, "reviewer_wait_bdays": 0.5, "max_gap_bdays": 3.0, "slack_url": "https://givelify.slack.com/archives/C042J20J3M5/p1769539501509849", "ai_summary": "Manager repeatedly requested layout adjustments and pattern shifts throughout the review process.", "ai_issue": "Direction Changed, Missing Pattern"}], "2026-03": [{"deliverable_type": "Discovery WIP for Lifetime", "signal": "High rework", "cycle_count": 7, "reply_count": 10, "task_days": 20.0, "reviewer_wait_bdays": 0.4, "max_gap_bdays": 7.0, "slack_url": "https://givelify.slack.com/archives/C042J20J3M5/p1772557922732439", "ai_summary": "Product owners introduced new concept changes mid-discovery, forcing repeated synthesis revisions.", "ai_issue": "Scope Changed"}, {"deliverable_type": "UX for the Giving", "signal": "Long discussion", "cycle_count": 5, "reply_count": 10, "task_days": 12.0, "reviewer_wait_bdays": 1.4, "max_gap_bdays": 4.0, "slack_url": "https://givelify.slack.com/archives/C042J20J3M5/p1774542177663759", "ai_summary": "Team repeatedly pivoted between high-fidelity animation specs and low-fidelity placeholder prototypes.", "ai_issue": "Missing Pattern, Direction Changed"}], "2026-04": [{"deliverable_type": "[Discovery] Numerical Hero Component", "signal": "On track", "cycle_count": 0, "reply_count": 1, "task_days": 2.0, "reviewer_wait_bdays": 2.0, "max_gap_bdays": 2.0, "slack_url": "https://givelify.slack.com/archives/C042J20J3M5/p1775235749704849", "ai_summary": null, "ai_issue": null}, {"deliverable_type": "Fab 5 and problem", "signal": "On track", "cycle_count": 1, "reply_count": 2, "task_days": 5.0, "reviewer_wait_bdays": 1.0, "max_gap_bdays": 3.0, "slack_url": "https://givelify.slack.com/archives/C042J20J3M5/p1776692051130719", "ai_summary": null, "ai_issue": null}, {"deliverable_type": "Hypothesis for Copy updates", "signal": "On track", "cycle_count": 0, "reply_count": 0, "task_days": 0.0, "reviewer_wait_bdays": null, "max_gap_bdays": null, "slack_url": "https://givelify.slack.com/archives/C042J20J3M5/p1776775228681369", "ai_summary": null, "ai_issue": null}, {"deliverable_type": "Test description and prototype", "signal": "On track", "cycle_count": 3, "reply_count": 8, "task_days": 7.0, "reviewer_wait_bdays": 0.0, "max_gap_bdays": 4.0, "slack_url": "https://givelify.slack.com/archives/C042J20J3M5/p1777051265066949", "ai_summary": null, "ai_issue": null}, {"deliverable_type": "Copy update for GP", "signal": "On track", "cycle_count": 0, "reply_count": 3, "task_days": 4.0, "reviewer_wait_bdays": 1.0, "max_gap_bdays": 3.0, "slack_url": "https://givelify.slack.com/archives/C042J20J3M5/p1775829451225109", "ai_summary": null, "ai_issue": null}], "2026-05": [{"deliverable_type": "Prototype for Lifetime: Core", "signal": "On track", "cycle_count": 3, "reply_count": 5, "task_days": 14.0, "reviewer_wait_bdays": 0.5, "max_gap_bdays": 4.0, "slack_url": "https://givelify.slack.com/archives/C042J20J3M5/p1778084258077679", "ai_summary": null, "ai_issue": null}, {"deliverable_type": "[UI] Lifetime - Core", "signal": "Long pause", "cycle_count": 11, "reply_count": 24, "task_days": 59.0, "reviewer_wait_bdays": 0.6, "max_gap_bdays": 17.0, "slack_url": "https://givelify.slack.com/archives/C042J20J3M5/p1780073660210069", "ai_summary": "Iterative refinement of icon color contrast caused extended design review cycles.", "ai_issue": null}], "2026-06": [{"deliverable_type": "Motion design concept for", "signal": "On track", "cycle_count": 2, "reply_count": 4, "task_days": 6.0, "reviewer_wait_bdays": 0.0, "max_gap_bdays": 3.0, "slack_url": "https://givelify.slack.com/archives/C042J20J3M5/p1781190581971069", "ai_summary": null, "ai_issue": null}, {"deliverable_type": "Updated hypothesis for Lifetime", "signal": "On track", "cycle_count": 0, "reply_count": 1, "task_days": 0.0, "reviewer_wait_bdays": 0.0, "max_gap_bdays": null, "slack_url": "https://givelify.slack.com/archives/C042J20J3M5/p1780417789179869", "ai_summary": null, "ai_issue": null}], "2026-07": [{"deliverable_type": "Giving Wrapped part 1", "signal": "On track", "cycle_count": 0, "reply_count": 0, "task_days": 0.0, "reviewer_wait_bdays": null, "max_gap_bdays": null, "slack_url": "https://givelify.slack.com/archives/C042J20J3M5/p1785159013012749", "ai_summary": null, "ai_issue": null}, {"deliverable_type": "Updated motion design concept", "signal": "Long pause", "cycle_count": 0, "reply_count": 5, "task_days": 2.0, "reviewer_wait_bdays": 1.0, "max_gap_bdays": 16.0, "slack_url": "https://givelify.slack.com/archives/C042J20J3M5/p1781662249321899", "ai_summary": "Reviewers requested a revert to a previous version after design completion.", "ai_issue": "Direction Changed"}, {"deliverable_type": "Discovery synthesis for Giving", "signal": "Long pause", "cycle_count": 1, "reply_count": 3, "task_days": 21.0, "reviewer_wait_bdays": 1.0, "max_gap_bdays": 19.0, "slack_url": "https://givelify.slack.com/archives/C042J20J3M5/p1784730532292139", "ai_summary": "Designer waited for manager to provide specific visual standards and requirements.", "ai_issue": null}], "2026-08": [{"deliverable_type": "Prototype walkthrough plan for", "signal": "Long discussion", "cycle_count": 5, "reply_count": 13, "task_days": 13.0, "reviewer_wait_bdays": 1.3, "max_gap_bdays": 4.0, "slack_url": "https://givelify.slack.com/archives/C042J20J3M5/p1787935706716009", "ai_summary": "Team debated copy and UI readiness for testing late in review.", "ai_issue": "Copy Alignment, Missed Usecase"}, {"deliverable_type": "Problem statement and fab", "signal": "On track", "cycle_count": 1, "reply_count": 3, "task_days": 4.0, "reviewer_wait_bdays": 0.5, "max_gap_bdays": 2.0, "slack_url": "https://givelify.slack.com/archives/C042J20J3M5/p1786034052277649", "ai_summary": null, "ai_issue": null}], "2026-09": [{"deliverable_type": "Visual concepts for Giving", "signal": "On track", "cycle_count": 0, "reply_count": 0, "task_days": 0.0, "reviewer_wait_bdays": null, "max_gap_bdays": null, "slack_url": "https://givelify.slack.com/archives/C042J20J3M5/p1789580809800999", "ai_summary": null, "ai_issue": null}]};
+const THREAD_DATA = {"2026-01": [{"deliverable_type": "Update to the \u20183", "signal": "On track", "cycle_count": 0, "reply_count": 1, "task_days": 0.0, "reviewer_wait_bdays": 0.0, "max_gap_bdays": null, "slack_url": "https://givelify.slack.com/archives/C042J20J3M5/p1769089267779229", "ai_summary": null, "ai_issue": null}, {"deliverable_type": "Lifetime Giving - Top", "signal": "On track", "cycle_count": 0, "reply_count": 1, "task_days": 0.0, "reviewer_wait_bdays": 0.0, "max_gap_bdays": null, "slack_url": "https://givelify.slack.com/archives/C042J20J3M5/p1769788490746979", "ai_summary": null, "ai_issue": null}, {"deliverable_type": "UI and copy for", "signal": "On track", "cycle_count": 0, "reply_count": 2, "task_days": 1.0, "reviewer_wait_bdays": 1.0, "max_gap_bdays": null, "slack_url": "https://givelify.slack.com/archives/C042J20J3M5/p1768827856613269", "ai_summary": null, "ai_issue": null}, {"deliverable_type": "UX for Lifetime Giving", "signal": "High rework", "cycle_count": 11, "reply_count": 31, "task_days": 24.0, "reviewer_wait_bdays": 0.5, "max_gap_bdays": 3.0, "slack_url": "https://givelify.slack.com/archives/C042J20J3M5/p1769539501509849", "ai_summary": "Manager repeatedly requested layout adjustments and pattern shifts throughout the review process.", "ai_issue": "Direction Changed, Missing Pattern"}], "2026-03": [{"deliverable_type": "Discovery WIP for Lifetime", "signal": "High rework", "cycle_count": 7, "reply_count": 10, "task_days": 20.0, "reviewer_wait_bdays": 0.4, "max_gap_bdays": 7.0, "slack_url": "https://givelify.slack.com/archives/C042J20J3M5/p1772557922732439", "ai_summary": "Product owners introduced new concept changes mid-discovery, forcing repeated synthesis revisions.", "ai_issue": "Scope Changed"}, {"deliverable_type": "UX for the Giving", "signal": "Long discussion", "cycle_count": 5, "reply_count": 10, "task_days": 12.0, "reviewer_wait_bdays": 1.4, "max_gap_bdays": 4.0, "slack_url": "https://givelify.slack.com/archives/C042J20J3M5/p1774542177663759", "ai_summary": "Team repeatedly pivoted between high-fidelity animation specs and low-fidelity placeholder prototypes.", "ai_issue": "Missing Pattern, Direction Changed"}], "2026-04": [{"deliverable_type": "Fab 5 and problem", "signal": "On track", "cycle_count": 1, "reply_count": 2, "task_days": 5.0, "reviewer_wait_bdays": 1.0, "max_gap_bdays": 3.0, "slack_url": "https://givelify.slack.com/archives/C042J20J3M5/p1776692051130719", "ai_summary": null, "ai_issue": null}, {"deliverable_type": "Test description and prototype", "signal": "On track", "cycle_count": 3, "reply_count": 8, "task_days": 7.0, "reviewer_wait_bdays": 0.0, "max_gap_bdays": 4.0, "slack_url": "https://givelify.slack.com/archives/C042J20J3M5/p1777051265066949", "ai_summary": null, "ai_issue": null}, {"deliverable_type": "[Discovery] Numerical Hero Component", "signal": "On track", "cycle_count": 0, "reply_count": 1, "task_days": 2.0, "reviewer_wait_bdays": 2.0, "max_gap_bdays": 2.0, "slack_url": "https://givelify.slack.com/archives/C042J20J3M5/p1775235749704849", "ai_summary": null, "ai_issue": null}, {"deliverable_type": "Copy update for GP", "signal": "On track", "cycle_count": 0, "reply_count": 3, "task_days": 4.0, "reviewer_wait_bdays": 1.0, "max_gap_bdays": 3.0, "slack_url": "https://givelify.slack.com/archives/C042J20J3M5/p1775829451225109", "ai_summary": null, "ai_issue": null}, {"deliverable_type": "Hypothesis for Copy updates", "signal": "On track", "cycle_count": 0, "reply_count": 0, "task_days": 0.0, "reviewer_wait_bdays": null, "max_gap_bdays": null, "slack_url": "https://givelify.slack.com/archives/C042J20J3M5/p1776775228681369", "ai_summary": null, "ai_issue": null}], "2026-05": [{"deliverable_type": "[UI] Lifetime - Core", "signal": "Long pause", "cycle_count": 11, "reply_count": 24, "task_days": 59.0, "reviewer_wait_bdays": 0.6, "max_gap_bdays": 17.0, "slack_url": "https://givelify.slack.com/archives/C042J20J3M5/p1780073660210069", "ai_summary": "Iterative refinement of icon color contrast caused extended design review cycles.", "ai_issue": null}, {"deliverable_type": "Prototype for Lifetime: Core", "signal": "On track", "cycle_count": 3, "reply_count": 5, "task_days": 14.0, "reviewer_wait_bdays": 0.5, "max_gap_bdays": 4.0, "slack_url": "https://givelify.slack.com/archives/C042J20J3M5/p1778084258077679", "ai_summary": null, "ai_issue": null}], "2026-06": [{"deliverable_type": "Motion design concept for", "signal": "On track", "cycle_count": 2, "reply_count": 4, "task_days": 6.0, "reviewer_wait_bdays": 0.0, "max_gap_bdays": 3.0, "slack_url": "https://givelify.slack.com/archives/C042J20J3M5/p1781190581971069", "ai_summary": null, "ai_issue": null}, {"deliverable_type": "Updated hypothesis for Lifetime", "signal": "On track", "cycle_count": 0, "reply_count": 1, "task_days": 0.0, "reviewer_wait_bdays": 0.0, "max_gap_bdays": null, "slack_url": "https://givelify.slack.com/archives/C042J20J3M5/p1780417789179869", "ai_summary": null, "ai_issue": null}], "2026-07": [{"deliverable_type": "Updated motion design concept", "signal": "Long pause", "cycle_count": 0, "reply_count": 5, "task_days": 2.0, "reviewer_wait_bdays": 1.0, "max_gap_bdays": 16.0, "slack_url": "https://givelify.slack.com/archives/C042J20J3M5/p1781662249321899", "ai_summary": "Reviewers requested a revert to a previous version after design completion.", "ai_issue": "Direction Changed"}, {"deliverable_type": "Giving Wrapped part 1", "signal": "On track", "cycle_count": 0, "reply_count": 0, "task_days": 0.0, "reviewer_wait_bdays": null, "max_gap_bdays": null, "slack_url": "https://givelify.slack.com/archives/C042J20J3M5/p1785159013012749", "ai_summary": null, "ai_issue": null}, {"deliverable_type": "Discovery synthesis for Giving", "signal": "Long pause", "cycle_count": 1, "reply_count": 3, "task_days": 21.0, "reviewer_wait_bdays": 1.0, "max_gap_bdays": 19.0, "slack_url": "https://givelify.slack.com/archives/C042J20J3M5/p1784730532292139", "ai_summary": "Designer waited for manager to provide specific visual standards and requirements.", "ai_issue": null}], "2026-08": [{"deliverable_type": "Problem statement and fab", "signal": "On track", "cycle_count": 1, "reply_count": 3, "task_days": 4.0, "reviewer_wait_bdays": 0.5, "max_gap_bdays": 2.0, "slack_url": "https://givelify.slack.com/archives/C042J20J3M5/p1786034052277649", "ai_summary": null, "ai_issue": null}, {"deliverable_type": "Prototype walkthrough plan for", "signal": "Long discussion", "cycle_count": 5, "reply_count": 13, "task_days": 13.0, "reviewer_wait_bdays": 1.3, "max_gap_bdays": 4.0, "slack_url": "https://givelify.slack.com/archives/C042J20J3M5/p1787935706716009", "ai_summary": "Team debated copy and UI readiness for testing late in review.", "ai_issue": "Copy Alignment, Missed Usecase"}], "2026-09": [{"deliverable_type": "Visual concepts for Giving", "signal": "On track", "cycle_count": 0, "reply_count": 0, "task_days": 0.0, "reviewer_wait_bdays": null, "max_gap_bdays": null, "slack_url": "https://givelify.slack.com/archives/C042J20J3M5/p1789580809800999", "ai_summary": null, "ai_issue": null}]};
 const DESIGNER   = "Olexii Lysenko";
 const MONTH_NAMES = {"01":"Jan","02":"Feb","03":"Mar","04":"Apr","05":"May","06":"Jun","07":"Jul","08":"Aug","09":"Sep","10":"Oct","11":"Nov","12":"Dec"};
 
@@ -205,22 +202,95 @@ function buildThreadTable(threads, sortKey) {
   </table>`;
 }
 
-function drillPanel(el) {
+function openDialog(title, subtitle, html) {
+  document.getElementById('dlg-title').textContent = title;
+  document.getElementById('dlg-sub').textContent   = subtitle;
+  document.getElementById('dlg-pb').innerHTML      = html;
+  document.getElementById('dlg-ov').classList.add('on');
+  document.getElementById('dlg').classList.add('open');
+}
+
+function drillNumDs(el) {
   const ym  = el.dataset.ym;
   const lbl = el.dataset.label;
   const yr  = el.dataset.year;
-  const key = el.dataset.key;
-  const metric = el.dataset.metric;
   const threads = THREAD_DATA[ym] || [];
-  const sortKey = key === 'cycles_per_d' ? 'cycle_count'
-                : key === 'replies_per_d' ? 'reply_count'
-                : key === 'response_per_d' ? 'reviewer_wait_bdays'
-                : 'task_days';
-  document.getElementById('sp-title').textContent = metric;
+  const total   = threads.length;
+  const onTrack = threads.filter(t => t.signal === 'On track');
+  const offTrack = threads.filter(t => t.signal !== 'On track');
+  const onCnt   = onTrack.length, offCnt = offTrack.length;
+  const onPct   = total ? Math.round(onCnt/total*100) : 0;
+  const offPct  = 100 - onPct;
+  const avg = ds => ds.length ? Math.round(ds.reduce((s,t)=>s+(t.task_days||0),0)/ds.length) : null;
+  const avgAll  = avg(threads), avgOk = avg(onTrack), avgFlag = avg(offTrack);
+  const fmtAvg  = v => v != null ? v+'d to complete' : '—';
+
+  const SIG_OFF = ['High rework','Long pause','Long discussion','Late feedback'];
+  const sigBreak = {};
+  threads.forEach(t => { if (t.signal && t.signal !== 'On track') sigBreak[t.signal] = (sigBreak[t.signal]||0)+1; });
+
+  const sigRows = SIG_OFF.filter(s => sigBreak[s]).map(s =>
+    `<div class="dash-row" style="cursor:pointer" data-ym="${ym}" data-type="signal" data-filter="${s}" onclick="filterFromDrill(this)">` +
+    `<span class="sig sig-err">${s}</span><span style="font-weight:600">${sigBreak[s]}</span></div>`
+  ).join('');
+
+  const issueCounts = {};
+  threads.forEach(t => {
+    (t.ai_issue||'').split(',').map(x=>x.trim()).filter(Boolean).forEach(lbl => {
+      issueCounts[lbl] = (issueCounts[lbl]||0)+1;
+    });
+  });
+  const topIssues = Object.entries(issueCounts).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  const issueRows = topIssues.length
+    ? topIssues.map(([lbl,cnt]) =>
+        `<div class="dash-row" style="cursor:pointer" data-ym="${ym}" data-type="issue" data-filter="${lbl.replace(/"/g,'&quot;')}" onclick="filterFromDrill(this)">` +
+        `<span style="color:#09090b">${lbl}</span><span style="font-weight:600;color:#09090b">${cnt}</span></div>`
+      ).join('')
+    : '<div style="font-size:.78rem;color:#71717a">Run workflow to generate AI issues</div>';
+
+  const issueTypeCount = topIssues.length;
+  const html = `
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px">
+      <div style="background:#f4f4f5;border-radius:6px;padding:10px 8px">
+        <div style="font-size:.75rem;color:#777;margin-bottom:4px">Total</div>
+        <div style="font-size:1.5rem;font-weight:700;color:#09090b;line-height:1">${total}</div>
+        <div style="font-size:.68rem;color:#777;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${fmtAvg(avgAll)}</div>
+      </div>
+      <div style="background:#f0faf2;border-radius:6px;padding:10px 8px;border:1px solid #c3e6cb">
+        <div style="font-size:.75rem;color:#777;margin-bottom:4px">On track</div>
+        <div style="font-size:1.5rem;font-weight:700;color:#16a34a;line-height:1">${onCnt} <span style="font-size:.95rem;font-weight:500;color:#16a34a">(${onPct}%)</span></div>
+        <div style="font-size:.68rem;color:#777;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${fmtAvg(avgOk)}</div>
+      </div>
+      <div style="background:#fff3f3;border-radius:6px;padding:10px 8px;border:1px solid #f5c6c6">
+        <div style="font-size:.75rem;color:#777;margin-bottom:4px">Off track</div>
+        <div style="font-size:1.5rem;font-weight:700;color:#dc2626;line-height:1">${offCnt} <span style="font-size:.95rem;font-weight:500;color:#dc2626">(${offPct}%)</span></div>
+        <div style="font-size:.68rem;color:#777;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${fmtAvg(avgFlag)}</div>
+        ${sigRows ? '<div style="position:absolute;bottom:-10px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:8px solid transparent;border-right:8px solid transparent;border-top:10px solid #f5c6c6"></div>' : ''}
+      </div>
+    </div>
+    ${sigRows ? '<div style="margin-bottom:20px;border-top:2px solid #f5c6c6;padding-top:10px"><div style="font-size:.75rem;font-weight:600;color:#777;margin-bottom:6px">Off-track breakdown</div>' + sigRows + '</div>' : ''}
+    <div style="border-top:1px solid #e4e4e7;margin-top:16px;padding-top:16px">
+      <div style="font-size:.75rem;font-weight:600;color:#777;margin-bottom:6px">${issueTypeCount ? issueTypeCount+' ' : ''}Top issues</div>
+      ${issueRows}
+    </div>`;
+
+  document.getElementById('sp-title').textContent = '# Deliverables';
   document.getElementById('sp-sub').textContent   = lbl + ' ' + yr;
-  document.getElementById('sp-pb').innerHTML = buildThreadTable(threads, sortKey);
+  document.getElementById('sp-pb').innerHTML      = html;
   document.getElementById('sp-ov').classList.add('on');
   document.getElementById('sp').classList.add('open');
+}
+
+function filterFromDrill(el) {
+  const ym     = el.dataset.ym;
+  const type   = el.dataset.type;
+  const filter = el.dataset.filter;
+  const threads = THREAD_DATA[ym] || [];
+  const filtered = type === 'signal'
+    ? threads.filter(t => t.signal === filter)
+    : threads.filter(t => (t.ai_issue||'').split(',').map(x=>x.trim()).includes(filter));
+  const count = filtered.length;
+  openDialog(filter, count+' deliverable'+(count!==1?'s':''), buildThreadTable(filtered, 'task_days'));
 }
 
 function drillDlg(el) {
