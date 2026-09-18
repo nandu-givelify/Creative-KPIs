@@ -1027,10 +1027,15 @@ def compute_metrics(month_data, managers, users=None, roster=None):
 
 def compute_all_designer_stats(merged_c):
     """Aggregate per-designer stats across all months from thread_details."""
-    designer_deliverables = {}  # name → list of (month, deliverable_dict)
+    designer_deliverables  = {}  # name → list of (month, deliverable_dict)
+    designer_reviewer_times = {}  # name → {month: avg_response_hours} (only reviewer months)
+
     for month, mdata in sorted(merged_c.items()):
         for name, delivs in mdata.get("thread_details", {}).items():
             designer_deliverables.setdefault(name, []).extend((month, d) for d in delivs)
+        # Reviewer response times come from the drill data keyed by reviewer label
+        for rev_name, avg_h in mdata.get("drill", {}).get("response_per_d", {}).items():
+            designer_reviewer_times.setdefault(rev_name, {})[month] = avg_h
 
     result = {}
     for name, pairs in designer_deliverables.items():
@@ -1050,6 +1055,8 @@ def compute_all_designer_stats(merged_c):
             "avg_days": avg_days, "avg_ds_per_month": avg_ds_per_month,
             "avg_replies": avg_replies, "avg_cycles": avg_cycles,
             "monthly": monthly,
+            # {month: avg_hours} — only months where this person acted as reviewer
+            "reviewer_monthly": designer_reviewer_times.get(name, {}),
         }
     return result
 
@@ -1195,11 +1202,12 @@ def generate_designer_page(name, stats, base_url=".."):
     total          = stats.get("total", 0)
     on_track       = stats.get("on_track", 0)
     off_track      = stats.get("off_track", 0)
-    avg_days       = stats.get("avg_days", 0)
+    avg_days         = stats.get("avg_days", 0)
     avg_ds_per_month = stats.get("avg_ds_per_month", 0)
-    avg_replies    = stats.get("avg_replies", 0)
-    avg_cycles     = stats.get("avg_cycles", 0)
-    monthly        = stats.get("monthly", {})
+    avg_replies      = stats.get("avg_replies", 0)
+    avg_cycles       = stats.get("avg_cycles", 0)
+    monthly          = stats.get("monthly", {})
+    reviewer_monthly = stats.get("reviewer_monthly", {})  # {month: avg_hours as reviewer}
 
     on_pct  = round(on_track / total * 100) if total else 0
     off_pct = 100 - on_pct if total else 0
@@ -1227,11 +1235,8 @@ def generate_designer_page(name, stats, base_url=".."):
         parts = ym.split("-")
         return month_name_map.get(parts[1], parts[1]) if len(parts) == 2 else ym
 
-    # ── Does this designer have any reviewer-wait data? ───────────────────────
-    has_response = any(
-        d.get("reviewer_wait_bdays") is not None
-        for delivs in monthly.values() for d in delivs
-    )
+    # ── Does this designer have reviewer response data (acted as reviewer)? ──
+    has_response = bool(reviewer_monthly)
 
     # ── Per-month metric values ───────────────────────────────────────────────
     def month_metrics(delivs):
@@ -1241,13 +1246,12 @@ def generate_designer_page(name, stats, base_url=".."):
         cycles  = round(sum(d.get("cycle_count", 0) for d in delivs) / n, 2)
         replies = round(sum(d.get("reply_count", 0) for d in delivs) / n, 2)
         days    = round(sum(d.get("task_days", 0)   for d in delivs) / n, 1)
-        rt = [d["reviewer_wait_bdays"] for d in delivs if d.get("reviewer_wait_bdays") is not None]
         return {
             "num_ds":          n,
             "cycles_per_d":    cycles,
             "replies_per_d":   replies,
             "task_days_per_d": days,
-            "response_per_d":  round(sum(rt)/len(rt), 1) if rt else None,
+            # response_per_d is NOT computed here — sourced from reviewer_monthly (hours as reviewer)
         }
 
     mv = {m: month_metrics(delivs) for m, delivs in monthly.items()}
@@ -1279,8 +1283,13 @@ def generate_designer_page(name, stats, base_url=".."):
         tr_cls = "mr tr-response" if key == "response_per_d" else "mr"
         cells  = ""
         for m in all_months:
-            val  = mv.get(m, {}).get(key)
-            fval = fmt(val, key)
+            # response_per_d uses reviewer_monthly (hours as reviewer); blank if didn't review
+            if key == "response_per_d":
+                raw  = reviewer_monthly.get(m)
+                fval = f"{raw}h" if raw is not None else None
+            else:
+                val  = mv.get(m, {}).get(key)
+                fval = fmt(val, key)
             mlab = mon_label(m)
             yr_  = m.split("-")[0]
             if fval is None:
@@ -1340,12 +1349,11 @@ def generate_designer_page(name, stats, base_url=".."):
     avg_cyc_d   = str(avg_cycles)      if total else "—"
     avg_rep_d   = str(avg_replies)     if total else "—"
 
-    # Overall avg response time (for review efficiency card)
-    _rt_all   = [d["reviewer_wait_bdays"] for delivs in monthly.values() for d in delivs
-                 if d.get("reviewer_wait_bdays") is not None]
-    _avg_resp = round(sum(_rt_all) / len(_rt_all), 1) if _rt_all else None
-    resp_mini = (f'<div class="kpi-mini"><div class="kpi-mini-n">{_avg_resp}h</div>'
-                 f'<div class="kpi-mini-l">Avg response</div></div>') if _avg_resp else ""
+    # Overall avg response time as reviewer — average only over months they reviewed
+    _resp_vals = list(reviewer_monthly.values())
+    _avg_resp  = round(sum(_resp_vals) / len(_resp_vals), 1) if _resp_vals else None
+    resp_mini  = (f'<div class="kpi-mini"><div class="kpi-mini-n">{_avg_resp}h</div>'
+                  f'<div class="kpi-mini-l">Avg response</div></div>') if _avg_resp else ""
 
     return f"""<!DOCTYPE html>
 <html lang="en">
