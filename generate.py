@@ -1204,6 +1204,17 @@ def generate_designer_page(name, stats, base_url=".."):
     on_pct  = round(on_track / total * 100) if total else 0
     off_pct = 100 - on_pct if total else 0
 
+    # Compute avg days for all / on-track / off-track (for summary cards)
+    _all_delivs  = [d for delivs in monthly.values() for d in delivs]
+    _on_delivs   = [d for d in _all_delivs if d.get("signal") == "On track"]
+    _off_delivs  = [d for d in _all_delivs if d.get("signal") != "On track"]
+    def _avg_days(ds):
+        vals = [d["task_days"] for d in ds if d.get("task_days") is not None]
+        return round(sum(vals)/len(vals), 1) if vals else None
+    avg_days_all  = _avg_days(_all_delivs)
+    avg_days_ok   = _avg_days(_on_delivs)
+    avg_days_flag = _avg_days(_off_delivs)
+
     # ── Month list (ascending for table header) ──────────────────────────────
     all_months = sorted(monthly.keys())
     month_name_map = {
@@ -1244,14 +1255,15 @@ def generate_designer_page(name, stats, base_url=".."):
 
     # ── Metric rows ───────────────────────────────────────────────────────────
     # Skip ds_per_person (meaningless for 1 person). Target for num_ds = 4 (individual).
+    # drill_type: "num_ds" = summary panel, "dlg" = centered dialog, None = plain (no drilldown)
     INDIV_METRICS = [
-        ("num_ds",          "# Deliverables",        "4",   "dl"),
-        ("cycles_per_d",    "Cycles / Deliverable",  "TBD", "sp"),
-        ("replies_per_d",   "Replies / Deliverable", "TBD", "sp"),
+        ("num_ds",          "# Deliverables",        "4",   "num_ds"),
+        ("cycles_per_d",    "Cycles / Deliverable",  "TBD", None),
+        ("replies_per_d",   "Replies / Deliverable", "TBD", None),
         ("task_days_per_d", "Avg. Days to Complete", "TBD", "dlg"),
     ]
     if has_response:
-        INDIV_METRICS.append(("response_per_d", "Avg. Response Time", "TBD", "sp"))
+        INDIV_METRICS.append(("response_per_d", "Avg. Response Time", "TBD", None))
 
     def fmt(val, key):
         if val is None: return None
@@ -1268,21 +1280,24 @@ def generate_designer_page(name, stats, base_url=".."):
             val  = mv.get(m, {}).get(key)
             fval = fmt(val, key)
             mlab = mon_label(m)
-            yr   = m.split("-")[0]
+            yr_  = m.split("-")[0]
             if fval is None:
                 cells += '<td class="mc"><span class="empty">—</span></td>'
             elif drill_type == "dlg":
                 cells += (
                     f'<td class="mc"><span class="mv click" '
-                    f'data-ym="{m}" data-label="{mlab}" data-year="{yr}" data-key="{key}"'
+                    f'data-ym="{m}" data-label="{mlab}" data-year="{yr_}" data-key="{key}"'
                     f' onclick="drillDlg(this)">{fval}</span></td>'
                 )
-            else:
+            elif drill_type == "num_ds":
                 cells += (
                     f'<td class="mc"><span class="mv click" '
-                    f'data-ym="{m}" data-label="{mlab}" data-year="{yr}" data-key="{key}" data-metric="{label}"'
-                    f' onclick="drillPanel(this)">{fval}</span></td>'
+                    f'data-ym="{m}" data-label="{mlab}" data-year="{yr_}"'
+                    f' onclick="drillNumDs(this)">{fval}</span></td>'
                 )
+            else:
+                # No drilldown — plain value
+                cells += f'<td class="mc"><span class="mv">{fval}</span></td>'
         rows_html += (
             f'<tr class="{tr_cls}">'
             f'<td class="ml"><div class="mn">{label}</div>'
@@ -1316,10 +1331,18 @@ def generate_designer_page(name, stats, base_url=".."):
     total_d       = total         if total else "—"
     on_d          = on_track      if total else "—"
     off_d         = off_track     if total else "—"
-    avg_days_d    = f"{avg_days}d"  if total else "—"
-    avg_ds_d      = avg_ds_per_month if total else "—"
-    avg_replies_d = avg_replies   if total else "—"
-    avg_cycles_d  = avg_cycles    if total else "—"
+    _fmt_sub = lambda v: f"{v}d to complete" if v is not None else "—"
+    avg_all_sub   = _fmt_sub(avg_days_all)
+    avg_ok_sub    = _fmt_sub(avg_days_ok)
+    avg_flag_sub  = _fmt_sub(avg_days_flag)
+    on_pct_str    = f"({on_pct}%)" if total else ""
+    off_pct_str   = f"({off_pct}%)" if total else ""
+
+    # Bullet line for stats
+    _avg_ds_bul  = avg_ds_per_month if total else "—"
+    _avg_rep_bul = avg_replies       if total else "—"
+    _avg_cyc_bul = avg_cycles        if total else "—"
+    stats_bullets = f"Avg {_avg_ds_bul}/month&nbsp;&nbsp;·&nbsp;&nbsp;{_avg_rep_bul} replies/d&nbsp;&nbsp;·&nbsp;&nbsp;{_avg_cyc_bul} cycles/d"
 
     return f"""<!DOCTYPE html>
 <html lang="en">
@@ -1338,19 +1361,17 @@ body{{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--
 h1{{font-size:1.875rem;font-weight:600;letter-spacing:-.025em;color:var(--fg)}}
 .copy-btn-hdr{{background:none;border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;font-size:.8rem;font-weight:500;color:var(--muted-fg);padding:7px 14px;transition:all .15s;white-space:nowrap}}
 .copy-btn-hdr:hover{{border-color:var(--ring);color:var(--fg)}}
-/* stat cards */
-.stat-grid{{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:16px}}
-.stat-grid-sm{{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:48px}}
-.sc{{background:var(--muted);border-radius:8px;padding:20px 22px;border:1px solid transparent}}
-.sc.green{{background:#f0faf2;border-color:#c3e6cb}}
-.sc.red{{background:#fff3f3;border-color:#f5c6c6}}
-.sc-lbl{{font-size:.68rem;font-weight:600;color:var(--muted-fg);margin-bottom:10px;text-transform:uppercase;letter-spacing:.05em}}
-.sc-big{{font-size:2rem;font-weight:700;color:var(--fg);line-height:1}}
-.sc-big.green{{color:#16a34a}}.sc-big.red{{color:#dc2626}}
-.sc-sub{{font-size:.75rem;color:var(--muted-fg);margin-top:6px}}
-.sc-sm{{background:var(--muted);border-radius:8px;padding:16px 20px}}
-.sc-sm-lbl{{font-size:.68rem;font-weight:600;color:var(--muted-fg);margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em}}
-.sc-sm-val{{font-size:1.375rem;font-weight:600;color:var(--fg)}}
+/* summary cards — match main dashboard deliverables drill-down style */
+.sum-cards{{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px}}
+.sum-stats{{font-size:.8rem;color:var(--muted-fg);margin-bottom:40px;padding-top:2px}}
+.sum-stats span{{margin-right:14px;white-space:nowrap}}
+/* definitions legend */
+.dash-row{{display:flex;justify-content:space-between;align-items:baseline;padding:5px 0;border-bottom:1px solid var(--border);font-size:.8rem}}
+.dash-row:last-child{{border:none}}
+.leg{{margin-top:28px;padding-top:18px;border-top:1px solid var(--border)}}
+.leg-title{{font-size:.7rem;font-weight:600;color:var(--muted-fg);margin-bottom:10px}}
+.leg-row{{display:flex;gap:8px;align-items:flex-start;margin-bottom:7px;font-size:.78rem;color:#777;line-height:1.45}}
+.leg-row .sig{{flex-shrink:0;margin-top:1px}}
 /* table — identical to main dashboard */
 table{{width:100%;border-collapse:collapse;margin-bottom:52px}}
 th,td{{padding:18px 10px;border-bottom:1px solid var(--border);vertical-align:middle}}
@@ -1400,8 +1421,8 @@ tr.tr-response:hover td{{background:#ebebec!important}}
 .nd{{color:var(--ring);font-size:.8rem;padding:20px 0;text-align:center}}
 .col-deliv{{width:24%}}.col-sig{{width:12%}}.col-num{{width:7%}}.col-ai{{width:30%}}.col-issue{{width:20%}}
 .ft{{font-size:.6875rem;color:var(--muted-fg);margin-top:8px}}
-@media(max-width:900px){{body{{padding:32px 28px}}.stat-grid{{grid-template-columns:repeat(2,1fr)}}.stat-grid-sm{{grid-template-columns:repeat(2,1fr)}}}}
-@media(max-width:540px){{body{{padding:24px 16px}}.stat-grid{{grid-template-columns:1fr}}.stat-grid-sm{{grid-template-columns:1fr}}}}
+@media(max-width:900px){{body{{padding:32px 28px}}.sum-cards{{grid-template-columns:repeat(2,1fr)}}}}
+@media(max-width:540px){{body{{padding:24px 16px}}.sum-cards{{grid-template-columns:1fr}}}}
 </style>
 </head>
 <body>
@@ -1412,47 +1433,46 @@ tr.tr-response:hover td{{background:#ebebec!important}}
   </div>
 </div>
 
-<div class="stat-grid">
-  <div class="sc">
-    <div class="sc-lbl">Total Deliverables</div>
-    <div class="sc-big">{total_d}</div>
-    <div class="sc-sub">all time</div>
+<div class="sum-cards">
+  <div style="background:#f4f4f5;border-radius:6px;padding:10px 8px">
+    <div style="font-size:.75rem;color:#777;margin-bottom:4px">Total</div>
+    <div style="font-size:1.5rem;font-weight:700;color:#09090b;line-height:1">{total_d}</div>
+    <div style="font-size:.68rem;color:#777;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{avg_all_sub}</div>
   </div>
-  <div class="sc green">
-    <div class="sc-lbl">On Track</div>
-    <div class="sc-big green">{on_d}</div>
-    <div class="sc-sub">{on_pct}% of total</div>
+  <div style="background:#f0faf2;border-radius:6px;padding:10px 8px;border:1px solid #c3e6cb">
+    <div style="font-size:.75rem;color:#777;margin-bottom:4px">On track</div>
+    <div style="font-size:1.5rem;font-weight:700;color:#16a34a;line-height:1">{on_d} <span style="font-size:.95rem;font-weight:500;color:#16a34a">{on_pct_str}</span></div>
+    <div style="font-size:.68rem;color:#777;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{avg_ok_sub}</div>
   </div>
-  <div class="sc red">
-    <div class="sc-lbl">Off Track</div>
-    <div class="sc-big red">{off_d}</div>
-    <div class="sc-sub">{off_pct}% of total</div>
-  </div>
-  <div class="sc">
-    <div class="sc-lbl">Avg Days to Complete</div>
-    <div class="sc-big">{avg_days_d}</div>
-    <div class="sc-sub">business days</div>
+  <div style="background:#fff3f3;border-radius:6px;padding:10px 8px;border:1px solid #f5c6c6">
+    <div style="font-size:.75rem;color:#777;margin-bottom:4px">Off track</div>
+    <div style="font-size:1.5rem;font-weight:700;color:#dc2626;line-height:1">{off_d} <span style="font-size:.95rem;font-weight:500;color:#dc2626">{off_pct_str}</span></div>
+    <div style="font-size:.68rem;color:#777;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{avg_flag_sub}</div>
   </div>
 </div>
-<div class="stat-grid-sm">
-  <div class="sc-sm">
-    <div class="sc-sm-lbl">Avg / Month</div>
-    <div class="sc-sm-val">{avg_ds_d}</div>
-  </div>
-  <div class="sc-sm">
-    <div class="sc-sm-lbl">Avg Replies / D</div>
-    <div class="sc-sm-val">{avg_replies_d}</div>
-  </div>
-  <div class="sc-sm">
-    <div class="sc-sm-lbl">Avg Cycles / D</div>
-    <div class="sc-sm-val">{avg_cycles_d}</div>
-  </div>
-</div>
+<div class="sum-stats">{stats_bullets}</div>
 
 <table>
   <thead><tr><th class="ml"></th>{mh_cells}</tr></thead>
   <tbody>{rows_html}</tbody>
 </table>
+
+<div class="leg">
+  <div class="leg-title">Signals — highest raw value wins when multiple apply</div>
+  <div class="leg-row"><span class="sig sig-err">High rework</span>6+ revision rounds after first submission</div>
+  <div class="leg-row"><span class="sig sig-err">Long pause</span>Longest gap ≥5 working days between consecutive messages (excl. weekends &amp; US holidays)</div>
+  <div class="leg-row"><span class="sig sig-err">Late feedback</span>Reviewer took &gt;2 business days to respond after being tagged</div>
+  <div class="leg-row"><span class="sig sig-err">Long discussion</span>Any single revision cycle had 5+ messages before the designer could move forward</div>
+  <div class="leg-row"><span class="sig sig-ot">On track</span>None of the above thresholds triggered</div>
+  <div class="leg-title" style="margin-top:14px">Columns</div>
+  <div class="leg-row"><strong>Cycles</strong> — Extra "For review" / "For feedback" rounds after first</div>
+  <div class="leg-row"><strong>Replies</strong> — Discussion messages attributed to this deliverable</div>
+  <div class="leg-row"><strong>Feedback</strong> — Avg business days for tagged reviewer to respond (avg across rounds)</div>
+  <div class="leg-row"><strong>Gap</strong> — Longest silent stretch between any two consecutive messages</div>
+  <div class="leg-row"><strong>Days</strong> — Total business days from first submission to last message</div>
+  <div class="leg-row"><strong>AI Summary</strong> — One-line root cause from Gemini, specific to thread content</div>
+  <div class="leg-row"><strong>Issue</strong> — Root-cause label from Gemini</div>
+</div>
 
 <div class="ft">Creative KPIs · {name}</div>
 
@@ -1528,22 +1548,95 @@ function buildThreadTable(threads, sortKey) {{
   </table>`;
 }}
 
-function drillPanel(el) {{
+function openDialog(title, subtitle, html) {{
+  document.getElementById('dlg-title').textContent = title;
+  document.getElementById('dlg-sub').textContent   = subtitle;
+  document.getElementById('dlg-pb').innerHTML      = html;
+  document.getElementById('dlg-ov').classList.add('on');
+  document.getElementById('dlg').classList.add('open');
+}}
+
+function drillNumDs(el) {{
   const ym  = el.dataset.ym;
   const lbl = el.dataset.label;
   const yr  = el.dataset.year;
-  const key = el.dataset.key;
-  const metric = el.dataset.metric;
   const threads = THREAD_DATA[ym] || [];
-  const sortKey = key === 'cycles_per_d' ? 'cycle_count'
-                : key === 'replies_per_d' ? 'reply_count'
-                : key === 'response_per_d' ? 'reviewer_wait_bdays'
-                : 'task_days';
-  document.getElementById('sp-title').textContent = metric;
+  const total   = threads.length;
+  const onTrack = threads.filter(t => t.signal === 'On track');
+  const offTrack = threads.filter(t => t.signal !== 'On track');
+  const onCnt   = onTrack.length, offCnt = offTrack.length;
+  const onPct   = total ? Math.round(onCnt/total*100) : 0;
+  const offPct  = 100 - onPct;
+  const avg = ds => ds.length ? Math.round(ds.reduce((s,t)=>s+(t.task_days||0),0)/ds.length) : null;
+  const avgAll  = avg(threads), avgOk = avg(onTrack), avgFlag = avg(offTrack);
+  const fmtAvg  = v => v != null ? v+'d to complete' : '—';
+
+  const SIG_OFF = ['High rework','Long pause','Long discussion','Late feedback'];
+  const sigBreak = {{}};
+  threads.forEach(t => {{ if (t.signal && t.signal !== 'On track') sigBreak[t.signal] = (sigBreak[t.signal]||0)+1; }});
+
+  const sigRows = SIG_OFF.filter(s => sigBreak[s]).map(s =>
+    `<div class="dash-row" style="cursor:pointer" data-ym="${{ym}}" data-type="signal" data-filter="${{s}}" onclick="filterFromDrill(this)">` +
+    `<span class="sig sig-err">${{s}}</span><span style="font-weight:600">${{sigBreak[s]}}</span></div>`
+  ).join('');
+
+  const issueCounts = {{}};
+  threads.forEach(t => {{
+    (t.ai_issue||'').split(',').map(x=>x.trim()).filter(Boolean).forEach(lbl => {{
+      issueCounts[lbl] = (issueCounts[lbl]||0)+1;
+    }});
+  }});
+  const topIssues = Object.entries(issueCounts).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  const issueRows = topIssues.length
+    ? topIssues.map(([lbl,cnt]) =>
+        `<div class="dash-row" style="cursor:pointer" data-ym="${{ym}}" data-type="issue" data-filter="${{lbl.replace(/"/g,'&quot;')}}" onclick="filterFromDrill(this)">` +
+        `<span style="color:#09090b">${{lbl}}</span><span style="font-weight:600;color:#09090b">${{cnt}}</span></div>`
+      ).join('')
+    : '<div style="font-size:.78rem;color:#71717a">Run workflow to generate AI issues</div>';
+
+  const issueTypeCount = topIssues.length;
+  const html = `
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px">
+      <div style="background:#f4f4f5;border-radius:6px;padding:10px 8px">
+        <div style="font-size:.75rem;color:#777;margin-bottom:4px">Total</div>
+        <div style="font-size:1.5rem;font-weight:700;color:#09090b;line-height:1">${{total}}</div>
+        <div style="font-size:.68rem;color:#777;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${{fmtAvg(avgAll)}}</div>
+      </div>
+      <div style="background:#f0faf2;border-radius:6px;padding:10px 8px;border:1px solid #c3e6cb">
+        <div style="font-size:.75rem;color:#777;margin-bottom:4px">On track</div>
+        <div style="font-size:1.5rem;font-weight:700;color:#16a34a;line-height:1">${{onCnt}} <span style="font-size:.95rem;font-weight:500;color:#16a34a">(${{onPct}}%)</span></div>
+        <div style="font-size:.68rem;color:#777;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${{fmtAvg(avgOk)}}</div>
+      </div>
+      <div style="background:#fff3f3;border-radius:6px;padding:10px 8px;border:1px solid #f5c6c6">
+        <div style="font-size:.75rem;color:#777;margin-bottom:4px">Off track</div>
+        <div style="font-size:1.5rem;font-weight:700;color:#dc2626;line-height:1">${{offCnt}} <span style="font-size:.95rem;font-weight:500;color:#dc2626">(${{offPct}}%)</span></div>
+        <div style="font-size:.68rem;color:#777;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${{fmtAvg(avgFlag)}}</div>
+        ${{sigRows ? '<div style="position:absolute;bottom:-10px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:8px solid transparent;border-right:8px solid transparent;border-top:10px solid #f5c6c6"></div>' : ''}}
+      </div>
+    </div>
+    ${{sigRows ? '<div style="margin-bottom:20px;border-top:2px solid #f5c6c6;padding-top:10px"><div style="font-size:.75rem;font-weight:600;color:#777;margin-bottom:6px">Off-track breakdown</div>' + sigRows + '</div>' : ''}}
+    <div style="border-top:1px solid #e4e4e7;margin-top:16px;padding-top:16px">
+      <div style="font-size:.75rem;font-weight:600;color:#777;margin-bottom:6px">${{issueTypeCount ? issueTypeCount+' ' : ''}}Top issues</div>
+      ${{issueRows}}
+    </div>`;
+
+  document.getElementById('sp-title').textContent = '# Deliverables';
   document.getElementById('sp-sub').textContent   = lbl + ' ' + yr;
-  document.getElementById('sp-pb').innerHTML = buildThreadTable(threads, sortKey);
+  document.getElementById('sp-pb').innerHTML      = html;
   document.getElementById('sp-ov').classList.add('on');
   document.getElementById('sp').classList.add('open');
+}}
+
+function filterFromDrill(el) {{
+  const ym     = el.dataset.ym;
+  const type   = el.dataset.type;
+  const filter = el.dataset.filter;
+  const threads = THREAD_DATA[ym] || [];
+  const filtered = type === 'signal'
+    ? threads.filter(t => t.signal === filter)
+    : threads.filter(t => (t.ai_issue||'').split(',').map(x=>x.trim()).includes(filter));
+  const count = filtered.length;
+  openDialog(filter, count+' deliverable'+(count!==1?'s':''), buildThreadTable(filtered, 'task_days'));
 }}
 
 function drillDlg(el) {{
@@ -1783,7 +1876,7 @@ tr.tr-response:hover td{{background:#ebebec!important}}
 .copy-btn{{background:none;border:none;cursor:pointer;color:var(--muted-fg);font-size:.85rem;padding:2px 6px;border-radius:4px;transition:color .15s}}
 .copy-btn:hover{{color:var(--fg)}}
 .designer-link{{color:var(--fg);text-decoration:none;font-weight:600}}
-.designer-link:hover{{color:#5e6ad2;text-decoration:underline;text-decoration-style:dotted}}
+.designer-link:hover{{color:#0057d9;text-decoration:underline;text-decoration-style:dotted}}
 </style>
 </head>
 <body>
