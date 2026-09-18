@@ -1344,8 +1344,8 @@ def generate_designer_page(name, stats, base_url=".."):
     _rt_all   = [d["reviewer_wait_bdays"] for delivs in monthly.values() for d in delivs
                  if d.get("reviewer_wait_bdays") is not None]
     _avg_resp = round(sum(_rt_all) / len(_rt_all), 1) if _rt_all else None
-    resp_row  = (f'<div class="kpi-row"><span class="kpi-row-l">Avg response time</span>'
-                 f'<span class="kpi-row-v">{_avg_resp}h</span></div>') if _avg_resp else ""
+    resp_mini = (f'<div class="kpi-mini"><div class="kpi-mini-n">{_avg_resp}h</div>'
+                 f'<div class="kpi-mini-l">Avg response</div></div>') if _avg_resp else ""
 
     return f"""<!DOCTYPE html>
 <html lang="en">
@@ -1365,15 +1365,18 @@ h1{{font-size:1.875rem;font-weight:600;letter-spacing:-.025em;color:var(--fg)}}
 .copy-btn-hdr{{background:none;border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;font-size:.8rem;font-weight:500;color:var(--muted-fg);padding:7px 14px;transition:all .15s;white-space:nowrap}}
 .copy-btn-hdr:hover{{border-color:var(--ring);color:var(--fg)}}
 /* top KPI section */
-.kpi-top{{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:44px}}
+.kpi-top{{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:44px;max-width:860px}}
 .kpi-card{{background:var(--muted);border-radius:8px;padding:18px 20px}}
-.kpi-lbl{{font-size:.68rem;font-weight:600;color:var(--muted-fg);margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em}}
-.kpi-big{{font-size:2rem;font-weight:700;color:var(--fg);line-height:1;margin-bottom:10px}}
-.kpi-rows{{display:flex;flex-direction:column;gap:5px}}
-.kpi-row{{display:flex;justify-content:space-between;align-items:baseline;font-size:.78rem}}
-.kpi-row-l{{color:var(--muted-fg)}}
-.kpi-row-v{{font-weight:600;color:var(--fg)}}
-.kpi-row-v.green{{color:#16a34a}}.kpi-row-v.red{{color:#dc2626}}
+.kpi-lbl{{font-size:.75rem;font-weight:600;color:var(--muted-fg);margin-bottom:10px}}
+.kpi-big{{font-size:2rem;font-weight:700;color:var(--fg);line-height:1;margin-bottom:12px}}
+.kpi-chips{{display:flex;gap:8px;margin-bottom:10px}}
+.kpi-chip{{border-radius:6px;padding:8px 12px;flex:1}}
+.kpi-chip-n{{font-size:1.2rem;font-weight:700;line-height:1;margin-bottom:2px}}
+.kpi-chip-l{{font-size:.72rem;color:#777}}
+.kpi-mini-row{{display:flex;gap:24px;flex-wrap:wrap;margin-top:4px}}
+.kpi-mini{{display:flex;flex-direction:column;gap:2px}}
+.kpi-mini-n{{font-size:1.375rem;font-weight:700;color:var(--fg)}}
+.kpi-mini-l{{font-size:.72rem;color:var(--muted-fg)}}
 /* definitions legend */
 .dash-row{{display:flex;justify-content:space-between;align-items:baseline;padding:5px 0;border-bottom:1px solid var(--border);font-size:.8rem}}
 .dash-row:last-child{{border:none}}
@@ -1430,7 +1433,7 @@ tr.tr-response:hover td{{background:#ebebec!important}}
 .nd{{color:var(--ring);font-size:.8rem;padding:20px 0;text-align:center}}
 .col-deliv{{width:24%}}.col-sig{{width:12%}}.col-num{{width:7%}}.col-ai{{width:30%}}.col-issue{{width:20%}}
 .ft{{font-size:.6875rem;color:var(--muted-fg);margin-top:8px}}
-@media(max-width:900px){{body{{padding:32px 28px}}.kpi-top{{grid-template-columns:repeat(2,1fr)}}}}
+@media(max-width:900px){{body{{padding:32px 28px}}}}
 @media(max-width:540px){{body{{padding:24px 16px}}.kpi-top{{grid-template-columns:1fr}}}}
 </style>
 </head>
@@ -1445,47 +1448,37 @@ tr.tr-response:hover td{{background:#ebebec!important}}
 <div class="kpi-top">
   <!-- Card 1: Total deliverables -->
   <div class="kpi-card">
-    <div class="kpi-lbl">Total in {_data_year}</div>
+    <div class="kpi-lbl">Total Deliverables in {_data_year}</div>
     <div class="kpi-big">{total_d}</div>
-    <div class="kpi-rows">
-      <div class="kpi-row">
-        <span class="kpi-row-l">On track</span>
-        <span class="kpi-row-v green">{on_d} {on_pct_d}</span>
+    <div class="kpi-chips">
+      <div class="kpi-chip" style="background:#f0faf2;border:1px solid #c3e6cb">
+        <div class="kpi-chip-n" style="color:#16a34a">{on_d} <span style="font-size:.85rem;font-weight:500">{on_pct_d}</span></div>
+        <div class="kpi-chip-l">On track</div>
       </div>
-      <div class="kpi-row">
-        <span class="kpi-row-l">Off track</span>
-        <span class="kpi-row-v red">{off_d} {off_pct_d}</span>
-      </div>
-    </div>
-  </div>
-  <!-- Card 2: Volume -->
-  <div class="kpi-card">
-    <div class="kpi-lbl">Avg / Month</div>
-    <div class="kpi-big">{avg_ds_d}</div>
-    <div class="kpi-rows">
-      <div class="kpi-row">
-        <span class="kpi-row-l">Avg to complete</span>
-        <span class="kpi-row-v">{avg_days_d}</span>
+      <div class="kpi-chip" style="background:#fff3f3;border:1px solid #f5c6c6">
+        <div class="kpi-chip-n" style="color:#dc2626">{off_d} <span style="font-size:.85rem;font-weight:500">{off_pct_d}</span></div>
+        <div class="kpi-chip-l">Off track</div>
       </div>
     </div>
+    <div style="font-size:.78rem;color:var(--muted-fg)">Avg {avg_ds_d} / month</div>
   </div>
-  <!-- Card 3: Review efficiency -->
+  <!-- Card 2: Review efficiency -->
   <div class="kpi-card">
     <div class="kpi-lbl">Review Efficiency</div>
-    <div class="kpi-rows" style="margin-top:4px">
-      <div class="kpi-row">
-        <span class="kpi-row-l">Total deliverables</span>
-        <span class="kpi-row-v">{total_d}</span>
+    <div class="kpi-mini-row">
+      <div class="kpi-mini">
+        <div class="kpi-mini-n">{avg_cyc_d}</div>
+        <div class="kpi-mini-l">Cycles / d</div>
       </div>
-      <div class="kpi-row">
-        <span class="kpi-row-l">Cycles / deliverable</span>
-        <span class="kpi-row-v">{avg_cyc_d}</span>
+      <div class="kpi-mini">
+        <div class="kpi-mini-n">{avg_rep_d}</div>
+        <div class="kpi-mini-l">Replies / d</div>
       </div>
-      <div class="kpi-row">
-        <span class="kpi-row-l">Replies / deliverable</span>
-        <span class="kpi-row-v">{avg_rep_d}</span>
+      <div class="kpi-mini">
+        <div class="kpi-mini-n">{avg_days_d}</div>
+        <div class="kpi-mini-l">Avg to complete</div>
       </div>
-      {resp_row}
+      {resp_mini}
     </div>
   </div>
 </div>
